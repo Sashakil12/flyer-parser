@@ -31,6 +31,7 @@ Return a JSON array with this exact structure for each DISTINCT VISUAL PRODUCT:
     "product_name": "Complete product name as shown near the product image",
     "discount_price": 12.99,
     "old_price": 19.99,
+    "currency": "USD",
     "additional_info": ["Brand name", "Size info", "Promotional text"]
   }
 ]
@@ -39,7 +40,15 @@ Schema requirements:
 - product_name: string (required) - Product name that corresponds to a visible product image
 - discount_price: number (optional) - Sale price if different from regular price
 - old_price: number (required) - Regular/original price
+- currency: string (required) - 3-letter currency code (USD, CAD, EUR, GBP, etc.)
 - additional_info: string[] (optional) - Additional details like brand, size, or promo text
+
+**CURRENCY DETECTION RULES**:
+- Analyze price symbols and text to determine currency ($ = USD/CAD, € = EUR, £ = GBP, etc.)
+- Look for currency indicators like "CAD", "USD", "€", "$", "£"
+- If multiple currencies detected, use the most prominent one
+- Default to "USD" if currency cannot be determined
+- Return standard 3-letter ISO currency codes (USD, CAD, EUR, GBP, AUD, etc.)
 
 **CRITICAL RULES**:
 - Only parse products with visible product images, not text-only mentions
@@ -47,7 +56,21 @@ Schema requirements:
 - One JSON object per distinct visual product (not per text mention)
 - Focus on actual retail products being sold, not category headers or brand logos
 - Use precise numeric values for prices (12.99, not "$12.99")
+- Always include currency code for each product based on visual currency indicators
 - Return ONLY valid JSON, no explanations
+
+**IF NO PRODUCTS CAN BE EXTRACTED**:
+Return an error object with this exact format:
+{
+  "error": "NO_PRODUCTS_FOUND",
+  "reason": "Brief explanation of why no products could be extracted"
+}
+
+**POSSIBLE ERROR REASONS**:
+- "NO_PRODUCTS_FOUND": No clear product images with pricing found
+- "IMAGE_UNCLEAR": Image quality too poor to identify products
+- "NO_PRICING": Products visible but no clear pricing information
+- "NON_RETAIL": Image does not appear to be a retail flyer
 
 Return valid JSON format only.
 `
@@ -117,6 +140,13 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
       
       parsedData = JSON.parse(cleanedText)
       
+      // Check if it's an error object
+      if (parsedData && typeof parsedData === 'object' && !Array.isArray(parsedData) && 'error' in parsedData) {
+        const errorObj = parsedData as { error: string; reason?: string }
+        const errorReason = `${errorObj.error}: ${errorObj.reason || 'No specific reason provided'}`
+        throw new Error(errorReason)
+      }
+      
       // Ensure it's an array
       if (!Array.isArray(parsedData)) {
         parsedData = [parsedData]
@@ -130,6 +160,11 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
         
         if (!item.old_price || typeof item.old_price !== 'number') {
           throw new Error(`Invalid old_price for item ${index + 1}`)
+        }
+        
+        // Currency validation - required field
+        if (!item.currency || typeof item.currency !== 'string') {
+          throw new Error(`Invalid or missing currency for item ${index + 1}`)
         }
         
         // Optional discount_price validation
@@ -146,6 +181,7 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
           product_name: item.product_name.trim(),
           discount_price: item.discount_price,
           old_price: item.old_price,
+          currency: item.currency.toUpperCase(), // Normalize to uppercase
           additional_info: item.additional_info || [],
         }
       })

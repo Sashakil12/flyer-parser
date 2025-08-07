@@ -3,6 +3,7 @@ import { storage } from './firebase/config'
 import { addFlyerImage } from './firestore'
 import { FlyerImage } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
+import { validateImageFile, MAX_FILE_SIZE } from '@/lib/imageTypes'
 
 /**
  * Upload multiple files to Firebase Storage and create Firestore records
@@ -144,24 +145,13 @@ export const getFileMetadata = (storageUrl: string) => {
  * Validate file before upload
  */
 export const validateFile = (file: File): { isValid: boolean; error?: string } => {
-  // Check file type
-  if (!file.type.startsWith('image/')) {
-    return { isValid: false, error: 'File must be an image' }
+  // Check if file exists
+  if (!file) {
+    return { isValid: false, error: 'No file provided' }
   }
   
-  // Check file size (10MB limit)
-  const maxSize = 10 * 1024 * 1024 // 10MB
-  if (file.size > maxSize) {
-    return { isValid: false, error: 'File size must be less than 10MB' }
-  }
-  
-  // Check supported formats
-  const supportedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-  if (!supportedTypes.includes(file.type)) {
-    return { isValid: false, error: 'Supported formats: JPEG, PNG, WebP, GIF' }
-  }
-  
-  return { isValid: true }
+  // Use comprehensive validation from imageTypes
+  return validateImageFile(file)
 }
 
 /**

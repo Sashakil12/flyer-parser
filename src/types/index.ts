@@ -12,6 +12,7 @@ export interface FlyerImage {
   fileType: string
   storageUrl: string
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed'
+  failureReason?: string // Optional reason when status is 'failed'
   uploadedBy: string
 }
 
@@ -21,6 +22,7 @@ export interface ParsedFlyerItem {
   productName: string
   discountPrice?: number
   oldPrice: number
+  currency: string // Currency code (e.g., 'USD', 'CAD', 'EUR')
   additionalInfo?: string[]
   confidence: number // AI confidence score (0-1)
   parsedAt: Timestamp
@@ -45,6 +47,7 @@ export interface GeminiParseResult {
   product_name: string
   discount_price?: number
   old_price: number
+  currency: string // Currency code detected from the image
   additional_info?: string[]
 }
 

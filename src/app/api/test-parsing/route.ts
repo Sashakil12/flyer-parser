@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
           productName: item.product_name,
           discountPrice: item.discount_price,
           oldPrice: item.old_price,
+          currency: item.currency,
           additionalInfo: item.additional_info,
           confidence: 0.85,
           verified: false,

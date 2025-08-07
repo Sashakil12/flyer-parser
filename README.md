@@ -1,4 +1,4 @@
-# Super Shop Flyer Parser App
+# Flyer Parser App
 
 An AI-powered application that automatically parses and extracts product information from retail store flyers using Google Gemini Pro 2.5, Firebase, and Inngest workflows.
 

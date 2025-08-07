@@ -64,11 +64,24 @@ export const getFlyerImages = async (): Promise<FlyerImage[]> => {
 
 export const updateFlyerImageStatus = async (
   id: string, 
-  status: FlyerImage['processingStatus']
+  status: FlyerImage['processingStatus'],
+  failureReason?: string
 ): Promise<void> => {
   try {
     const docRef = doc(db, FLYER_IMAGES_COLLECTION, id)
-    await updateDoc(docRef, { processingStatus: status })
+    const updateData: any = { processingStatus: status }
+    
+    // Add failure reason if status is failed
+    if (status === 'failed' && failureReason) {
+      updateData.failureReason = failureReason
+    }
+    
+    // Clear failure reason if status is not failed
+    if (status !== 'failed') {
+      updateData.failureReason = null
+    }
+    
+    await updateDoc(docRef, updateData)
   } catch (error: any) {
     console.error('Error updating flyer image status:', error)
     throw new Error('Failed to update processing status')

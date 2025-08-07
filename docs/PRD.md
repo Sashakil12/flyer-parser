@@ -1,4 +1,4 @@
-# Super Shop Flyer Parser App
+# Flyer Parser App
 
 ## Project Overview
 

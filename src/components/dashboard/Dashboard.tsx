@@ -26,8 +26,25 @@ export default function Dashboard() {
   }
 
   return (
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* <div className="mb-12 text-center">
+          <div className="relative inline-block">
+            <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25"></div>
+            <div className="relative bg-white/80 backdrop-blur-sm px-10 py-8 rounded-2xl shadow-xl border border-white/50">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-slate-900 via-blue-900 to-indigo-900 bg-clip-text text-transparent leading-tight">
+                Flyer Parser
+              </h1>
+              <p className="mt-4 text-lg text-gray-600 font-medium">
+                AI-Powered Dashboard
+              </p>
+            </div>
+          </div>
+        </div> */}
+      </div>
       
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
         {/* Stats Overview */}
         <StatsCards 
           stats={stats}
@@ -69,5 +86,6 @@ export default function Dashboard() {
           />
         </div>
       </main>
+    </div>
   )
 }

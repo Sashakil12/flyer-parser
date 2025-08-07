@@ -7,17 +7,30 @@ const PARSED_FLYER_ITEMS_COLLECTION = 'parsed-flyer-items'
 // Server-side Firestore operations using Firebase Admin SDK
 export const updateFlyerImageStatus = async (
   id: string,
-  status: FlyerImage['processingStatus']
+  status: FlyerImage['processingStatus'],
+  failureReason?: string
 ): Promise<void> => {
   try {
     console.log(`📝 Updating flyer image ${id} status to: ${status}`)
     
     const docRef = adminDb.collection(FLYER_IMAGES_COLLECTION).doc(id)
     
-    await docRef.update({ 
+    const updateData: any = {
       processingStatus: status,
       updatedAt: new Date()
-    })
+    }
+    
+    // Add failure reason if status is failed
+    if (status === 'failed' && failureReason) {
+      updateData.failureReason = failureReason
+    }
+    
+    // Clear failure reason if status is not failed
+    if (status !== 'failed') {
+      updateData.failureReason = null
+    }
+    
+    await docRef.update(updateData)
     
     console.log(`✅ Successfully updated flyer image ${id} status to: ${status}`)
   } catch (error: any) {

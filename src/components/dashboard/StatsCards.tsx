@@ -88,52 +88,62 @@ export default function StatsCards({ stats, isLoading }: StatsCardsProps) {
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
         {statsCards.map((item) => (
-          <div key={item.name} className="card overflow-hidden">
-            <div className="p-5">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <item.icon 
-                    className={`h-6 w-6 ${
-                      item.color === 'blue' ? 'text-blue-600' :
-                      item.color === 'green' ? 'text-green-600' :
-                      item.color === 'yellow' ? 'text-yellow-600' :
-                      item.color === 'red' ? 'text-red-600' :
-                      'text-gray-600'
-                    }`} 
-                  />
-                </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
-                      {item.name}
-                    </dt>
-                    <dd>
-                      <div className="text-lg font-medium text-gray-900">
-                        {item.value}
-                      </div>
-                    </dd>
-                  </dl>
+          <div key={item.name} className="relative group">
+            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-xl overflow-hidden">
+              <div className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-shrink-0">
+                    <div className={`h-12 w-12 rounded-xl flex items-center justify-center shadow-lg ${
+                      item.color === 'blue' ? 'bg-gradient-to-br from-blue-500 to-blue-600' :
+                      item.color === 'green' ? 'bg-gradient-to-br from-green-500 to-green-600' :
+                      item.color === 'yellow' ? 'bg-gradient-to-br from-yellow-500 to-yellow-600' :
+                      item.color === 'red' ? 'bg-gradient-to-br from-red-500 to-red-600' :
+                      item.color === 'indigo' ? 'bg-gradient-to-br from-indigo-500 to-indigo-600' :
+                      'bg-gradient-to-br from-gray-500 to-gray-600'
+                    }`}>
+                      <item.icon className="h-6 w-6 text-white" />
+                    </div>
+                  </div>
+                  <div className="ml-5 w-0 flex-1">
+                    <dl>
+                      <dt className="text-sm font-medium text-gray-600 truncate">
+                        {item.name}
+                      </dt>
+                      <dd className="mt-1">
+                        <div className="text-2xl font-bold text-gray-900">
+                          {item.value}
+                        </div>
+                      </dd>
+                    </dl>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className={`px-5 py-3 ${
-              item.color === 'blue' ? 'bg-blue-50' :
-              item.color === 'green' ? 'bg-green-50' :
-              item.color === 'yellow' ? 'bg-yellow-50' :
-              item.color === 'red' ? 'bg-red-50' :
-              'bg-gray-50'
-            }`}>
-              <div className="text-sm">
-                <span className={`font-medium ${
-                  item.changeType === 'positive' ? 'text-green-600' :
-                  item.changeType === 'negative' ? 'text-red-600' :
-                  'text-gray-600'
-                }`}>
-                  {item.color === 'green' && item.name === 'Success Rate' && successRate >= 90 && 'Excellent'}
-                  {item.color === 'yellow' && item.name === 'Success Rate' && successRate >= 70 && 'Good'}
-                  {item.color === 'red' && item.name === 'Success Rate' && successRate < 70 && 'Needs Improvement'}
-                  {item.name !== 'Success Rate' && 'Active'}
-                </span>
+              <div className={`px-6 py-3 bg-gradient-to-r ${
+                item.color === 'blue' ? 'from-blue-50/50 to-blue-100/50' :
+                item.color === 'green' ? 'from-green-50/50 to-green-100/50' :
+                item.color === 'yellow' ? 'from-yellow-50/50 to-yellow-100/50' :
+                item.color === 'red' ? 'from-red-50/50 to-red-100/50' :
+                item.color === 'indigo' ? 'from-indigo-50/50 to-indigo-100/50' :
+                'from-gray-50/50 to-gray-100/50'
+              } border-t border-white/50`}>
+                <div className="text-sm">
+                  <span className={`font-semibold ${
+                    item.changeType === 'positive' ? 'text-green-700' :
+                    item.changeType === 'negative' ? 'text-red-700' :
+                    item.color === 'blue' ? 'text-blue-700' :
+                    item.color === 'green' ? 'text-green-700' :
+                    item.color === 'yellow' ? 'text-yellow-700' :
+                    item.color === 'red' ? 'text-red-700' :
+                    item.color === 'indigo' ? 'text-indigo-700' :
+                    'text-gray-700'
+                  }`}>
+                    {item.color === 'green' && item.name === 'Success Rate' && successRate >= 90 && 'Excellent'}
+                    {item.color === 'yellow' && item.name === 'Success Rate' && successRate >= 70 && 'Good'}
+                    {item.color === 'red' && item.name === 'Success Rate' && successRate < 70 && 'Needs Improvement'}
+                    {item.name !== 'Success Rate' && 'Live Data'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -142,15 +152,17 @@ export default function StatsCards({ stats, isLoading }: StatsCardsProps) {
 
       {/* Status Breakdown */}
       {stats.totalFlyers > 0 && (
-        <div className="mt-6 card">
-          <div className="card-header">
-            <h3 className="text-lg font-medium text-gray-900">Processing Status</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Current status of all uploaded flyer images
-            </p>
-          </div>
-          <div className="card-body">
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="mt-8 relative group">
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+          <div className="relative bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-white/50 bg-gradient-to-r from-slate-50/50 to-white/50">
+              <h3 className="text-lg font-semibold text-gray-900">Processing Status</h3>
+              <p className="mt-1 text-sm text-gray-600">
+                Real-time status of all uploaded flyer images
+              </p>
+            </div>
+            <div className="p-6">
+              <div className="grid grid-cols-2 gap-6 sm:grid-cols-4">
               {statusBreakdown.map((status) => (
                 <div key={status.name} className="text-center">
                   <div className={`text-2xl font-bold ${
@@ -181,6 +193,7 @@ export default function StatsCards({ stats, isLoading }: StatsCardsProps) {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
           </div>
         </div>

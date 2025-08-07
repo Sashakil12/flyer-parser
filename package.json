@@ -26,6 +26,7 @@
     "@heroicons/react": "^2.1.4",
     "autoprefixer": "^10.4.19",
     "clsx": "^2.1.1",
+    "filesize": "^11.0.2",
     "firebase": "^10.12.2",
     "firebase-admin": "^12.1.1",
     "inngest": "^3.22.12",

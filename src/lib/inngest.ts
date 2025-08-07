@@ -3,7 +3,7 @@ import { Inngest } from 'inngest'
 // Create the client with environment-specific configuration
 export const inngest = new Inngest({ 
   id: 'badiyala-flyer-parser',
-  name: 'Super Shop Flyer Parser',
+  name: 'Flyer Parser',
   // Enhanced local development configuration
   ...(process.env.NODE_ENV === 'development' && {
     isDev: true,

@@ -50,8 +50,8 @@ export const parseFlyerFunction = inngest.createFunction(
     if (!parseResult.success) {
       // Step 3a: Update status to failed if parsing failed
       await step.run('update-status-failed', async () => {
-        await updateFlyerImageStatus(flyerImageId, 'failed')
-        return { status: 'failed' }
+        await updateFlyerImageStatus(flyerImageId, 'failed', parseResult.error)
+        return { status: 'failed', reason: parseResult.error }
       })
       
       throw new Error(`Parsing failed: ${parseResult.error}`)
@@ -69,6 +69,7 @@ export const parseFlyerFunction = inngest.createFunction(
             productName: item.product_name,
             discountPrice: item.discount_price,
             oldPrice: item.old_price,
+            currency: item.currency,
             additionalInfo: item.additional_info,
             confidence: 0.85, // Default confidence score
             verified: false,

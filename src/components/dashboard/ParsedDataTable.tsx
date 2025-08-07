@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { deleteParsedFlyerItem, updateParsedFlyerItem } from '@/lib/firestore'
+import { formatPrice as formatCurrencyPrice, formatPriceRange } from '@/lib/currency'
 
 interface ParsedDataTableProps {
   items: ParsedFlyerItem[]
@@ -163,19 +164,18 @@ export default function ParsedDataTable({ items, isLoading, onRefresh }: ParsedD
                 
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm text-gray-900">
-                    {item.discountPrice && (
+                    {item.discountPrice ? (
                       <div className="flex items-center space-x-2">
                         <span className="text-red-600 font-semibold">
-                          {formatPrice(item.discountPrice)}
+                          {formatCurrencyPrice(item.discountPrice, item.currency)}
                         </span>
                         <span className="text-gray-500 line-through text-xs">
-                          {formatPrice(item.oldPrice)}
+                          {formatCurrencyPrice(item.oldPrice, item.currency)}
                         </span>
                       </div>
-                    )}
-                    {!item.discountPrice && (
+                    ) : (
                       <span className="text-gray-900 font-medium">
-                        {formatPrice(item.oldPrice)}
+                        {formatCurrencyPrice(item.oldPrice, item.currency)}
                       </span>
                     )}
                   </div>

@@ -14,6 +14,7 @@ import {
   ChevronRightIcon, 
   CheckCircleIcon, 
   XCircleIcon,
+  ExclamationTriangleIcon,
   DocumentTextIcon,
   CalendarIcon,
   DocumentIcon,
@@ -23,7 +24,9 @@ import {
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EditProductModal from '@/components/ui/EditProductModal'
+import { filesize } from 'filesize'
 import toast from 'react-hot-toast'
+import { formatPrice as formatCurrencyPrice } from '@/lib/currency'
 
 const ITEMS_PER_PAGE = 10
 
@@ -201,7 +204,7 @@ export default function FlyerDetailPage() {
                   
                   <div className="flex items-center text-sm text-gray-600">
                     <TagIcon className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span>{(flyer.size / 1024 / 1024).toFixed(1)} MB</span>
+                    <span>{filesize(flyer.size)}</span>
                   </div>
                 </div>
               </div>
@@ -227,12 +230,16 @@ export default function FlyerDetailPage() {
               </div>
 
               {flyer.processingStatus === 'failed' ? (
-                <div className="p-12 text-center">
-                  <XCircleIcon className="mx-auto h-12 w-12 text-red-400" />
+                <div className="p-6 text-center">
+                  <ExclamationTriangleIcon className="mx-auto h-12 w-12 text-red-400" />
                   <h3 className="mt-2 text-sm font-semibold text-gray-900">Processing Failed</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    There was an error processing this flyer. Please try uploading again.
-                  </p>
+                  <p className="mt-1 text-sm text-gray-500">Unable to extract product information from this flyer.</p>
+                  {flyer.failureReason && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                      <p className="text-xs font-medium text-red-700">Failure Reason:</p>
+                      <p className="text-xs text-red-600 mt-1">{flyer.failureReason}</p>
+                    </div>
+                  )}
                 </div>
               ) : totalItems === 0 ? (
                 <div className="p-12 text-center">
@@ -270,13 +277,13 @@ export default function FlyerDetailPage() {
                             {/* Prices */}
                             <div className="mt-2 flex items-center space-x-4">
                               {item.discountPrice && (
-                                <span className="text-lg font-semibold text-green-600">
-                                  {formatPrice(item.discountPrice)}
+                                <span className="text-lg font-semibold text-red-600">
+                                  {formatCurrencyPrice(item.discountPrice, item.currency)}
                                 </span>
                               )}
                               
                               <span className={`text-sm ${item.discountPrice ? 'line-through text-gray-500' : 'text-lg font-semibold text-gray-900'}`}>
-                                {formatPrice(item.oldPrice)}
+                                {formatCurrencyPrice(item.oldPrice, item.currency)}
                               </span>
                               
                               {item.discountPrice && (

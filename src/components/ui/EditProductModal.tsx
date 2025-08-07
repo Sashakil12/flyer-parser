@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react'
 import { ParsedFlyerItem } from '@/types'
 import { XMarkIcon } from '@heroicons/react/24/outline'
+import { toast } from 'react-hot-toast'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import { getSupportedCurrencies, getCurrencySymbol } from '@/lib/currency'
 
 interface EditProductModalProps {
   isOpen: boolean
@@ -23,6 +26,7 @@ export default function EditProductModal({
     productName: '',
     discountPrice: '',
     oldPrice: '',
+    currency: 'USD',
     additionalInfo: ''
   })
 
@@ -33,6 +37,7 @@ export default function EditProductModal({
         productName: item.productName || '',
         discountPrice: item.discountPrice?.toString() || '',
         oldPrice: item.oldPrice?.toString() || '',
+        currency: item.currency || 'USD',
         additionalInfo: item.additionalInfo?.join(', ') || ''
       })
     } else if (!isOpen) {
@@ -41,6 +46,7 @@ export default function EditProductModal({
         productName: '',
         discountPrice: '',
         oldPrice: '',
+        currency: 'USD',
         additionalInfo: ''
       })
     }
@@ -51,16 +57,15 @@ export default function EditProductModal({
     if (!item) return
 
     try {
-      const updates = {
+      const updatedItem: Partial<ParsedFlyerItem> = {
         productName: formData.productName,
         discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice.toString()) : undefined,
         oldPrice: parseFloat(formData.oldPrice.toString()),
-        additionalInfo: formData.additionalInfo 
-          ? formData.additionalInfo.split(',').map(info => info.trim()).filter(Boolean)
-          : []
+        currency: formData.currency,
+        additionalInfo: formData.additionalInfo ? formData.additionalInfo.split(',').map(s => s.trim()).filter(Boolean) : []
       }
 
-      await onSave(item.id, updates)
+      await onSave(item.id, updatedItem)
       onClose()
     } catch (error) {
       console.error('Error saving product:', error)
@@ -144,6 +149,26 @@ export default function EditProductModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Leave empty if no discount"
               />
+            </div>
+
+            {/* Currency */}
+            <div>
+              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-1">
+                Currency *
+              </label>
+              <select
+                id="currency"
+                value={formData.currency}
+                onChange={(e) => handleInputChange('currency', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                required
+              >
+                {getSupportedCurrencies().map(currencyCode => (
+                  <option key={currencyCode} value={currencyCode}>
+                    {getCurrencySymbol(currencyCode)} - {currencyCode}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Additional Info */}

@@ -7,7 +7,7 @@ import ClientLayout from '@/components/layout/ClientLayout'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Super Shop Flyer Parser',
+  title: 'Flyer Parser',
   description: 'AI-powered flyer parsing application with advanced image recognition',
   keywords: ['AI', 'flyer parser', 'image recognition', 'retail', 'automation'],
 }
