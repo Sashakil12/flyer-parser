@@ -119,7 +119,7 @@ export default function FlyersPage() {
             {/* Image Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {flyers.map((flyer) => (
-                <div key={flyer.id} className="relative group">
+                <Link key={flyer.id} href={`/flyers/${flyer.id}`} className="relative group block cursor-pointer transform transition-transform hover:scale-[1.01]">
                   <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl blur opacity-0 group-hover:opacity-25 transition duration-500"></div>
                   <div className="relative bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/50 hover:shadow-2xl transition-all duration-300 group-hover:scale-[1.02]">
                   {/* Image */}
@@ -171,17 +171,14 @@ export default function FlyersPage() {
                         {filesize(flyer.size)}
                       </span>
                       
-                      <Link
-                        href={`/flyers/${flyer.id}`}
-                        className="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 hover:text-indigo-700 transition-colors"
-                      >
+                      <div className="inline-flex items-center px-2 py-1 text-xs font-medium text-indigo-600 group-hover:text-indigo-700 transition-colors">
                         <EyeIcon className="h-4 w-4 mr-1" />
-                        View Details
-                      </Link>
+                        Click to view
+                      </div>
                     </div>
                   </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
 
