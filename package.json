@@ -1,13 +1,43 @@
 {
   "name": "badiyala-flyer-parser",
   "version": "1.0.0",
-  "description": "",
+  "description": "AI-powered flyer parser app with Inngest integration",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
   },
-  "keywords": [],
+  "keywords": ["nextjs", "ai", "flyer-parser", "inngest", "firebase"],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.10.0"
+  "packageManager": "pnpm@10.10.0",
+  "dependencies": {
+    "next": "^14.2.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "firebase": "^10.12.2",
+    "firebase-admin": "^12.1.1",
+    "inngest": "^3.22.12",
+    "@google/generative-ai": "^0.15.0",
+    "@heroicons/react": "^2.1.4",
+    "clsx": "^2.1.1",
+    "tailwindcss": "^3.4.4",
+    "autoprefixer": "^10.4.19",
+    "postcss": "^8.4.38",
+    "react-dropzone": "^14.2.3",
+    "react-hot-toast": "^2.4.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.8",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.5.2",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.5"
+  }
 }
