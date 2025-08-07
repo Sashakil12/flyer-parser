@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from '@/lib/firebase/config'
-import { FlyerImage, ParsedFlyerItem } from '@/types'
-import { getFlyerImages, getParsedFlyerItems } from '@/lib/firestore'
+import { ParsedFlyerItem } from '@/types'
+import { updateParsedFlyerItem, approveParsedFlyerItem } from '@/lib/firestore'
+import { useRealtimeFlyer, useRealtimeParsedItems } from '@/hooks/useRealtimeFirestore'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -16,9 +17,12 @@ import {
   DocumentTextIcon,
   CalendarIcon,
   DocumentIcon,
-  TagIcon
+  TagIcon,
+  PencilIcon,
+  CheckIcon
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import EditProductModal from '@/components/ui/EditProductModal'
 import toast from 'react-hot-toast'
 
 const ITEMS_PER_PAGE = 10
@@ -28,51 +32,65 @@ export default function FlyerDetailPage() {
   const flyerId = params?.id as string
   const [user, loading] = useAuthState(auth)
   
-  const [flyer, setFlyer] = useState<FlyerImage | null>(null)
-  const [parsedItems, setParsedItems] = useState<ParsedFlyerItem[]>([])
-  const [totalItems, setTotalItems] = useState(0)
+  // Real-time hooks
+  const { flyer, isLoading: flyerLoading, error: flyerError } = useRealtimeFlyer(flyerId)
+  const { parsedItems: allParsedItems, isLoading: itemsLoading } = useRealtimeParsedItems(flyerId)
+  
+  // Local state
   const [currentPage, setCurrentPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
+  const [editingItem, setEditingItem] = useState<ParsedFlyerItem | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [savingItemId, setSavingItemId] = useState<string | null>(null)
+  const [approvingItemId, setApprovingItemId] = useState<string | null>(null)
+  
+  // Pagination logic
+  const totalItems = allParsedItems.length
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const parsedItems = allParsedItems.slice(startIndex, endIndex)
+  
+  const isLoading = flyerLoading || itemsLoading
 
-  useEffect(() => {
-    if (user && flyerId) {
-      loadFlyerDetails()
-    }
-  }, [user, flyerId, currentPage])
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
 
-  const loadFlyerDetails = async () => {
+  const handleEditItem = (item: ParsedFlyerItem) => {
+    setEditingItem(item)
+    setIsEditModalOpen(true)
+  }
+
+  const handleSaveItem = async (id: string, updates: Partial<ParsedFlyerItem>) => {
     try {
-      setIsLoading(true)
+      setSavingItemId(id)
+      await updateParsedFlyerItem(id, updates)
       
-      // Load flyer details
-      const flyers = await getFlyerImages()
-      const flyerData = flyers.find(f => f.id === flyerId)
-      
-      if (!flyerData) {
-        toast.error('Flyer not found')
-        return
-      }
-      
-      setFlyer(flyerData)
-      
-      // Load parsed items
-      const items = await getParsedFlyerItems(flyerId)
-      setTotalItems(items.length)
-      
-      // Paginate items
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-      const endIndex = startIndex + ITEMS_PER_PAGE
-      setParsedItems(items.slice(startIndex, endIndex))
-      
+      // Real-time hooks will automatically update the data
+      toast.success('Product updated successfully')
+      setIsEditModalOpen(false)
+      setEditingItem(null)
     } catch (error) {
-      console.error('Error loading flyer details:', error)
-      toast.error('Failed to load flyer details')
+      console.error('Error updating item:', error)
+      toast.error('Failed to update product')
     } finally {
-      setIsLoading(false)
+      setSavingItemId(null)
     }
   }
 
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
+  const handleApproveItem = async (item: ParsedFlyerItem) => {
+    if (item.verified) return
+    
+    try {
+      setApprovingItemId(item.id)
+      await approveParsedFlyerItem(item.id)
+      
+      // Real-time hooks will automatically update the data
+      toast.success('Product approved successfully')
+    } catch (error) {
+      console.error('Error approving item:', error)
+      toast.error('Failed to approve product')
+    } finally {
+      setApprovingItemId(null)
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -116,7 +134,7 @@ export default function FlyerDetailPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner size="large" />
       </div>
     )
   }
@@ -142,44 +160,26 @@ export default function FlyerDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/flyers" 
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                ← Back to Flyers
-              </Link>
-              <h1 className="text-xl font-bold text-gray-900 truncate">
-                {flyer.originalName}
-              </h1>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(flyer.processingStatus)}`}>
-                {flyer.processingStatus}
-              </span>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Status Bar */}
+      <div className="mb-6 text-right">
+        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(flyer.processingStatus)}`}>
+          {flyer.processingStatus}
+        </span>
+      </div>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Flyer Image */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-sm border overflow-hidden sticky top-8">
-              <div className="aspect-[3/4] bg-gray-100 relative">
+              <div className="min-h-[300px] max-h-[500px] bg-gray-100 relative">
                 <Image
                   src={flyer.storageUrl}
                   alt={flyer.originalName}
                   fill
-                  className="object-cover"
+                  className="object-contain"
                   sizes="(max-width: 1024px) 100vw, 33vw"
                 />
               </div>
@@ -300,9 +300,39 @@ export default function FlyerDetailPage() {
                             )}
                           </div>
 
-                          <div className="ml-4 text-right">
+                          <div className="ml-4 flex flex-col items-end space-y-2">
                             <div className="text-xs text-gray-500">
                               Confidence: {Math.round(item.confidence * 100)}%
+                            </div>
+                            
+                            <div className="flex space-x-2">
+                              {/* Edit Button */}
+                              <button
+                                onClick={() => handleEditItem(item)}
+                                disabled={savingItemId === item.id}
+                                className="p-2 text-gray-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
+                                title="Edit product"
+                              >
+                                <PencilIcon className="h-4 w-4" />
+                              </button>
+                              
+                              {/* Approve Button */}
+                              <button
+                                onClick={() => handleApproveItem(item)}
+                                disabled={item.verified || approvingItemId === item.id}
+                                className={`p-2 transition-colors disabled:opacity-50 ${
+                                  item.verified 
+                                    ? 'text-green-500 cursor-default' 
+                                    : 'text-gray-400 hover:text-green-600'
+                                }`}
+                                title={item.verified ? 'Already approved' : 'Approve product'}
+                              >
+                                {approvingItemId === item.id ? (
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                                ) : (
+                                  <CheckIcon className="h-4 w-4" />
+                                )}
+                              </button>
                             </div>
                           </div>
                         </div>
@@ -374,7 +404,19 @@ export default function FlyerDetailPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
+        
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false)
+          setEditingItem(null)
+        }}
+        item={editingItem}
+        onSave={handleSaveItem}
+        isLoading={savingItemId !== null}
+      />
     </div>
   )
 }

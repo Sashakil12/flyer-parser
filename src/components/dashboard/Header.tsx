@@ -1,13 +1,17 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
+import { useRouter, usePathname } from 'next/navigation'
 import { signOutUser } from '@/lib/auth'
 import { User } from '@/types'
 import { toast } from 'react-hot-toast'
 import { 
   UserCircleIcon,
   Cog6ToothIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  HomeIcon,
+  ArrowLeftIcon
 } from '@heroicons/react/24/outline'
 
 interface HeaderProps {
@@ -17,6 +21,14 @@ interface HeaderProps {
 export default function Header({ user }: HeaderProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const router = useRouter()
+  const pathname = usePathname()
+  
+  const showBackButton = pathname !== '/'
+  
+  const handleBack = () => {
+    router.back()
+  }
 
   const handleSignOut = async () => {
     try {
@@ -37,16 +49,43 @@ export default function Header({ user }: HeaderProps) {
         <div className="flex justify-between items-center h-16">
           {/* Logo and Title */}
           <div className="flex items-center">
+            {/* Back Button */}
+            {showBackButton && (
+              <button
+                onClick={handleBack}
+                className="mr-4 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <ArrowLeftIcon className="h-5 w-5" />
+              </button>
+            )}
+            
             <div className="flex-shrink-0">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <Link href="/" className="text-2xl font-bold text-gray-900 hover:text-primary-600 transition-colors">
                 Super Shop Flyer Parser
-              </h1>
+              </Link>
             </div>
             <div className="ml-4 flex items-center">
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                 AI-Powered
               </span>
             </div>
+          </div>
+
+          {/* Navigation Links */}
+          <div className="hidden md:flex items-center space-x-4">
+            <Link 
+              href="/"
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              <HomeIcon className="h-5 w-5 mr-2" />
+              Dashboard
+            </Link>
+            <Link 
+              href="/flyers"
+              className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 hover:text-primary-600 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              View Flyers
+            </Link>
           </div>
 
           {/* User Menu */}

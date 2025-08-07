@@ -19,11 +19,15 @@ const FLYER_IMAGES_COLLECTION = 'flyer-images'
 const PARSED_FLYER_ITEMS_COLLECTION = 'parsed-flyer-items'
 
 // Flyer Images CRUD Operations
-export const addFlyerImage = async (flyerImage: Omit<FlyerImage, 'id' | 'uploadedAt'>): Promise<string> => {
+export const addFlyerImage = async (flyerImage: Omit<FlyerImage, 'id' | 'uploadedAt' | 'createdAt'>): Promise<string> => {
   try {
+    const now = new Date()
     const docRef = await addDoc(collection(db, FLYER_IMAGES_COLLECTION), {
       ...flyerImage,
+      originalName: flyerImage.filename, // Ensure originalName is set
+      size: flyerImage.fileSize, // Ensure size alias is set
       uploadedAt: serverTimestamp(),
+      createdAt: now.toISOString(),
     })
     return docRef.id
   } catch (error: any) {
@@ -40,11 +44,18 @@ export const getFlyerImages = async (): Promise<FlyerImage[]> => {
     )
     const querySnapshot = await getDocs(q)
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      uploadedAt: doc.data().uploadedAt as Timestamp,
-    })) as FlyerImage[]
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        id: doc.id,
+        ...data,
+        uploadedAt: data.uploadedAt as Timestamp,
+        // Ensure all required fields are present
+        originalName: data.originalName || data.filename,
+        createdAt: data.createdAt || (data.uploadedAt ? data.uploadedAt.toDate().toISOString() : new Date().toISOString()),
+        size: data.size || data.fileSize,
+      } as FlyerImage
+    })
   } catch (error: any) {
     console.error('Error getting flyer images:', error)
     throw new Error('Failed to load flyer images')
@@ -137,6 +148,16 @@ export const updateParsedFlyerItem = async (
     await updateDoc(docRef, updates)
   } catch (error: any) {
     console.error('Error updating parsed flyer item:', error)
+    throw new Error('Failed to update parsed item')
+  }
+}
+
+export const approveParsedFlyerItem = async (id: string): Promise<void> => {
+  try {
+    const docRef = doc(db, PARSED_FLYER_ITEMS_COLLECTION, id)
+    await updateDoc(docRef, { verified: true })
+  } catch (error: any) {
+    console.error('Error approving parsed flyer item:', error)
     throw new Error('Failed to update parsed data')
   }
 }

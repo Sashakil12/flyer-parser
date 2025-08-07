@@ -4,8 +4,11 @@ import { Timestamp } from 'firebase/firestore'
 export interface FlyerImage {
   id: string
   filename: string
+  originalName: string
   uploadedAt: Timestamp
+  createdAt: string // ISO string format for easier handling
   fileSize: number
+  size: number // Alias for fileSize
   fileType: string
   storageUrl: string
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed'
@@ -84,6 +87,8 @@ export interface EditParsedItemFormData {
 export interface User {
   uid: string
   email: string
+  displayName?: string
+  photoURL?: string
   role: 'admin'
 }
 

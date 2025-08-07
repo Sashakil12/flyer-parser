@@ -9,13 +9,26 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
 
 // Prompt template for parsing flyer images
 const PARSE_PROMPT = `
-You are an expert at analyzing retail store flyers and extracting product information with high accuracy.
+You are an expert at analyzing retail store flyers and extracting individual product offers.
 
-Analyze this store flyer image and extract product information. Return a valid JSON array with objects following this exact structure:
+Analyze this flyer image and identify DISTINCT PRODUCTS based on the following visual criteria:
+
+1. **VISUAL PRODUCT IDENTIFICATION**: Only extract products that have:
+   - A clear product image/photo (not just text or logos)
+   - Associated pricing information near the product image
+   - A product name/title that corresponds to the visible product image
+
+2. **AVOID OVER-PARSING**: Do NOT extract:
+   - Product names that are just part of category headers or navigation
+   - Text-only mentions without corresponding product images
+   - Brand names or product variations separated by "/" or other symbols that refer to the same visual product
+   - Multiple entries for the same visual product shown in the image
+
+Return a JSON array with this exact structure for each DISTINCT VISUAL PRODUCT:
 
 [
   {
-    "product_name": "Complete product name as shown on the flyer",
+    "product_name": "Complete product name as shown near the product image",
     "discount_price": 12.99,
     "old_price": 19.99,
     "additional_info": ["Brand name", "Size info", "Promotional text"]
@@ -23,20 +36,18 @@ Analyze this store flyer image and extract product information. Return a valid J
 ]
 
 Schema requirements:
-- product_name: string (required) - Complete product name as shown on the flyer
-- discount_price: number (optional) - Current sale/promotional price if available 
-- old_price: number (required) - Original/regular price (use this if only one price is shown)
-- additional_info: string[] (optional) - Additional product details, brand names, or promotional text
+- product_name: string (required) - Product name that corresponds to a visible product image
+- discount_price: number (optional) - Sale price if different from regular price
+- old_price: number (required) - Regular/original price
+- additional_info: string[] (optional) - Additional details like brand, size, or promo text
 
-Instructions:
-- Extract ALL visible product information accurately
-- Be precise with numerical price values (use numbers, not strings)
-- Include brand names when clearly visible
-- Capture any promotional conditions or restrictions
-- If you see multiple products, include all of them in the array
-- Return ONLY valid JSON, no additional text or explanations
-- If uncertain about a value, omit optional fields rather than guessing
-- Ensure all prices are in the correct numeric format (e.g., 12.99, not "$12.99" or "12.99$")
+**CRITICAL RULES**:
+- Only parse products with visible product images, not text-only mentions
+- If a product title has no corresponding product image, skip it entirely
+- One JSON object per distinct visual product (not per text mention)
+- Focus on actual retail products being sold, not category headers or brand logos
+- Use precise numeric values for prices (12.99, not "$12.99")
+- Return ONLY valid JSON, no explanations
 
 Return valid JSON format only.
 `

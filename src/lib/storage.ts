@@ -60,7 +60,9 @@ export const uploadFile = async (
             // Create Firestore record
             const flyerImageId = await addFlyerImage({
               filename: file.name,
+              originalName: file.name,
               fileSize: file.size,
+              size: file.size,
               fileType: file.type,
               storageUrl: downloadUrl,
               processingStatus: 'pending',

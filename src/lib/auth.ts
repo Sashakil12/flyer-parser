@@ -1,6 +1,6 @@
 import { 
   signInWithEmailAndPassword, 
-  signOut, 
+  signOut as firebaseSignOut, 
   onAuthStateChanged,
   User as FirebaseUser
 } from 'firebase/auth'
@@ -57,6 +57,18 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
       callback(null)
     }
   })
+}
+
+/**
+ * Signs out the current user
+ */
+export const signOut = async (): Promise<void> => {
+  try {
+    await firebaseSignOut(auth)
+  } catch (error: any) {
+    console.error('Sign out error:', error)
+    throw new Error('Failed to sign out')
+  }
 }
 
 /**

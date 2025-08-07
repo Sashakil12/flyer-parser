@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from '@/lib/firebase/config'
 import { FlyerImage } from '@/types'
-import { getFlyerImages } from '@/lib/firestore'
+import { useRealtimeFlyerImages } from '@/hooks/useRealtimeFirestore'
 import Link from 'next/link'
 import Image from 'next/image'
 import { ChevronLeftIcon, ChevronRightIcon, EyeIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
@@ -14,39 +14,16 @@ const ITEMS_PER_PAGE = 12
 
 export default function FlyersPage() {
   const [user, loading] = useAuthState(auth)
-  const [flyers, setFlyers] = useState<FlyerImage[]>([])
-  const [totalFlyers, setTotalFlyers] = useState(0)
+  const { flyerImages: allFlyers, isLoading, error } = useRealtimeFlyerImages()
   const [currentPage, setCurrentPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    if (user) {
-      loadFlyers()
-    }
-  }, [user, currentPage])
+  // Pagination logic
+  const totalFlyers = allFlyers.length
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const flyers = allFlyers.slice(startIndex, endIndex)
 
-  const loadFlyers = async () => {
-    try {
-      setIsLoading(true)
-      const data = await getFlyerImages()
-      
-      // Sort by creation date (newest first)
-      const sortedFlyers = data.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      )
-      
-      setTotalFlyers(sortedFlyers.length)
-      
-      // Paginate on client side for now
-      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-      const endIndex = startIndex + ITEMS_PER_PAGE
-      setFlyers(sortedFlyers.slice(startIndex, endIndex))
-    } catch (error) {
-      console.error('Error loading flyers:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  // Note: Sorting is already handled by the real-time hook
 
   const totalPages = Math.ceil(totalFlyers / ITEMS_PER_PAGE)
 
@@ -83,33 +60,19 @@ export default function FlyersPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-4">
-              <Link 
-                href="/" 
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                ← Dashboard
-              </Link>
-              <h1 className="text-2xl font-bold text-gray-900">Flyer Images</h1>
-            </div>
-            
-            <div className="text-sm text-gray-600">
-              {totalFlyers} total flyers
-            </div>
-          </div>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Stats Bar */}
+      <div className="mb-6 text-right">
+        <div className="text-sm text-gray-600">
+          {totalFlyers} total flyers
         </div>
-      </header>
+      </div>
 
       {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div>
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <LoadingSpinner size="lg" />
+            <LoadingSpinner size="large" />
           </div>
         ) : flyers.length === 0 ? (
           <div className="text-center py-12">
@@ -132,12 +95,12 @@ export default function FlyersPage() {
               {flyers.map((flyer) => (
                 <div key={flyer.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow">
                   {/* Image */}
-                  <div className="relative aspect-[3/4] bg-gray-100 rounded-t-lg overflow-hidden">
+                  <div className="relative min-h-[200px] max-h-[300px] bg-gray-100 rounded-t-lg overflow-hidden">
                     <Image
                       src={flyer.storageUrl}
                       alt={flyer.originalName}
                       fill
-                      className="object-cover"
+                      className="object-contain"
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
                     />
                     
@@ -217,7 +180,7 @@ export default function FlyersPage() {
             )}
           </>
         )}
-      </main>
+      </div>
     </div>
   )
 }

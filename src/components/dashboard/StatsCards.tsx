@@ -1,35 +1,38 @@
 'use client'
 
-import { FlyerImage, ParsedFlyerItem } from '@/types'
 import { 
   PhotoIcon,
   DocumentTextIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
-  ClockIcon
+  ClockIcon,
+  WifiIcon
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 
 interface StatsCardsProps {
-  flyerImages: FlyerImage[]
-  parsedItems: ParsedFlyerItem[]
+  stats: {
+    totalFlyers: number
+    totalParsedItems: number
+    pendingFlyers: number
+    processingFlyers: number
+    completedFlyers: number
+    failedFlyers: number
+    verifiedItems: number
+    unverifiedItems: number
+  }
   isLoading: boolean
 }
 
-export default function StatsCards({ flyerImages, parsedItems, isLoading }: StatsCardsProps) {
-  // Calculate statistics
-  const totalImages = flyerImages.length
-  const totalParsed = parsedItems.length
-  const completed = flyerImages.filter(img => img.processingStatus === 'completed').length
-  const processing = flyerImages.filter(img => img.processingStatus === 'processing').length
-  const pending = flyerImages.filter(img => img.processingStatus === 'pending').length
-  const failed = flyerImages.filter(img => img.processingStatus === 'failed').length
-  const successRate = totalImages > 0 ? Math.round((completed / totalImages) * 100) : 0
+export default function StatsCards({ stats, isLoading }: StatsCardsProps) {
+  // Calculate derived statistics
+  const successRate = stats.totalFlyers > 0 ? Math.round((stats.completedFlyers / stats.totalFlyers) * 100) : 0
+  const verificationRate = stats.totalParsedItems > 0 ? Math.round((stats.verifiedItems / stats.totalParsedItems) * 100) : 0
 
-  const stats = [
+  const statsCards = [
     {
       name: 'Total Images',
-      value: totalImages,
+      value: stats.totalFlyers,
       change: undefined,
       changeType: 'neutral' as const,
       icon: PhotoIcon,
@@ -37,7 +40,7 @@ export default function StatsCards({ flyerImages, parsedItems, isLoading }: Stat
     },
     {
       name: 'Parsed Items',
-      value: totalParsed,
+      value: stats.totalParsedItems,
       change: undefined,
       changeType: 'neutral' as const,
       icon: DocumentTextIcon,
@@ -52,20 +55,20 @@ export default function StatsCards({ flyerImages, parsedItems, isLoading }: Stat
       color: successRate >= 90 ? 'green' : successRate >= 70 ? 'yellow' : 'red'
     },
     {
-      name: 'Processing',
-      value: processing,
+      name: 'Verified Items',
+      value: `${verificationRate}%`,
       change: undefined,
       changeType: 'neutral' as const,
-      icon: ClockIcon,
-      color: 'yellow'
+      icon: WifiIcon,
+      color: 'indigo'
     }
   ]
 
   const statusBreakdown = [
-    { name: 'Completed', count: completed, color: 'green' },
-    { name: 'Processing', count: processing, color: 'yellow' },
-    { name: 'Pending', count: pending, color: 'blue' },
-    { name: 'Failed', count: failed, color: 'red' }
+    { name: 'Completed', count: stats.completedFlyers, color: 'green' },
+    { name: 'Processing', count: stats.processingFlyers, color: 'yellow' },
+    { name: 'Pending', count: stats.pendingFlyers, color: 'blue' },
+    { name: 'Failed', count: stats.failedFlyers, color: 'red' }
   ]
 
   if (isLoading) {
@@ -84,7 +87,7 @@ export default function StatsCards({ flyerImages, parsedItems, isLoading }: Stat
     <div>
       {/* Main Stats Grid */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((item) => (
+        {statsCards.map((item) => (
           <div key={item.name} className="card overflow-hidden">
             <div className="p-5">
               <div className="flex items-center">
@@ -138,7 +141,7 @@ export default function StatsCards({ flyerImages, parsedItems, isLoading }: Stat
       </div>
 
       {/* Status Breakdown */}
-      {totalImages > 0 && (
+      {stats.totalFlyers > 0 && (
         <div className="mt-6 card">
           <div className="card-header">
             <h3 className="text-lg font-medium text-gray-900">Processing Status</h3>
@@ -172,7 +175,7 @@ export default function StatsCards({ flyerImages, parsedItems, isLoading }: Stat
                         'bg-gray-500'
                       }`}
                       style={{ 
-                        width: totalImages > 0 ? `${(status.count / totalImages) * 100}%` : '0%' 
+                        width: stats.totalFlyers > 0 ? `${(status.count / stats.totalFlyers) * 100}%` : '0%' 
                       }}
                     />
                   </div>
