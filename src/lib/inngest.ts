@@ -1,9 +1,14 @@
 import { Inngest } from 'inngest'
 
-// Create Inngest client
+// Create the client with environment-specific configuration
 export const inngest = new Inngest({ 
-  id: 'flyer-parser-app',
-  name: 'Super Shop Flyer Parser'
+  id: 'badiyala-flyer-parser',
+  name: 'Super Shop Flyer Parser',
+  // Enhanced local development configuration
+  ...(process.env.NODE_ENV === 'development' && {
+    isDev: true,
+    devServerURL: 'http://localhost:8288'
+  })
 })
 
 // Export types for use in functions
@@ -12,7 +17,6 @@ export type Events = {
     data: {
       flyerImageId: string
       storageUrl: string
-      dataUrl: string
     }
   }
   'flyer/parse-status-update': {

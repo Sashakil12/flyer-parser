@@ -3,27 +3,31 @@ import { inngest } from '@/lib/inngest'
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🚀 Trigger parse API called')
     const body = await request.json()
-    const { flyerImageId, storageUrl, dataUrl } = body
+    console.log('📦 Request body:', body)
+    const { flyerImageId, storageUrl } = body
 
-    if (!flyerImageId || !storageUrl || !dataUrl) {
+    if (!flyerImageId || !storageUrl) {
+      console.log('❌ Missing required fields')
       return NextResponse.json(
-        { error: 'Missing required fields: flyerImageId, storageUrl, dataUrl' },
+        { error: 'Missing required fields: flyerImageId, storageUrl' },
         { status: 400 }
       )
     }
 
+    console.log('🔄 Sending event to Inngest...')
     // Send event to Inngest
-    await inngest.send({
+    const result = await inngest.send({
       name: 'flyer/parse',
       data: {
         flyerImageId,
         storageUrl,
-        dataUrl,
       },
     })
-
-    return NextResponse.json({ success: true })
+    
+    console.log('✅ Inngest event sent:', result)
+    return NextResponse.json({ success: true, inngestResult: result })
   } catch (error: any) {
     console.error('Inngest trigger error:', error)
     return NextResponse.json(

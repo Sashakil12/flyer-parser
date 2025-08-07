@@ -5,18 +5,6 @@ import { FlyerImage } from '@/types'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
- * Convert file to data URL for Inngest processing
- */
-const fileToDataUrl = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-/**
  * Upload multiple files to Firebase Storage and create Firestore records
  */
 export const uploadFiles = async (
@@ -45,9 +33,6 @@ export const uploadFile = async (
     
     // Create storage reference
     const storageRef = ref(storage, storagePath)
-    
-    // Convert file to data URL for Inngest
-    const dataUrl = await fileToDataUrl(file)
     
     // Start upload
     const uploadTask = uploadBytesResumable(storageRef, file)
@@ -83,7 +68,7 @@ export const uploadFile = async (
             })
             
             // Trigger Inngest workflow for AI processing
-            await triggerParseWorkflow(flyerImageId, downloadUrl, dataUrl)
+            await triggerParseWorkflow(flyerImageId, downloadUrl)
             
             resolve(flyerImageId)
           } catch (error) {
@@ -117,8 +102,7 @@ export const deleteFile = async (storageUrl: string): Promise<void> => {
  */
 const triggerParseWorkflow = async (
   flyerImageId: string,
-  storageUrl: string,
-  dataUrl: string
+  storageUrl: string
 ): Promise<void> => {
   try {
     const response = await fetch('/api/inngest/trigger-parse', {
@@ -129,7 +113,6 @@ const triggerParseWorkflow = async (
       body: JSON.stringify({
         flyerImageId,
         storageUrl,
-        dataUrl,
       }),
     })
     

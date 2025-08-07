@@ -70,6 +70,7 @@ interface ParsedFlyerItem {
   additionalInfo?: string[];
   confidence: number; // AI confidence score (0-1)
   parsedAt: Timestamp;
+  verified: boolean; // Manual verification status
 }
 ```
 
@@ -118,11 +119,30 @@ interface ParsedFlyerItem {
 1. **Upload** → Admin uploads flyer image(s) via web interface
 2. **Store** → Files saved to Firebase Storage with metadata
 3. **Record** → File information stored in `flyer-images` collection
-4. **Queue** → File is passed as a data url  to Inngest workflow &Inngest workflow triggered for AI processing
+4. **Queue** → Inngest workflow triggered with storage URL reference for AI processing
 5. **Analyze** → Gemini Pro 2.5 processes the image
 6. **Extract** → Product data extracted and validated
-7. **Save** → Parsed data stored in `parsed-flyer-items` collection
+7. **Save** → Parsed data stored in `parsed-flyer-items` collection with relation to `flyer-images`
 8. **Update** → Processing status updated in real-time
+
+## Enhanced Features
+
+### Dashboard & Analytics
+- **Processing Statistics**: Real-time metrics showing success rates, processing times
+- **Status Overview**: Visual breakdown of pending, processing, completed, and failed jobs
+- **Performance Monitoring**: System health and processing efficiency tracking
+
+### Data Management
+- **Manual Verification**: Admin can verify/unverify parsed product data
+- **CRUD Operations**: Complete data management for images and parsed items
+- **Bulk Processing**: Efficient handling of multiple flyer uploads
+- **Data Relationships**: Proper linking between flyer images and extracted products
+
+### User Experience
+- **Drag-and-Drop Upload**: Intuitive file upload with progress indicators
+- **Real-time Updates**: Live status tracking without page refreshes
+- **Error Recovery**: User-friendly error handling and retry mechanisms
+- **Responsive Design**: Mobile-friendly interface for all device sizes
 
 ## Success Metrics
 

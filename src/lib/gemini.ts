@@ -75,11 +75,34 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
     let parsedData: GeminiParseResult[]
     
     try {
-      // Clean the response - remove any markdown formatting or extra text
-      const cleanedText = text
+      console.log('🤖 Raw Gemini response length:', text.length)
+      console.log('🔍 Raw response preview:', text.substring(0, 200) + '...')
+      
+      // Comprehensive JSON cleaning
+      let cleanedText = text
+        // Remove markdown code blocks
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
+        // Remove any text before the first [ or {
+        .replace(/^[^\[\{]*/, '')
+        // Remove any text after the last ] or }
+        .replace(/[^\]\}]*$/, '')
+        // Clean control characters that break JSON
+        .replace(/[\x00-\x1F\x7F]/g, '')
+        // Fix common AI response issues
+        .replace(/\\n/g, '\\\\n')  // Fix newlines in strings
+        .replace(/\\t/g, '\\\\t')  // Fix tabs in strings
+        .replace(/\\r/g, '\\\\r')  // Fix carriage returns
+        .replace(/"([^"]*?)\n([^"]*?)"/g, '"$1\\\\n$2"') // Fix unescaped newlines in strings
         .trim()
+      
+      console.log('✨ Cleaned text length:', cleanedText.length)
+      console.log('🔍 Cleaned text preview:', cleanedText.substring(0, 200) + '...')
+      
+      // Additional safety check - ensure it starts with [ or {
+      if (!cleanedText.startsWith('[') && !cleanedText.startsWith('{')) {
+        throw new Error('Response does not appear to be valid JSON (no opening bracket/brace)')
+      }
       
       parsedData = JSON.parse(cleanedText)
       
@@ -119,9 +142,21 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
       return validatedData
       
     } catch (parseError: any) {
-      console.error('JSON parsing error:', parseError)
-      console.error('Raw response:', text)
-      throw new Error(`Failed to parse AI response: ${parseError.message}`)
+      console.error('❌ JSON parsing error:', parseError.message)
+      console.error('🔴 Raw response (first 1000 chars):', text.substring(0, 1000))
+      console.error('🔴 Error position:', parseError.message.match(/position (\d+)/) ? parseError.message.match(/position (\d+)/)[1] : 'unknown')
+      
+      // Show problematic area if position is available
+      const positionMatch = parseError.message.match(/position (\d+)/)
+      if (positionMatch) {
+        const position = parseInt(positionMatch[1])
+        const start = Math.max(0, position - 50)
+        const end = Math.min(text.length, position + 50)
+        console.error('📍 Problematic area:', text.substring(start, end))
+        console.error('🖺 Character codes around error:', Array.from(text.substring(position - 5, position + 5)).map(c => c.charCodeAt(0)))
+      }
+      
+      throw new Error(`Failed to parse AI response: ${parseError.message}. Check server logs for full response details.`)
     }
 
   } catch (error: any) {

@@ -1,6 +1,6 @@
 import { inngest } from '../inngest'
 import { parseImageWithGemini } from '../gemini'
-import { updateFlyerImageStatus, addParsedFlyerItem } from '../firestore'
+import { updateFlyerImageStatus, addParsedFlyerItem } from '../firestore-admin'
 import { GeminiParseResult } from '@/types'
 
 // Function to parse flyer images using Gemini AI
@@ -8,7 +8,8 @@ export const parseFlyerFunction = inngest.createFunction(
   { id: 'parse-flyer', name: 'Parse Flyer with AI' },
   { event: 'flyer/parse' },
   async ({ event, step }) => {
-    const { flyerImageId, storageUrl, dataUrl } = event.data
+    console.log('🔥 INNGEST FUNCTION TRIGGERED!', { eventId: event.id, flyerImageId: event.data.flyerImageId })
+    const { flyerImageId, storageUrl } = event.data
 
     // Step 1: Update status to processing
     await step.run('update-status-processing', async () => {
@@ -16,9 +17,28 @@ export const parseFlyerFunction = inngest.createFunction(
       return { status: 'processing' }
     })
 
-    // Step 2: Parse image with Gemini AI
-    const parseResult = await step.run('parse-with-gemini', async () => {
+    // Step 2: Download image and parse with Gemini AI
+    const parseResult = await step.run('parse-with-gemini', async (): Promise<{
+      success: true;
+      data: GeminiParseResult[];
+    } | {
+      success: false;
+      error: string;
+    }> => {
       try {
+        // Download image from Firebase Storage URL
+        const response = await fetch(storageUrl)
+        if (!response.ok) {
+          throw new Error(`Failed to download image: ${response.statusText}`)
+        }
+        
+        // Convert to base64 data URL
+        const buffer = await response.arrayBuffer()
+        const base64 = Buffer.from(buffer).toString('base64')
+        const contentType = response.headers.get('content-type') || 'image/jpeg'
+        const dataUrl = `data:${contentType};base64,${base64}`
+        
+        // Parse with Gemini
         const result = await parseImageWithGemini(dataUrl)
         return { success: true, data: result }
       } catch (error: any) {
@@ -39,7 +59,7 @@ export const parseFlyerFunction = inngest.createFunction(
 
     // Step 3b: Save parsed data to Firestore
     const savedItems = await step.run('save-parsed-data', async () => {
-      const results = parseResult.data as GeminiParseResult[]
+      const results = parseResult.data
       const savedItemIds: string[] = []
       
       for (const item of results) {
