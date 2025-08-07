@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "inngest:dev": "pnpx inngest-cli dev -u http://localhost:3000/api/inngest -p 8288"
   },
   "keywords": ["nextjs", "ai", "flyer-parser", "inngest", "firebase"],
   "author": "",

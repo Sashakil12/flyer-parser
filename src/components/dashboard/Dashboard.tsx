@@ -1,58 +1,65 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, FlyerImage, ParsedFlyerItem } from '@/types'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { auth } from '@/lib/firebase/config'
+import { signOut } from '@/lib/auth'
+import { FlyerImage, ParsedFlyerItem } from '@/types'
+import { getFlyerImages, getParsedFlyerItems } from '@/lib/firestore'
 import Header from './Header'
-import FileUploadSection from './FileUploadSection'
-import FlyerImagesGrid from './FlyerImagesGrid'
-import ParsedDataTable from './ParsedDataTable'
 import StatsCards from './StatsCards'
-import { getFlyerImages, getParsedItems } from '@/lib/firestore'
-import { toast } from 'react-hot-toast'
+import FileUploadSection from './FileUploadSection'
+import LoadingSpinner from '@/components/ui/LoadingSpinner'
+import Link from 'next/link'
+import { EyeIcon, DocumentTextIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import toast from 'react-hot-toast'
 
-interface DashboardProps {
-  user: User
-}
-
-export default function Dashboard({ user }: DashboardProps) {
+export default function Dashboard() {
+  const [user, loading] = useAuthState(auth)
   const [flyerImages, setFlyerImages] = useState<FlyerImage[]>([])
   const [parsedItems, setParsedItems] = useState<ParsedFlyerItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'upload' | 'images' | 'parsed'>('upload')
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    loadData()
-  }, [])
+    if (user) {
+      refreshData()
+      // Auto-refresh every 30 seconds
+      const interval = setInterval(refreshData, 30000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
 
-  const loadData = async () => {
+  const refreshData = async () => {
+    if (!user) return
+    
     try {
       setIsLoading(true)
       const [images, items] = await Promise.all([
         getFlyerImages(),
-        getParsedItems()
+        getParsedFlyerItems()
       ])
       setFlyerImages(images)
       setParsedItems(items)
-    } catch (error: any) {
-      toast.error('Failed to load data: ' + error.message)
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+      toast.error('Failed to refresh data')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDataRefresh = () => {
-    loadData()
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      toast.success('Signed out successfully')
+    } catch (error) {
+      toast.error('Failed to sign out')
+    }
   }
-
-  const tabs = [
-    { id: 'upload', label: 'Upload Flyers', count: undefined },
-    { id: 'images', label: 'Flyer Images', count: flyerImages.length },
-    { id: 'parsed', label: 'Parsed Data', count: parsedItems.length },
-  ] as const
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header user={user} />
+      <Header user={user} onSignOut={handleSignOut} />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Overview */}
