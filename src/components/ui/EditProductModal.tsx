@@ -24,10 +24,14 @@ export default function EditProductModal({
 }: EditProductModalProps) {
   const [formData, setFormData] = useState({
     productName: '',
+    productNameMk: '',
     discountPrice: '',
+    discountPriceMk: '',
     oldPrice: '',
+    oldPriceMk: '',
     currency: 'USD',
-    additionalInfo: ''
+    additionalInfo: '',
+    additionalInfoMk: ''
   })
 
   // Update form data when item changes
@@ -35,19 +39,27 @@ export default function EditProductModal({
     if (item && isOpen) {
       setFormData({
         productName: item.productName || '',
+        productNameMk: item.productNameMk || '',
         discountPrice: item.discountPrice?.toString() || '',
+        discountPriceMk: item.discountPriceMk || '',
         oldPrice: item.oldPrice?.toString() || '',
+        oldPriceMk: item.oldPriceMk || '',
         currency: item.currency || 'USD',
-        additionalInfo: item.additionalInfo?.join(', ') || ''
+        additionalInfo: item.additionalInfo?.join(', ') || '',
+        additionalInfoMk: item.additionalInfoMk?.join(', ') || ''
       })
     } else if (!isOpen) {
       // Reset form when modal closes
       setFormData({
         productName: '',
+        productNameMk: '',
         discountPrice: '',
+        discountPriceMk: '',
         oldPrice: '',
+        oldPriceMk: '',
         currency: 'USD',
-        additionalInfo: ''
+        additionalInfo: '',
+        additionalInfoMk: ''
       })
     }
   }, [item, isOpen])
@@ -59,10 +71,14 @@ export default function EditProductModal({
     try {
       const updatedItem: Partial<ParsedFlyerItem> = {
         productName: formData.productName,
+        productNameMk: formData.productNameMk || undefined,
         discountPrice: formData.discountPrice ? parseFloat(formData.discountPrice.toString()) : undefined,
+        discountPriceMk: formData.discountPriceMk || undefined,
         oldPrice: parseFloat(formData.oldPrice.toString()),
+        oldPriceMk: formData.oldPriceMk || undefined,
         currency: formData.currency,
-        additionalInfo: formData.additionalInfo ? formData.additionalInfo.split(',').map(s => s.trim()).filter(Boolean) : []
+        additionalInfo: formData.additionalInfo ? formData.additionalInfo.split(',').map(s => s.trim()).filter(Boolean) : [],
+        additionalInfoMk: formData.additionalInfoMk ? formData.additionalInfoMk.split(',').map(s => s.trim()).filter(Boolean) : []
       }
 
       await onSave(item.id, updatedItem)
@@ -119,6 +135,21 @@ export default function EditProductModal({
               />
             </div>
 
+            {/* Macedonian Product Name */}
+            <div>
+              <label htmlFor="productNameMk" className="block text-sm font-medium text-gray-700 mb-1">
+                🇲🇰 Macedonian Product Name
+              </label>
+              <input
+                type="text"
+                id="productNameMk"
+                value={formData.productNameMk}
+                onChange={(e) => handleInputChange('productNameMk', e.target.value)}
+                placeholder="Македонско име на производот"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+
             {/* Old Price */}
             <div>
               <label htmlFor="oldPrice" className="block text-sm font-medium text-gray-700 mb-1">
@@ -149,6 +180,43 @@ export default function EditProductModal({
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 placeholder="Leave empty if no discount"
               />
+            </div>
+
+            {/* Macedonian Price Fields */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-medium text-blue-900 mb-3 flex items-center">
+                🇲🇰 Macedonian Price Information
+              </h4>
+              
+              {/* Macedonian Old Price */}
+              <div className="mb-3">
+                <label htmlFor="oldPriceMk" className="block text-sm font-medium text-gray-700 mb-1">
+                  Original Price (Macedonian Text)
+                </label>
+                <input
+                  type="text"
+                  id="oldPriceMk"
+                  value={formData.oldPriceMk}
+                  onChange={(e) => handleInputChange('oldPriceMk', e.target.value)}
+                  placeholder="напр. 299,99 ден"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Macedonian Discount Price */}
+              <div>
+                <label htmlFor="discountPriceMk" className="block text-sm font-medium text-gray-700 mb-1">
+                  Discount Price (Macedonian Text)
+                </label>
+                <input
+                  type="text"
+                  id="discountPriceMk"
+                  value={formData.discountPriceMk}
+                  onChange={(e) => handleInputChange('discountPriceMk', e.target.value)}
+                  placeholder="напр. 199,99 ден"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
             </div>
 
             {/* Currency */}
@@ -186,6 +254,24 @@ export default function EditProductModal({
               />
               <p className="text-xs text-gray-500 mt-1">
                 Examples: Limited time, While supplies last, Buy 2 get 1 free
+              </p>
+            </div>
+
+            {/* Macedonian Additional Info */}
+            <div>
+              <label htmlFor="additionalInfoMk" className="block text-sm font-medium text-gray-700 mb-1">
+                🇲🇰 Macedonian Additional Info
+              </label>
+              <input
+                type="text"
+                id="additionalInfoMk"
+                value={formData.additionalInfoMk}
+                onChange={(e) => handleInputChange('additionalInfoMk', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                placeholder="Одделете повеќе ставки со запирки"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Примери: Ограничено време, Додека има залихи, Купи 2 добиј 1 бесплатно
               </p>
             </div>
 

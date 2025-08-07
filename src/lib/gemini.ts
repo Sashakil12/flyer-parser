@@ -9,51 +9,73 @@ const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
 
 // Prompt template for parsing flyer images
 const PARSE_PROMPT = `
-You are an expert at analyzing retail store flyers and extracting individual product offers.
+You are an expert at analyzing retail store flyers and extracting individual product offers with MULTILINGUAL SUPPORT.
 
-Analyze this flyer image and identify DISTINCT PRODUCTS based on the following visual criteria:
+Analyze this flyer image and identify DISTINCT PRODUCTS based on the following visual criteria, extracting both English AND Macedonian text when present:
 
 1. **VISUAL PRODUCT IDENTIFICATION**: Only extract products that have:
    - A clear product image/photo (not just text or logos)
    - Associated pricing information near the product image
    - A product name/title that corresponds to the visible product image
 
-2. **AVOID OVER-PARSING**: Do NOT extract:
+2. **COMBO/GROUP PRODUCTS**: When multiple related products share a single price:
+   - Combine all product names with " + " separator
+   - Add "(COMBO)" at the end of the product name
+   - Example: "Ariel Powder + Ariel Liquid + Ariel Pods (COMBO)"
+   - Use the group pricing for that single entry
+
+3. **AVOID OVER-PARSING**: Do NOT extract:
    - Product names that are just part of category headers or navigation
    - Text-only mentions without corresponding product images
    - Brand names or product variations separated by "/" or other symbols that refer to the same visual product
    - Multiple entries for the same visual product shown in the image
 
+4. **MACEDONIAN TEXT SUPPORT**: When parsing flyers with Macedonian text (Cyrillic script):
+   - Extract both English and Macedonian product names when both are present
+   - Parse Macedonian price text (e.g., "ден" for Macedonian Denars)
+   - Include Macedonian promotional text and product details
+   - Detect MKD currency (Macedonian Denars) alongside standard currencies
+
 Return a JSON array with this exact structure for each DISTINCT VISUAL PRODUCT:
 
 [
   {
-    "product_name": "Complete product name as shown near the product image",
+    "product_name": "Complete product name (English)",
+    "product_name_mk": "Име на производ (Macedonian - optional)",
     "discount_price": 12.99,
+    "discount_price_mk": "12,99 ден (Macedonian price text - optional)",
     "old_price": 19.99,
+    "old_price_mk": "19,99 ден (Macedonian price text - optional)",
     "currency": "USD",
-    "additional_info": ["Brand name", "Size info", "Promotional text"]
+    "additional_info": ["Brand name", "Size info", "Promotional text"],
+    "additional_info_mk": ["Бренд", "Големина", "Промоција (Macedonian - optional)"]
   }
 ]
 
 Schema requirements:
 - product_name: string (required) - Product name that corresponds to a visible product image
+- product_name_mk: string (optional) - Macedonian product name if present in Cyrillic
 - discount_price: number (optional) - Sale price if different from regular price
+- discount_price_mk: string (optional) - Macedonian price text as shown on flyer
 - old_price: number (required) - Regular/original price
-- currency: string (required) - 3-letter currency code (USD, CAD, EUR, GBP, etc.)
+- old_price_mk: string (optional) - Macedonian price text as shown on flyer
+- currency: string (required) - 3-letter currency code (USD, CAD, EUR, GBP, MKD, etc.)
 - additional_info: string[] (optional) - Additional details like brand, size, or promo text
+- additional_info_mk: string[] (optional) - Macedonian additional details
 
 **CURRENCY DETECTION RULES**:
-- Analyze price symbols and text to determine currency ($ = USD/CAD, € = EUR, £ = GBP, etc.)
-- Look for currency indicators like "CAD", "USD", "€", "$", "£"
+- Analyze price symbols and text to determine currency ($ = USD/CAD, € = EUR, £ = GBP, ден/MKD = Macedonian Denar, etc.)
+- Look for currency indicators like "CAD", "USD", "€", "$", "£", "ден", "MKD"
+- Macedonian Denars: Look for "ден", "денари", "MKD" or Cyrillic price text
 - If multiple currencies detected, use the most prominent one
-- Default to "USD" if currency cannot be determined
+- Default to USD if currency is ambiguous and cannot be determined
 - Return standard 3-letter ISO currency codes (USD, CAD, EUR, GBP, AUD, etc.)
 
 **CRITICAL RULES**:
 - Only parse products with visible product images, not text-only mentions
 - If a product title has no corresponding product image, skip it entirely
-- One JSON object per distinct visual product (not per text mention)
+- For combo/group offers: combine product names with " + " and add "(COMBO)"
+- One JSON object per distinct visual product or product combo
 - Focus on actual retail products being sold, not category headers or brand logos
 - Use precise numeric values for prices (12.99, not "$12.99")
 - Always include currency code for each product based on visual currency indicators
@@ -65,6 +87,16 @@ Return an error object with this exact format:
   "error": "NO_PRODUCTS_FOUND",
   "reason": "Brief explanation of why no products could be extracted"
 }
+
+**COMBO PRODUCT EXAMPLE**:
+[
+  {
+    "product_name": "Ariel Powder + Ariel Liquid + Ariel Pods (COMBO)",
+    "old_price": 19.99,
+    "currency": "USD",
+    "additional_info": ["Multi-product offer", "Save on bundle"]
+  }
+]
 
 **POSSIBLE ERROR REASONS**:
 - "NO_PRODUCTS_FOUND": No clear product images with pricing found
@@ -158,8 +190,24 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
           throw new Error(`Invalid product_name for item ${index + 1}`)
         }
         
-        if (!item.old_price || typeof item.old_price !== 'number') {
-          throw new Error(`Invalid old_price for item ${index + 1}`)
+        // Enhanced old_price validation with string conversion
+        if (item.old_price === undefined || item.old_price === null) {
+          throw new Error(`Missing old_price for item ${index + 1}: received ${item.old_price}`)
+        }
+        
+        // Convert string prices to numbers if possible
+        let oldPrice = item.old_price
+        if (typeof oldPrice === 'string') {
+          console.log(`⚠️ Converting string price to number for item ${index + 1}: "${oldPrice}"`)  
+          const parsed = parseFloat(oldPrice)
+          if (isNaN(parsed) || parsed <= 0) {
+            throw new Error(`Invalid old_price for item ${index + 1}: cannot convert "${oldPrice}" to valid number`)
+          }
+          oldPrice = parsed
+        }
+        
+        if (typeof oldPrice !== 'number' || isNaN(oldPrice) || oldPrice <= 0) {
+          throw new Error(`Invalid old_price for item ${index + 1}: received ${typeof oldPrice} - ${JSON.stringify(oldPrice)}`)
         }
         
         // Currency validation - required field
@@ -167,9 +215,21 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
           throw new Error(`Invalid or missing currency for item ${index + 1}`)
         }
         
-        // Optional discount_price validation
-        if (item.discount_price !== undefined && typeof item.discount_price !== 'number') {
-          throw new Error(`Invalid discount_price for item ${index + 1}`)
+        // Enhanced discount_price validation with string conversion
+        let discountPrice = item.discount_price
+        if (discountPrice !== undefined) {
+          if (typeof discountPrice === 'string') {
+            console.log(`⚠️ Converting string discount price to number for item ${index + 1}: "${discountPrice}"`)  
+            const parsed = parseFloat(discountPrice)
+            if (isNaN(parsed) || parsed <= 0) {
+              throw new Error(`Invalid discount_price for item ${index + 1}: cannot convert "${discountPrice}" to valid number`)
+            }
+            discountPrice = parsed
+          }
+          
+          if (typeof discountPrice !== 'number' || isNaN(discountPrice) || discountPrice <= 0) {
+            throw new Error(`Invalid discount_price for item ${index + 1}: received ${typeof discountPrice} - ${JSON.stringify(discountPrice)}`)
+          }
         }
         
         // Optional additional_info validation
@@ -177,12 +237,30 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
           throw new Error(`Invalid additional_info for item ${index + 1}`)
         }
         
+        // Optional Macedonian fields validation
+        if (item.product_name_mk !== undefined && typeof item.product_name_mk !== 'string') {
+          throw new Error(`Invalid product_name_mk for item ${index + 1}`)
+        }
+        if (item.discount_price_mk !== undefined && typeof item.discount_price_mk !== 'string') {
+          throw new Error(`Invalid discount_price_mk for item ${index + 1}`)
+        }
+        if (item.old_price_mk !== undefined && typeof item.old_price_mk !== 'string') {
+          throw new Error(`Invalid old_price_mk for item ${index + 1}`)
+        }
+        if (item.additional_info_mk !== undefined && !Array.isArray(item.additional_info_mk)) {
+          throw new Error(`Invalid additional_info_mk for item ${index + 1}`)
+        }
+        
         return {
           product_name: item.product_name.trim(),
-          discount_price: item.discount_price,
-          old_price: item.old_price,
+          product_name_mk: item.product_name_mk?.trim(),
+          discount_price: discountPrice,
+          discount_price_mk: item.discount_price_mk?.trim(),
+          old_price: oldPrice,
+          old_price_mk: item.old_price_mk?.trim(),
           currency: item.currency.toUpperCase(), // Normalize to uppercase
           additional_info: item.additional_info || [],
+          additional_info_mk: item.additional_info_mk || [],
         }
       })
       

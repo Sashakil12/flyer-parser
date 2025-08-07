@@ -20,10 +20,14 @@ export interface ParsedFlyerItem {
   id: string
   flyerImageId: string // Reference to flyer-images
   productName: string
+  productNameMk?: string // Macedonian product name
   discountPrice?: number
+  discountPriceMk?: string // Macedonian discount price text
   oldPrice: number
-  currency: string // Currency code (e.g., 'USD', 'CAD', 'EUR')
+  oldPriceMk?: string // Macedonian old price text
+  currency: string // Currency code (e.g., 'USD', 'CAD', 'EUR', 'MKD')
   additionalInfo?: string[]
+  additionalInfoMk?: string[] // Macedonian additional info
   confidence: number // AI confidence score (0-1)
   parsedAt: Timestamp
   verified: boolean
@@ -45,10 +49,14 @@ export interface ParseResponse {
 // Gemini AI Types
 export interface GeminiParseResult {
   product_name: string
+  product_name_mk?: string // Macedonian product name
   discount_price?: number
+  discount_price_mk?: string // Macedonian discount price text
   old_price: number
-  currency: string // Currency code detected from the image
+  old_price_mk?: string // Macedonian old price text
+  currency: string // Currency code detected from the image (USD, EUR, MKD, etc.)
   additional_info?: string[]
+  additional_info_mk?: string[] // Macedonian additional info
 }
 
 // UI Component Types

@@ -11,22 +11,37 @@ import { ChevronLeftIcon, ChevronRightIcon, EyeIcon, DocumentTextIcon } from '@h
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { filesize } from 'filesize'
 
-const ITEMS_PER_PAGE = 12
+// Items per page options aligned with responsive grid:
+// sm: 2 cols | md: 3 cols | lg: 4 cols | xl: 5 cols
+// Perfect grid alignment for all breakpoints:
+const ITEMS_PER_PAGE_OPTIONS = [
+  12,  // sm: 6 rows | md: 4 rows | lg: 3 rows | xl: 2.4 rows
+  15,  // sm: 7.5 rows | md: 5 rows | lg: 3.75 rows | xl: 3 rows  
+  20,  // sm: 10 rows | md: 6.7 rows | lg: 5 rows | xl: 4 rows
+  30,  // sm: 15 rows | md: 10 rows | lg: 7.5 rows | xl: 6 rows
+  60   // sm: 30 rows | md: 20 rows | lg: 15 rows | xl: 12 rows
+]
 
 export default function FlyersPage() {
   const [user, loading] = useAuthState(auth)
   const { flyerImages: allFlyers, isLoading, error } = useRealtimeFlyerImages()
   const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(12)
 
   // Pagination logic
   const totalFlyers = allFlyers.length
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-  const endIndex = startIndex + ITEMS_PER_PAGE
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
   const flyers = allFlyers.slice(startIndex, endIndex)
+  const totalPages = Math.ceil(totalFlyers / itemsPerPage)
+
+  // Handle items per page change
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
 
   // Note: Sorting is already handled by the real-time hook
-
-  const totalPages = Math.ceil(totalFlyers / ITEMS_PER_PAGE)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -182,9 +197,35 @@ export default function FlyersPage() {
               ))}
             </div>
 
+            {/* Items per page selector - Always show if there are items */}
+            {totalFlyers > 0 && (
+              <div className="mt-6 flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-gray-600">Show:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                  >
+                    {ITEMS_PER_PAGE_OPTIONS.map(option => (
+                      <option key={option} value={option}>
+                        {option} items
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-sm text-gray-500">per page</span>
+                </div>
+                
+                {/* Stats */}
+                <div className="text-sm text-gray-600">
+                  Showing {startIndex + 1}-{Math.min(endIndex, totalFlyers)} of {totalFlyers} flyers
+                </div>
+              </div>
+            )}
+
             {/* Pagination */}
             {totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center space-x-2">
+              <div className="mt-6 flex items-center justify-center space-x-2">
                 <button
                   onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                   disabled={currentPage === 1}

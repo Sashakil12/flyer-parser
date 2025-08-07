@@ -263,9 +263,16 @@ export default function FlyerDetailPage() {
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3">
-                              <h3 className="text-base font-medium text-gray-900">
-                                {item.productName}
-                              </h3>
+                              <div>
+                                <h3 className="text-base font-medium text-gray-900">
+                                  {item.productName}
+                                </h3>
+                                {item.productNameMk && (
+                                  <div className="text-sm text-gray-600 mt-1">
+                                    🇲🇰 {item.productNameMk}
+                                  </div>
+                                )}
+                              </div>
                               
                               {item.verified ? (
                                 <CheckCircleIcon className="h-5 w-5 text-green-500" />
@@ -293,6 +300,22 @@ export default function FlyerDetailPage() {
                               )}
                             </div>
 
+                            {/* Macedonian Price Text */}
+                            {(item.discountPriceMk || item.oldPriceMk) && (
+                              <div className="mt-1 text-sm text-gray-500">
+                                {item.discountPriceMk ? (
+                                  <div className="flex items-center space-x-2">
+                                    <span className="text-red-500">На сајт: {item.discountPriceMk}</span>
+                                    {item.oldPriceMk && (
+                                      <span className="line-through">{item.oldPriceMk}</span>
+                                    )}
+                                  </div>
+                                ) : item.oldPriceMk ? (
+                                  <span>🇲🇰 {item.oldPriceMk}</span>
+                                ) : null}
+                              </div>
+                            )}
+
                             {/* Additional Info */}
                             {item.additionalInfo && item.additionalInfo.length > 0 && (
                               <div className="mt-3">
@@ -300,6 +323,19 @@ export default function FlyerDetailPage() {
                                   {item.additionalInfo.map((info, infoIndex) => (
                                     <span key={infoIndex} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-700">
                                       {info}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Macedonian Additional Info */}
+                            {item.additionalInfoMk && item.additionalInfoMk.length > 0 && (
+                              <div className="mt-2">
+                                <div className="flex flex-wrap gap-2">
+                                  {item.additionalInfoMk.map((info, infoIndex) => (
+                                    <span key={infoIndex} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                      🇲🇰 {info}
                                     </span>
                                   ))}
                                 </div>

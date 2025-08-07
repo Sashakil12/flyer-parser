@@ -160,6 +160,11 @@ export default function ParsedDataTable({ items, isLoading, onRefresh }: ParsedD
                   <div className="text-sm font-medium text-gray-900">
                     {item.productName}
                   </div>
+                  {item.productNameMk && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      🇲🇰 {item.productNameMk}
+                    </div>
+                  )}
                 </td>
                 
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -179,6 +184,21 @@ export default function ParsedDataTable({ items, isLoading, onRefresh }: ParsedD
                       </span>
                     )}
                   </div>
+                  {/* Macedonian price text */}
+                  {(item.discountPriceMk || item.oldPriceMk) && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {item.discountPriceMk ? (
+                        <div className="flex items-center space-x-2">
+                          <span className="text-red-500">ÐÐ° ÑÐ°Ð¹Ñ: {item.discountPriceMk}</span>
+                          {item.oldPriceMk && (
+                            <span className="line-through">{item.oldPriceMk}</span>
+                          )}
+                        </div>
+                      ) : item.oldPriceMk ? (
+                        <span>🇲🇰 {item.oldPriceMk}</span>
+                      ) : null}
+                    </div>
+                  )}
                 </td>
                 
                 <td className="px-6 py-4">
@@ -201,6 +221,24 @@ export default function ParsedDataTable({ items, isLoading, onRefresh }: ParsedD
                       </div>
                     ) : (
                       <span className="text-gray-400">-</span>
+                    )}
+                    {/* Macedonian additional info */}
+                    {item.additionalInfoMk && item.additionalInfoMk.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {item.additionalInfoMk.slice(0, 3).map((info, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-200"
+                          >
+                            🇲🇰 {info}
+                          </span>
+                        ))}
+                        {item.additionalInfoMk.length > 3 && (
+                          <span className="text-xs text-blue-400">
+                            +{item.additionalInfoMk.length - 3} more MK
+                          </span>
+                        )}
+                      </div>
                     )}
                   </div>
                 </td>

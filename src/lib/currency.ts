@@ -20,6 +20,7 @@ export const CURRENCY_INFO: Record<string, CurrencyInfo> = {
   CNY: { symbol: '¥', name: 'Chinese Yuan', locale: 'zh-CN' },
   INR: { symbol: '₹', name: 'Indian Rupee', locale: 'en-IN' },
   MXN: { symbol: 'MX$', name: 'Mexican Peso', locale: 'es-MX' },
+  MKD: { symbol: 'ден', name: 'Macedonian Denar', locale: 'mk-MK' },
 }
 
 /**

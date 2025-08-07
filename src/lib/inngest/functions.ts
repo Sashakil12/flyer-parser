@@ -67,10 +67,14 @@ export const parseFlyerFunction = inngest.createFunction(
           const itemId = await addParsedFlyerItem({
             flyerImageId,
             productName: item.product_name,
+            productNameMk: item.product_name_mk,
             discountPrice: item.discount_price,
+            discountPriceMk: item.discount_price_mk,
             oldPrice: item.old_price,
+            oldPriceMk: item.old_price_mk,
             currency: item.currency,
             additionalInfo: item.additional_info,
+            additionalInfoMk: item.additional_info_mk,
             confidence: 0.85, // Default confidence score
             verified: false,
           })
