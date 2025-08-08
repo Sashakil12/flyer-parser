@@ -30,35 +30,45 @@ Analyze this flyer image and identify DISTINCT PRODUCTS based on the following v
    - Brand names or product variations separated by "/" or other symbols that refer to the same visual product
    - Multiple entries for the same visual product shown in the image
 
-4. **MACEDONIAN TEXT SUPPORT**: When parsing flyers with Macedonian text (Cyrillic script):
-   - Extract both English and Macedonian product names when both are present
-   - Parse Macedonian price text (e.g., "ден" for Macedonian Denars)
-   - Include Macedonian promotional text and product details
+4. **MACEDONIAN TEXT SUPPORT**: For comprehensive Macedonian market support:
+   - Extract Macedonian product names when visible in Cyrillic script
+   - **GENERATE Macedonian price text** based on numeric values (e.g., "12,99 ден" from 12.99 MKD)
+   - **GENERATE Macedonian prefixes** when Macedonian product names are present
+   - Include Macedonian promotional text when visible
    - Detect MKD currency (Macedonian Denars) alongside standard currencies
+   - **Note**: Macedonian fields can be generated even if not visible in image for market completeness
 
 Return a JSON array with this exact structure for each DISTINCT VISUAL PRODUCT:
 
 [
   {
-    "product_name": "Complete product name (English)",
-    "product_name_mk": "Име на производ (Macedonian - optional)",
+    "product_name": "Tasty Rubber Chicken",
+    "product_name_mk": "Вкусен гумен пилешко",
+    "product_name_prefixes": ["T", "Ta", "Tas", "Tast", "Tasty", "Tasty ", "Tasty R", "Tasty Ru", "Tasty Rub", "Tasty Rubb", "Tasty Rubbe", "Tasty Rubber", "Tasty Rubber ", "Tasty Rubber C", "Tasty Rubber Ch", "Tasty Rubber Chi", "Tasty Rubber Chic", "Tasty Rubber Chick", "Tasty Rubber Chicke", "Tasty Rubber Chicken"],
+    "product_name_prefixes_mk": ["В", "Вк", "Вку", "Вкус", "Вкусе", "Вкусен", "Вкусен ", "Вкусен г", "Вкусен гу", "Вкусен гум", "Вкусен гуме", "Вкусен гумен", "Вкусен гумен ", "Вкусен гумен п", "Вкусен гумен пи", "Вкусен гумен пил", "Вкусен гумен пиле", "Вкусен гумен пилеш", "Вкусен гумен пилешк", "Вкусен гумен пилешко"],
     "discount_price": 12.99,
-    "discount_price_mk": "12,99 ден (Macedonian price text - optional)",
+    "discount_price_mk": "12,99 ден",
+    "discount_start_date": "2024-01-15",
+    "discount_end_date": "2024-01-31",
     "old_price": 19.99,
-    "old_price_mk": "19,99 ден (Macedonian price text - optional)",
+    "old_price_mk": "19,99 ден",
     "currency": "USD",
     "additional_info": ["Brand name", "Size info", "Promotional text"],
-    "additional_info_mk": ["Бренд", "Големина", "Промоција (Macedonian - optional)"]
+    "additional_info_mk": ["Бренд", "Големина", "Промоција"]
   }
 ]
 
 Schema requirements:
 - product_name: string (required) - Product name that corresponds to a visible product image
 - product_name_mk: string (optional) - Macedonian product name if present in Cyrillic
+- product_name_prefixes: string[] (required) - Growing character prefixes of product_name, starting from first character and building up one character at a time until complete name
+- product_name_prefixes_mk: string[] (optional) - Growing character prefixes of product_name_mk in Cyrillic, only if product_name_mk is present
 - discount_price: number (optional) - Sale price if different from regular price
-- discount_price_mk: string (optional) - Macedonian price text as shown on flyer
+- discount_price_mk: string (optional) - GENERATE Macedonian price text from numeric value (e.g., "12,99 ден")
+- discount_start_date: string (optional) - ISO date string when discount starts (YYYY-MM-DD format)
+- discount_end_date: string (optional) - ISO date string when discount ends (YYYY-MM-DD format)
 - old_price: number (required) - Regular/original price
-- old_price_mk: string (optional) - Macedonian price text as shown on flyer
+- old_price_mk: string (optional) - GENERATE Macedonian price text from numeric value (e.g., "19,99 ден")
 - currency: string (required) - 3-letter currency code (USD, CAD, EUR, GBP, MKD, etc.)
 - additional_info: string[] (optional) - Additional details like brand, size, or promo text
 - additional_info_mk: string[] (optional) - Macedonian additional details
@@ -71,15 +81,34 @@ Schema requirements:
 - Default to USD if currency is ambiguous and cannot be determined
 - Return standard 3-letter ISO currency codes (USD, CAD, EUR, GBP, AUD, etc.)
 
+**DISCOUNT DATE DETECTION RULES**:
+- Look for discount validity dates on flyers (e.g., "Valid Jan 15-31", "До 28.01", "Sale ends March 15")
+- Parse common date formats: "Jan 15-31", "15-31 Jan", "15.01-31.01", "January 15 - January 31"
+- Convert to ISO format YYYY-MM-DD (e.g., "2024-01-15")
+- Extract both start and end dates when available
+- If only end date visible, leave start date empty
+- If no specific dates found, leave both fields empty
+- Handle multiple languages: English dates and Macedonian/Cyrillic date text
+
+**MACEDONIAN PRICE TEXT GENERATION RULES**:
+- **Always generate** discount_price_mk and old_price_mk when currency is detected or for market completeness
+- **Format**: Use comma as decimal separator: "12,99 ден" (not "12.99 ден")
+- **Currency symbols**: Use "ден" for MKD, "$" for USD, "€" for EUR, etc.
+- **Examples**: 12.99 USD → "12,99 $" or 15.50 MKD → "15,50 ден"
+- **Generate even if not visible**: Provide Macedonian price text for better market coverage
+
 **CRITICAL RULES**:
 - Only parse products with visible product images, not text-only mentions
 - If a product title has no corresponding product image, skip it entirely
 - For combo/group offers: combine product names with " + " and add "(COMBO)"
-- One JSON object per distinct visual product or product combo
+- **ONE JSON OBJECT PER DISTINCT VISUAL PRODUCT** - Even if multiple products share the same price, parse each variant separately
+- **PRODUCT VARIANTS**: If you see 3 different flavors/varieties/sizes of the same product, create 3 separate entries
+- **SHARED PRICING**: When multiple products have identical pricing, duplicate the price/discount data for each product
 - Focus on actual retail products being sold, not category headers or brand logos
 - Use precise numeric values for prices (12.99, not "$12.99")
 - Always include currency code for each product based on visual currency indicators
-- Return ONLY valid JSON, no explanations
+- **RETURN ONLY VALID JSON** - NO comments, NO explanations, NO inline text - PURE JSON ONLY
+- **NO TRAILING COMMAS** - Never put commas before closing brackets ] or braces } - Invalid: ["a", "b",] Valid: ["a", "b"]
 
 **IF NO PRODUCTS CAN BE EXTRACTED**:
 Return an error object with this exact format:
@@ -88,13 +117,71 @@ Return an error object with this exact format:
   "reason": "Brief explanation of why no products could be extracted"
 }
 
-**COMBO PRODUCT EXAMPLE**:
+**MULTIPLE VARIANTS WITH SHARED PRICING EXAMPLE** (parse each variant separately with ALL fields):
+[
+  {
+    "product_name": "Vero Jam Strawberry 500g",
+    "product_name_mk": "Веро Џем Јагода 500г",
+    "product_name_prefixes": ["V", "Ve", "Ver", "Vero", "Vero ", "Vero J", "Vero Ja", "Vero Jam", "Vero Jam ", "Vero Jam S", "Vero Jam St", "Vero Jam Str", "Vero Jam Stra", "Vero Jam Straw", "Vero Jam Strawb", "Vero Jam Strawbe", "Vero Jam Strawber", "Vero Jam Strawberr", "Vero Jam Strawberry", "Vero Jam Strawberry ", "Vero Jam Strawberry 5", "Vero Jam Strawberry 50", "Vero Jam Strawberry 500", "Vero Jam Strawberry 500g"],
+    "product_name_prefixes_mk": ["В", "Ве", "Вер", "Веро", "Веро ", "Веро Џ", "Веро Џе", "Веро Џем", "Веро Џем ", "Веро Џем Ј", "Веро Џем Ја", "Веро Џем Јаг", "Веро Џем Јаго", "Веро Џем Јагод", "Веро Џем Јагода", "Веро Џем Јагода ", "Веро Џем Јагода 5", "Веро Џем Јагода 50", "Веро Џем Јагода 500", "Веро Џем Јагода 500г"],
+    "discount_price": 2.99,
+    "discount_price_mk": "2,99 ден",
+    "discount_start_date": "2024-01-15",
+    "discount_end_date": "2024-01-31",
+    "old_price": 4.99,
+    "old_price_mk": "4,99 ден",
+    "currency": "USD",
+    "additional_info": ["500g jar", "Strawberry flavor"],
+    "additional_info_mk": ["500г тегла", "Вкус на јагода"]
+  },
+  {
+    "product_name": "Vero Jam Raspberry 500g",
+    "product_name_mk": "Веро Џем Малина 500г",
+    "product_name_prefixes": ["V", "Ve", "Ver", "Vero", "Vero ", "Vero J", "Vero Ja", "Vero Jam", "Vero Jam ", "Vero Jam R", "Vero Jam Ra", "Vero Jam Ras", "Vero Jam Rasp", "Vero Jam Raspb", "Vero Jam Raspbe", "Vero Jam Raspber", "Vero Jam Raspberr", "Vero Jam Raspberry", "Vero Jam Raspberry ", "Vero Jam Raspberry 5", "Vero Jam Raspberry 50", "Vero Jam Raspberry 500", "Vero Jam Raspberry 500g"],
+    "product_name_prefixes_mk": ["В", "Ве", "Вер", "Веро", "Веро ", "Веро Џ", "Веро Џе", "Веро Џем", "Веро Џем ", "Веро Џем М", "Веро Џем Ма", "Веро Џем Мал", "Веро Џем Мали", "Веро Џем Малин", "Веро Џем Малина", "Веро Џем Малина ", "Веро Џем Малина 5", "Веро Џем Малина 50", "Веро Џем Малина 500", "Веро Џем Малина 500г"],
+    "discount_price": 2.99,
+    "discount_price_mk": "2,99 ден",
+    "discount_start_date": "2024-01-15",
+    "discount_end_date": "2024-01-31",
+    "old_price": 4.99,
+    "old_price_mk": "4,99 ден",
+    "currency": "USD",
+    "additional_info": ["500g jar", "Raspberry flavor"],
+    "additional_info_mk": ["500г тегла", "Вкус на малина"]
+  },
+  {
+    "product_name": "Vero Jam Apricot 500g",
+    "product_name_mk": "Веро Џем Кајсија 500г",
+    "product_name_prefixes": ["V", "Ve", "Ver", "Vero", "Vero ", "Vero J", "Vero Ja", "Vero Jam", "Vero Jam ", "Vero Jam A", "Vero Jam Ap", "Vero Jam Apr", "Vero Jam Apri", "Vero Jam Apric", "Vero Jam Aprico", "Vero Jam Apricot", "Vero Jam Apricot ", "Vero Jam Apricot 5", "Vero Jam Apricot 50", "Vero Jam Apricot 500", "Vero Jam Apricot 500g"],
+    "product_name_prefixes_mk": ["В", "Ве", "Вер", "Веро", "Веро ", "Веро Џ", "Веро Џе", "Веро Џем", "Веро Џем ", "Веро Џем К", "Веро Џем Ка", "Веро Џем Кај", "Веро Џем Кајс", "Веро Џем Кајси", "Веро Џем Кајсиј", "Веро Џем Кајсија", "Веро Џем Кајсија ", "Веро Џем Кајсија 5", "Веро Џем Кајсија 50", "Веро Џем Кајсија 500", "Веро Џем Кајсија 500г"],
+    "discount_price": 2.99,
+    "discount_price_mk": "2,99 ден",
+    "discount_start_date": "2024-01-15",
+    "discount_end_date": "2024-01-31",
+    "old_price": 4.99,
+    "old_price_mk": "4,99 ден",
+    "currency": "USD",
+    "additional_info": ["500g jar", "Apricot flavor"],
+    "additional_info_mk": ["500г тегла", "Вкус на кајсија"]
+  }
+]
+
+**COMBO PRODUCT EXAMPLE** (must include ALL required fields):
 [
   {
     "product_name": "Ariel Powder + Ariel Liquid + Ariel Pods (COMBO)",
+    "product_name_mk": "Ариел Прав + Ариел Течен + Ариел Капсули (КОМБО)",
+    "product_name_prefixes": ["A", "Ar", "Ari", "Arie", "Ariel", "Ariel ", "Ariel P", "Ariel Po", "Ariel Pow", "Ariel Powd", "Ariel Powde", "Ariel Powder", "Ariel Powder ", "Ariel Powder +", "Ariel Powder + ", "Ariel Powder + A", "Ariel Powder + Ar", "Ariel Powder + Ari", "Ariel Powder + Arie", "Ariel Powder + Ariel", "Ariel Powder + Ariel ", "Ariel Powder + Ariel L", "Ariel Powder + Ariel Li", "Ariel Powder + Ariel Liq", "Ariel Powder + Ariel Liqu", "Ariel Powder + Ariel Liqui", "Ariel Powder + Ariel Liquid", "Ariel Powder + Ariel Liquid ", "Ariel Powder + Ariel Liquid +", "Ariel Powder + Ariel Liquid + ", "Ariel Powder + Ariel Liquid + A", "Ariel Powder + Ariel Liquid + Ar", "Ariel Powder + Ariel Liquid + Ari", "Ariel Powder + Ariel Liquid + Arie", "Ariel Powder + Ariel Liquid + Ariel", "Ariel Powder + Ariel Liquid + Ariel ", "Ariel Powder + Ariel Liquid + Ariel P", "Ariel Powder + Ariel Liquid + Ariel Po", "Ariel Powder + Ariel Liquid + Ariel Pod", "Ariel Powder + Ariel Liquid + Ariel Pods", "Ariel Powder + Ariel Liquid + Ariel Pods ", "Ariel Powder + Ariel Liquid + Ariel Pods (", "Ariel Powder + Ariel Liquid + Ariel Pods (C", "Ariel Powder + Ariel Liquid + Ariel Pods (CO", "Ariel Powder + Ariel Liquid + Ariel Pods (COM", "Ariel Powder + Ariel Liquid + Ariel Pods (COMB", "Ariel Powder + Ariel Liquid + Ariel Pods (COMBO", "Ariel Powder + Ariel Liquid + Ariel Pods (COMBO)"],
+    "product_name_prefixes_mk": ["А", "Ар", "Ари", "Арие", "Ариел", "Ариел ", "Ариел П", "Ариел Пр", "Ариел Пра", "Ариел Прав", "Ариел Прав ", "Ариел Прав +", "Ариел Прав + ", "Ариел Прав + А", "Ариел Прав + Ар", "Ариел Прав + Ари", "Ариел Прав + Арие", "Ариел Прав + Ариел", "Ариел Прав + Ариел ", "Ариел Прав + Ариел Т", "Ариел Прав + Ариел Те", "Ариел Прав + Ариел Теч", "Ариел Прав + Ариел Тече", "Ариел Прав + Ариел Течен", "Ариел Прав + Ариел Течен ", "Ариел Прав + Ариел Течен +", "Ариел Прав + Ариел Течен + ", "Ариел Прав + Ариел Течен + А", "Ариел Прав + Ариел Течен + Ар", "Ариел Прав + Ариел Течен + Ари", "Ариел Прав + Ариел Течен + Арие", "Ариел Прав + Ариел Течен + Ариел", "Ариел Прав + Ариел Течен + Ариел ", "Ариел Прав + Ариел Течен + Ариел К", "Ариел Прав + Ариел Течен + Ариел Ка", "Ариел Прав + Ариел Течен + Ариел Кап", "Ариел Прав + Ариел Течен + Ариел Капс", "Ариел Прав + Ариел Течен + Ариел Капсу", "Ариел Прав + Ариел Течен + Ариел Капсул", "Ариел Прав + Ариел Течен + Ариел Капсули", "Ариел Прав + Ариел Течен + Ариел Капсули ", "Ариел Прав + Ариел Течен + Ариел Капсули (", "Ариел Прав + Ариел Течен + Ариел Капсули (К", "Ариел Прав + Ариел Течен + Ариел Капсули (КО", "Ариел Прав + Ариел Течен + Ариел Капсули (КОМ", "Ариел Прав + Ариел Течен + Ариел Капсули (КОМБ", "Ариел Прав + Ариел Течен + Ариел Капсули (КОМБО", "Ариел Прав + Ариел Течен + Ариел Капсули (КОМБО)"],
+    "discount_price": 15.99,
+    "discount_price_mk": "15,99 ден",
+    "discount_start_date": "2024-01-10",
+    "discount_end_date": "2024-01-28",
     "old_price": 19.99,
+    "old_price_mk": "19,99 ден",
     "currency": "USD",
-    "additional_info": ["Multi-product offer", "Save on bundle"]
+    "additional_info": ["Multi-product offer", "Save on bundle"],
+    "additional_info_mk": ["Повеќе-производна понуда", "Заштеди на пакет"]
   }
 ]
 
@@ -160,6 +247,8 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
         .replace(/\\t/g, '\\\\t')  // Fix tabs in strings
         .replace(/\\r/g, '\\\\r')  // Fix carriage returns
         .replace(/"([^"]*?)\n([^"]*?)"/g, '"$1\\\\n$2"') // Fix unescaped newlines in strings
+        // Remove trailing commas (critical for JSON validity)
+        .replace(/,(\s*[\]\}])/g, '$1')  // Remove commas before ] or }
         .trim()
       
       console.log('✨ Cleaned text length:', cleanedText.length)
@@ -250,10 +339,56 @@ export async function parseImageWithGemini(dataUrl: string): Promise<GeminiParse
         if (item.additional_info_mk !== undefined && !Array.isArray(item.additional_info_mk)) {
           throw new Error(`Invalid additional_info_mk for item ${index + 1}`)
         }
+        if (item.product_name_prefixes_mk !== undefined && !Array.isArray(item.product_name_prefixes_mk)) {
+          throw new Error(`Invalid product_name_prefixes_mk for item ${index + 1}`)
+        }
+        
+        // Validate and generate prefixes
+        if (!item.product_name_prefixes || !Array.isArray(item.product_name_prefixes)) {
+          throw new Error(`Missing or invalid product_name_prefixes for item ${index + 1}`);
+        }
+        
+        // Validate prefixes match the product name
+        const fullName = item.product_name.trim();
+        const expectedPrefixes = [];
+        for (let i = 1; i <= fullName.length; i++) {
+          expectedPrefixes.push(fullName.substring(0, i));
+        }
+        
+        // Allow AI-generated prefixes but validate they make sense
+        if (item.product_name_prefixes[item.product_name_prefixes.length - 1] !== fullName) {
+          console.warn(`Prefix sequence doesn't end with full product name for item ${index + 1}, auto-generating`);
+          item.product_name_prefixes = expectedPrefixes;
+        }
+        
+        // Generate Macedonian prefixes if Macedonian name exists
+        let macedonianPrefixes = undefined;
+        if (item.product_name_mk) {
+          const fullNameMk = item.product_name_mk.trim();
+          if (item.product_name_prefixes_mk && Array.isArray(item.product_name_prefixes_mk)) {
+            if (item.product_name_prefixes_mk[item.product_name_prefixes_mk.length - 1] !== fullNameMk) {
+              console.warn(`Macedonian prefix sequence doesn't end with full product name for item ${index + 1}, auto-generating`);
+              macedonianPrefixes = [];
+              for (let i = 1; i <= fullNameMk.length; i++) {
+                macedonianPrefixes.push(fullNameMk.substring(0, i));
+              }
+            } else {
+              macedonianPrefixes = item.product_name_prefixes_mk;
+            }
+          } else {
+            // Auto-generate if not provided
+            macedonianPrefixes = [];
+            for (let i = 1; i <= fullNameMk.length; i++) {
+              macedonianPrefixes.push(fullNameMk.substring(0, i));
+            }
+          }
+        }
         
         return {
           product_name: item.product_name.trim(),
           product_name_mk: item.product_name_mk?.trim(),
+          product_name_prefixes: item.product_name_prefixes,
+          product_name_prefixes_mk: macedonianPrefixes,
           discount_price: discountPrice,
           discount_price_mk: item.discount_price_mk?.trim(),
           old_price: oldPrice,

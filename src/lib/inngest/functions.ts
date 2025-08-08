@@ -64,20 +64,29 @@ export const parseFlyerFunction = inngest.createFunction(
       
       for (const item of results) {
         try {
-          const itemId = await addParsedFlyerItem({
+          // Build the item object, excluding undefined values for Firestore compatibility
+          const parsedFlyerItem: any = {
             flyerImageId,
             productName: item.product_name,
-            productNameMk: item.product_name_mk,
-            discountPrice: item.discount_price,
-            discountPriceMk: item.discount_price_mk,
+            productNamePrefixes: item.product_name_prefixes,
             oldPrice: item.old_price,
-            oldPriceMk: item.old_price_mk,
             currency: item.currency,
-            additionalInfo: item.additional_info,
-            additionalInfoMk: item.additional_info_mk,
             confidence: 0.85, // Default confidence score
             verified: false,
-          })
+          }
+
+          // Only add optional fields if they have values
+          if (item.product_name_mk) parsedFlyerItem.productNameMk = item.product_name_mk
+          if (item.product_name_prefixes_mk) parsedFlyerItem.productNamePrefixesMk = item.product_name_prefixes_mk
+          if (item.discount_price !== undefined) parsedFlyerItem.discountPrice = item.discount_price
+          if (item.discount_price_mk) parsedFlyerItem.discountPriceMk = item.discount_price_mk
+          if (item.discount_start_date) parsedFlyerItem.discountStartDate = item.discount_start_date
+          if (item.discount_end_date) parsedFlyerItem.discountEndDate = item.discount_end_date
+          if (item.old_price_mk) parsedFlyerItem.oldPriceMk = item.old_price_mk
+          if (item.additional_info) parsedFlyerItem.additionalInfo = item.additional_info
+          if (item.additional_info_mk) parsedFlyerItem.additionalInfoMk = item.additional_info_mk
+
+          const itemId = await addParsedFlyerItem(parsedFlyerItem)
           savedItemIds.push(itemId)
         } catch (error: any) {
           console.error('Error saving parsed item:', error)

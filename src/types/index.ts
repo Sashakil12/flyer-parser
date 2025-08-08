@@ -21,8 +21,12 @@ export interface ParsedFlyerItem {
   flyerImageId: string // Reference to flyer-images
   productName: string
   productNameMk?: string // Macedonian product name
+  productNamePrefixes: string[] // Growing prefixes for product name
+  productNamePrefixesMk?: string[] // Growing prefixes for Macedonian product name
   discountPrice?: number
   discountPriceMk?: string // Macedonian discount price text
+  discountStartDate?: string // ISO date string when discount starts
+  discountEndDate?: string // ISO date string when discount ends
   oldPrice: number
   oldPriceMk?: string // Macedonian old price text
   currency: string // Currency code (e.g., 'USD', 'CAD', 'EUR', 'MKD')
@@ -50,8 +54,12 @@ export interface ParseResponse {
 export interface GeminiParseResult {
   product_name: string
   product_name_mk?: string // Macedonian product name
+  product_name_prefixes: string[] // Growing prefixes for product name
+  product_name_prefixes_mk?: string[] // Growing prefixes for Macedonian product name
   discount_price?: number
   discount_price_mk?: string // Macedonian discount price text
+  discount_start_date?: string // ISO date string when discount starts
+  discount_end_date?: string // ISO date string when discount ends
   old_price: number
   old_price_mk?: string // Macedonian old price text
   currency: string // Currency code detected from the image (USD, EUR, MKD, etc.)
