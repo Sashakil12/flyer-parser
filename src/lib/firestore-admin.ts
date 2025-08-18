@@ -1,24 +1,25 @@
 import { adminDb } from './firebase/admin'
-import { FlyerImage, ParsedFlyerItem } from '@/types'
+import { FlyerImage, ParsedFlyerItem, AutoApprovalRule } from '@/types'
 
 const FLYER_IMAGES_COLLECTION = 'flyer-images'
 const PARSED_FLYER_ITEMS_COLLECTION = 'parsed-flyer-items'
+const AUTO_APPROVAL_RULES_COLLECTION = 'auto-approval-rules'
 
-// Validate product data consistency to detect corrupted records
+// Check product data consistency but don't skip products
 function validateProductDataConsistency(product: any, searchTerm: string): boolean {
-  // If product name contains detergent but keywords point to wine, it's corrupted
+  // If product name contains detergent but keywords point to wine, it might be inconsistent
   const productName = (product.name || '').toLowerCase()
   const macedonianName = (product.macedonianname || '').toLowerCase()
   const albanianName = (product.albenianname || '').toLowerCase()
   
-  // Check for obvious mismatches
+  // Check for potential inconsistencies but don't skip
   const isDetergent = productName.includes('detergent') || productName.includes('savex')
   const isWine = macedonianName.includes('вино') || albanianName.includes('verë') || 
                 macedonianName.includes('имако') || albanianName.includes('imako')
   
   if (isDetergent && isWine) {
-    console.log(`🚨 Data corruption detected: Product "${product.name}" has detergent name but wine translations`)
-    return false
+    console.log(`⚠️ Potential data inconsistency in product "${product.name}": detergent name with wine translations, but continuing with match`)
+    // We still return true to include this product in matches
   }
   
   return true
@@ -141,9 +142,31 @@ export const updateParsedFlyerItem = async (
       throw new Error(`Parsed flyer item ${id} not found`)
     }
     
+    // Clean the data to remove any undefined values
+    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
+      // Skip undefined values
+      if (value !== undefined) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {} as Record<string, any>);
+    
     const updateData = {
-      ...data,
+      ...cleanData,
       updatedAt: new Date()
+    }
+    
+    // Log the update data structure for debugging
+    console.log(`🔍 Update data structure check: ${JSON.stringify(updateData).substring(0, 200)}...`)
+    
+    // Log auto-approval specific updates
+    if (updateData.autoApproved) {
+      console.log(`✨ Auto-approval applied: productId=${updateData.selectedProductId}, reason=${updateData.autoApprovalReason || 'N/A'}`)
+    }
+    
+    // Log matchedProducts count if present
+    if (updateData.matchedProducts) {
+      console.log(`📊 Saving ${updateData.matchedProducts.length} matched products to Firestore`)
     }
     
     await docRef.update(updateData)
@@ -156,6 +179,35 @@ export const updateParsedFlyerItem = async (
 }
 
 import { productSearchCache } from './cache'
+
+// Auto-Approval Rules Admin Operations
+export const getActiveAutoApprovalRuleAdmin = async (): Promise<AutoApprovalRule | null> => {
+  try {
+    console.log('🔍 Fetching active auto-approval rule using admin SDK')
+    
+    const querySnapshot = await adminDb.collection(AUTO_APPROVAL_RULES_COLLECTION)
+      .where('isActive', '==', true)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get()
+    
+    if (querySnapshot.empty) {
+      console.log('⚠️ No active auto-approval rule found')
+      return null
+    }
+    
+    const doc = querySnapshot.docs[0]
+    console.log(`✅ Found active auto-approval rule: ${doc.id}`)
+    
+    return {
+      id: doc.id,
+      ...doc.data()
+    } as AutoApprovalRule
+  } catch (error: any) {
+    console.error('❌ Error fetching active auto-approval rule with admin SDK:', error)
+    throw new Error('Failed to fetch active auto-approval rule')
+  }
+}
 
 // Enhanced search for relevant products using all available searchable fields
 export const searchProducts = async (
@@ -264,12 +316,9 @@ export const searchProducts = async (
   albeniannameKeywords: ${JSON.stringify(product.albeniannameKeywords)}
 }`)
         
-        // Validate product data consistency
-        const isDataConsistent = validateProductDataConsistency(product, productName)
-        if (!isDataConsistent) {
-          console.log(`⚠️ ${stageName} - Skipping corrupted product ${product.id} - data mismatch detected`)
-          return
-        }
+        // Check product data consistency but don't skip
+        validateProductDataConsistency(product, productName)
+        // We no longer skip products based on data consistency checks
         
         if (!existingIds.has(product.id)) {
           existingIds.add(product.id)

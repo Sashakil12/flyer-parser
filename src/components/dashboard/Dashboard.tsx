@@ -7,7 +7,7 @@ import StatsCards from './StatsCards'
 import FileUploadSection from './FileUploadSection'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import Link from 'next/link'
-import { EyeIcon, DocumentTextIcon, ArrowRightIcon } from '@heroicons/react/24/outline'
+import { EyeIcon, DocumentTextIcon, ArrowRightIcon, CogIcon } from '@heroicons/react/24/outline'
 
 export default function Dashboard() {
   const [user, loading] = useAuthState(auth)
@@ -62,6 +62,14 @@ export default function Dashboard() {
               >
                 <EyeIcon className="h-4 w-4 mr-2" />
                 View All Flyers ({stats.totalFlyers})
+              </Link>
+              
+              <Link
+                href="/auto-approval"
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+              >
+                <CogIcon className="h-4 w-4 mr-2" />
+                Auto-Approval Settings
               </Link>
               
               <div className="text-sm text-gray-600 flex items-center">

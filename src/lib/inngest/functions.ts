@@ -1,10 +1,13 @@
 import { inngest } from '../inngest'
 import { parseImageWithGemini } from '../gemini'
-import { scoreProductMatches } from '../gemini-product-match'
+import { scoreProductMatches } from '@/lib/gemini-product-match'
 import { updateFlyerImageStatus, addParsedFlyerItem, updateParsedFlyerItem, searchProducts } from '../firestore-admin'
 import { getImageDataUrl } from '@/lib/storage-admin'
+import { evaluateAutoApproval } from '@/lib/auto-approval'
+import { applyDiscountPercentage } from '@/lib/utils'
 import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { GeminiParseResult, ParsedFlyerItem, MatchedProduct } from '@/types'
+import { adminDb } from '../firebase/admin'
 
 // Function to parse flyer images using Gemini AI
 export const parseFlyerFunction = inngest.createFunction(
@@ -276,11 +279,13 @@ export const matchProductsFunction = inngest.createFunction(
           return result
         } catch (error: any) {
           console.error('❌ AI scoring failed:', error.message)
-          // Fallback: create basic matches with moderate scores
+          // Fallback: create basic matches with moderate scores and no auto-approval
           const fallbackMatches = formattedProducts.slice(0, 3).map(product => ({
             productId: product.id,
             relevanceScore: 0.5, // Moderate score as fallback
-            matchReason: 'Fallback match due to AI scoring failure'
+            matchReason: 'Fallback match due to AI scoring failure',
+            can_auto_merge: false, // Never auto-approve fallback matches
+            autoApprovalReason: 'Auto-approval skipped due to AI scoring failure'
           }))
           console.log(`🔄 Using fallback scoring for ${fallbackMatches.length} products`)
           return fallbackMatches
@@ -291,48 +296,246 @@ export const matchProductsFunction = inngest.createFunction(
       const MIN_RELEVANCE_SCORE = 0.4 // Only keep matches with at least 40% relevance
       const filteredMatches = scoredMatches.filter((match: { relevanceScore: number }) => match.relevanceScore >= MIN_RELEVANCE_SCORE)
 
-      // Step 4: Format matches for database
-      const matchedProducts = filteredMatches.map((match: { productId: string; relevanceScore: number; matchReason: string }) => {
-        const productData = potentialMatches.find((p: any) => p.id === match.productId)
+      // Step 4: Format matches for database and check auto-approval
+      const matchedProducts = filteredMatches
+        // Filter out any matches with invalid productIds
+        .filter((match: { productId: string | undefined }) => {
+          // Check for undefined, null, or string versions of those values
+          if (match.productId === undefined || 
+              match.productId === null || 
+              match.productId === 'undefined' || 
+              match.productId === 'null' ||
+              !match.productId) { // Also catches empty strings
+            console.log(`⚠️ Filtering out match with invalid productId: ${JSON.stringify(match)}`)
+            return false;
+          }
+          return true;
+        })
+        .map((match: { productId: string; relevanceScore: number; matchReason: string; can_auto_merge: boolean; autoApprovalReason: string }) => {
+          const productData = potentialMatches.find((p: any) => p.id === match.productId)
+          
+          // Create a server-side object that will be properly converted to Firestore Timestamp
+          // We don't cast to MatchedProduct here since that uses the client-side Timestamp
+          const matchedProduct: any = {
+            productId: match.productId || '', // Ensure productId is never undefined
+            relevanceScore: match.relevanceScore || 0,
+            matchReason: match.matchReason || '',
+            can_auto_merge: match.can_auto_merge === true,
+            autoApprovalReason: match.autoApprovalReason || '',
+            matchedAt: new Date() // Firestore Admin SDK will convert this to Timestamp
+          }
+          
+          // Only add productData if it exists and has valid data
+          if (productData && productData.name) {
+            matchedProduct.productData = {
+              name: productData.name || '',
+              macedonianname: productData.nameMk || productData.macedonianname || '',
+              albenianname: productData.albenianname || '',
+              iconUrl: productData.iconUrl || '',
+              superMarketName: productData.superMarketName || '',
+              categoryId: productData.categoryId || ''
+            }
+          }
+          
+          return matchedProduct
+        })
+
+      // Define type for auto-approval result
+      type AutoApprovalResult = {
+        shouldAutoApprove: boolean;
+        reasoning: string;
+        confidence: number;
+        productId: string | null;
+      }
+
+      // Step 5: Check for auto-approval from Gemini results
+      const autoApprovalResult: AutoApprovalResult | null = await step.run('check-auto-approval', async () => {
+        console.log(`📊 Checking auto-approval for ${matchedProducts.length} potential matches`)
         
-        // Create a server-side object that will be properly converted to Firestore Timestamp
-        // We don't cast to MatchedProduct here since that uses the client-side Timestamp
-        const matchedProduct: any = {
-          productId: match.productId,
-          relevanceScore: match.relevanceScore,
-          matchReason: match.matchReason,
-          matchedAt: new Date() // Firestore Admin SDK will convert this to Timestamp
+        if (matchedProducts.length === 0) {
+          console.log('⚠️ No matches to check for auto-approval')
+          return null
         }
+
+        // Log all matches with their auto-approval status
+        matchedProducts.forEach((match: any, index: number) => {
+          console.log(`Match #${index + 1}: productId=${match.productId}, relevanceScore=${match.relevanceScore}, can_auto_merge=${match.can_auto_merge}, reason=${match.autoApprovalReason || 'N/A'}`)
+        })
+
+        // Find the first match that can be auto-merged
+        const autoApprovableMatch = matchedProducts.find((match: any) => match.can_auto_merge === true)
         
-        // Only add productData if it exists and has valid data
-        if (productData && productData.name) {
-          matchedProduct.productData = {
-            name: productData.name || '',
-            macedonianname: productData.nameMk || productData.macedonianname || '',
-            albenianname: productData.albenianname || '',
-            iconUrl: productData.iconUrl || '',
-            superMarketName: productData.superMarketName || '',
-            categoryId: productData.categoryId || ''
+        if (autoApprovableMatch) {
+          console.log(`🚀 Auto-approval approved for product: ${autoApprovableMatch.productId} with confidence ${autoApprovableMatch.relevanceScore}`)
+          console.log(`📝 Reason: ${autoApprovableMatch.autoApprovalReason}`)
+          
+          return {
+            shouldAutoApprove: true,
+            productId: autoApprovableMatch.productId,
+            reasoning: autoApprovableMatch.autoApprovalReason,
+            confidence: autoApprovableMatch.relevanceScore
+          }
+        } else {
+          console.log('⚠️ No matches meet auto-approval criteria - requires manual review')
+          return {
+            shouldAutoApprove: false,
+            reasoning: 'No matches meet the configured auto-approval criteria',
+            confidence: 0,
+            productId: null // Add null productId for type consistency
           }
         }
-        
-        return matchedProduct
       })
 
-      // Step 5: Save matches to database
-      await step.run('save-matches', async () => {
+      // Step 6: Save matches and handle auto-approval
+      await step.run('save-matches-and-auto-approve', async () => {
         console.log(`💾 Saving ${matchedProducts.length} matches to database`)
         try {
-          // Type assertion needed because we're using server-side Date objects that will be converted to Timestamps
-          // when saved to Firestore, but our client-side types expect Timestamp objects
-          await updateParsedFlyerItem(parsedItemId, {
-            matchingStatus: 'completed',
-            matchedProducts: matchedProducts as any
-          })
-          console.log(`✅ Successfully saved matches for item ${parsedItemId}`)
+          // Final validation to ensure no invalid values in matchedProducts
+          const validatedMatches = matchedProducts.filter(match => {
+            if (!match || typeof match !== 'object') {
+              console.log(`⚠️ Skipping invalid match: ${JSON.stringify(match)}`)
+              return false;
+            }
+            
+            // Comprehensive check for invalid productId values
+            if (match.productId === undefined || 
+                match.productId === null || 
+                match.productId === 'undefined' || 
+                match.productId === 'null' || 
+                !match.productId || // Catches empty strings
+                typeof match.productId !== 'string') {
+              console.log(`⚠️ Skipping match with invalid productId: ${JSON.stringify(match)}`)
+              return false;
+            }
+            
+            // Verify the productId exists in the database
+            const productExists = potentialMatches.some((p: any) => p.id === match.productId);
+            if (!productExists) {
+              console.log(`⚠️ Skipping match with non-existent productId: ${match.productId}`)
+              return false;
+            }
+            
+            return true;
+          });
+          
+          console.log(`✅ Validated ${validatedMatches.length} matches for Firestore update`);
+          
+          // Log the structure of the first few matches for debugging
+          if (validatedMatches.length > 0) {
+            console.log(`🔍 Sample match structure: ${JSON.stringify(validatedMatches[0]).substring(0, 200)}...`)
+          }
+          
+          const updateData: any = {
+            matchedProducts: validatedMatches as any
+          }
+
+          // Handle auto-approval decision
+          if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
+            // Auto-approval approved - set status to applied_to_product
+            updateData.matchingStatus = 'applied_to_product'
+            updateData.selectedProductId = autoApprovalResult.productId
+            updateData.autoApproved = true
+            updateData.autoApprovalReason = autoApprovalResult.reasoning
+            updateData.autoApprovalConfidence = autoApprovalResult.confidence
+            updateData.autoApprovedAt = new Date()
+            updateData.autoApprovalStatus = 'success'
+            
+            console.log(`🚀 Auto-approved and applied to product: ${autoApprovalResult.productId}`)
+            console.log(`📝 Status set to: applied_to_product`)
+          } else {
+            // Auto-approval failed - set status to waiting for manual approval
+            updateData.matchingStatus = 'waiting_for_approval'
+            updateData.autoApprovalStatus = 'failed'
+            updateData.autoApprovalFailedAt = new Date()
+            updateData.autoApprovalFailureReason = autoApprovalResult?.reasoning || 'Auto-approval evaluation failed'
+            
+            console.log(`⏳ Requires manual approval - status set to: waiting_for_approval`)
+            console.log(`📝 Reason: ${autoApprovalResult?.reasoning || 'Auto-approval evaluation failed'}`)
+          }
+
+          await updateParsedFlyerItem(parsedItemId, updateData)
+          console.log(`✅ Successfully saved matches and status for item ${parsedItemId}`)
+
+          // Step 7: Apply discount automatically if auto-approved
+          if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
+            await step.run('auto-apply-discount', async () => {
+              try {
+                const productId = autoApprovalResult.productId as string;
+                
+                // Get the parsed flyer item to extract price information
+                const parsedItemRef = adminDb.collection('parsed-flyer-items').doc(parsedItemId);
+                const parsedItemDoc = await parsedItemRef.get();
+                const parsedItem = parsedItemDoc.data();
+                
+                // Get the product to update
+                const productRef = adminDb.collection('products').doc(productId);
+                const productDoc = await productRef.get();
+                
+                if (!productDoc.exists) {
+                  console.error(`❌ Product ${productId} not found for auto-discount application`);
+                  return;
+                }
+                
+                const product = productDoc.data();
+                const currentPrice = product?.price || 0;
+                
+                // Calculate discount percentage based on parsed item prices
+                let discountPercentage = 0;
+                if (parsedItem?.oldPrice && parsedItem?.discountPrice) {
+                  // Calculate from parsed flyer prices
+                  const oldPrice = parseFloat(parsedItem.oldPrice);
+                  const discountPrice = parseFloat(parsedItem.discountPrice);
+                  
+                  if (oldPrice > 0 && discountPrice > 0 && discountPrice < oldPrice) {
+                    discountPercentage = Math.round(((oldPrice - discountPrice) / oldPrice) * 100);
+                  }
+                }
+                
+                // Use a default discount percentage if we couldn't calculate one
+                if (discountPercentage <= 0 || discountPercentage >= 100) {
+                  console.log(`⚠️ Could not calculate valid discount percentage, using default`);
+                  discountPercentage = 10; // Default 10% discount
+                }
+                
+                // Calculate the discounted price
+                const discountedPrice = applyDiscountPercentage(currentPrice, discountPercentage);
+                
+                console.log(`💰 Auto-applying ${discountPercentage}% discount to product ${productId}`);
+                console.log(`💰 Original price: ${currentPrice}, Discounted price: ${discountedPrice}`);
+                
+                // Update the product with the discount
+                await productRef.update({
+                  discountedPrice,
+                  discountPercentage,
+                  discountSource: {
+                    type: 'flyer',
+                    parsedItemId,
+                    appliedAt: new Date(),
+                    appliedBy: 'auto-approval',
+                    originalPrice: currentPrice
+                  },
+                  hasActiveDiscount: true
+                });
+                
+                // Update the parsed flyer item to mark the discount as applied
+                await parsedItemRef.update({
+                  discountApplied: true,
+                  discountAppliedAt: new Date(),
+                  discountPercentage,
+                  autoDiscountApplied: true
+                });
+                
+                console.log(`✅ Successfully applied auto-discount to product ${productId}`);
+                return { success: true, productId, discountPercentage, discountedPrice };
+              } catch (error: any) {
+                console.error('❌ Error applying auto-discount:', error);
+                return { success: false, error: error.message };
+              }
+            });
+          }
         } catch (error: any) {
-          console.error(`❌ Failed to save matches for item ${parsedItemId}:`, error.message)
-          throw error // Re-throw to trigger the catch block
+          console.error('❌ Error saving matches:', error)
+          throw error
         }
       })
 

@@ -5,9 +5,9 @@ import { Timestamp } from 'firebase/firestore'
 // Interface for product matches with relevance scores
 export interface MatchedProduct {
   productId: string
-  relevanceScore: number // 0.0 to 1.0 score from AI
+  relevanceScore: number
+  matchReason?: string
   matchedAt: Timestamp
-  matchReason?: string // AI explanation for why this product matches
   productData?: {
     name: string
     macedonianname?: string
@@ -16,6 +16,30 @@ export interface MatchedProduct {
     superMarketName?: string
     categoryId?: string
   }
+}
+
+export interface AutoApprovalRule {
+  id: string
+  name: string
+  prompt: string
+  isActive: boolean
+  fieldCriteria: {
+    [fieldName: string]: {
+      matchPercentage: number
+      isRequired: boolean
+      ignore: boolean
+    }
+  }
+  createdAt: Timestamp
+  updatedAt: Timestamp
+  createdBy: string
+}
+
+export interface AutoApprovalDecision {
+  shouldAutoApprove: boolean
+  confidence: number
+  reasoning: string
+  matchedFields: string[]
 }
 
 export interface FlyerImage {
@@ -57,6 +81,14 @@ export interface ParsedFlyerItem {
   selectedProductId?: string // ID of the product selected for discount application
   matchingStatus?: 'pending' | 'processing' | 'completed' | 'failed' // Status of product matching process
   matchingError?: string // Error message if matching failed
+  // Auto-approval fields
+  autoApproved?: boolean // Whether this item was auto-approved
+  autoApprovalStatus?: 'success' | 'failed' // Status of auto-approval process
+  autoApprovalReason?: string // AI reasoning for auto-approval decision
+  autoApprovalFailureReason?: string // Reason why auto-approval failed
+  autoApprovalConfidence?: number // AI confidence score for auto-approval (0-1)
+  autoApprovedAt?: Timestamp // When auto-approval occurred
+  autoApprovalFailedAt?: Timestamp // When auto-approval failed
 }
 
 // API Response Types

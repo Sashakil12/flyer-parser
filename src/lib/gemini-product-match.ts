@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { getActiveAutoApprovalRuleAdmin } from './firestore-admin'
 
 if (!process.env.GOOGLE_AI_API_KEY) {
   throw new Error('GOOGLE_AI_API_KEY environment variable is required')
@@ -41,25 +42,36 @@ MULTILINGUAL MATCHING:
 - Give higher weight to matches in the same language
 
 OUTPUT FORMAT:
-Return a JSON array with each potential match scored:
+Return a JSON array with each potential match scored and auto-approval evaluation:
 [
   {
     "productId": "id1",
     "relevanceScore": 0.85,
-    "matchReason": "Strong name similarity and matching brand"
+    "matchReason": "Strong name similarity and matching brand",
+    "can_auto_merge": true,
+    "autoApprovalReason": "Meets auto-approval criteria: name 95% match"
   },
   {
     "productId": "id2",
     "relevanceScore": 0.45,
-    "matchReason": "Same category but different brand and size"
+    "matchReason": "Same category but different brand and size",
+    "can_auto_merge": false,
+    "autoApprovalReason": "Does not meet auto-approval criteria: name only 40% match"
   }
 ]
+
+AUTO-APPROVAL CRITERIA:
+{{autoApprovalCriteria}}
 
 IMPORTANT RULES:
 - Score EACH database product individually based on its match to the flyer product
 - Be conservative - only give high scores (0.8+) for very confident matches
 - Consider partial word matches (e.g., "Apple Juice" should match "Organic Apple Juice")
 - Account for common retail variations (sizes, packaging, etc.)
+- Evaluate can_auto_merge based on the auto-approval criteria above
+- Set can_auto_merge to true ONLY if the match clearly meets the specified auto-approval requirements
+- CRITICAL: Always use the exact product ID from the database product (never use strings like 'undefined' or 'null')
+- The productId MUST be a valid ID string from one of the provided DATABASE PRODUCTS
 - Return ONLY valid JSON with no additional text
 `
 
@@ -82,8 +94,19 @@ export async function scoreProductMatches(
     category?: string
     [key: string]: any
   }>
-): Promise<Array<{ productId: string; relevanceScore: number; matchReason: string }>> {
+): Promise<Array<{ productId: string; relevanceScore: number; matchReason: string; can_auto_merge: boolean; autoApprovalReason: string }>> {
   try {
+    // Get active auto-approval rule using admin SDK to avoid permission issues
+    const autoApprovalRule = await getActiveAutoApprovalRuleAdmin()
+    let autoApprovalCriteria = 'No auto-approval rule configured - set can_auto_merge to false for all products'
+    
+    if (autoApprovalRule) {
+      autoApprovalCriteria = `Auto-approval rule: "${autoApprovalRule.name}"
+Custom instructions: ${autoApprovalRule.prompt}
+
+Apply these instructions to determine if each product match should have can_auto_merge set to true.`
+    }
+
     // Get Gemini model
     const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' })
 
@@ -116,6 +139,7 @@ export async function scoreProductMatches(
       .replace('{{flyerAdditionalInfo}}', flyerAdditionalInfo)
       .replace('{{flyerAdditionalInfoMk}}', flyerAdditionalInfoMk)
       .replace('{{databaseProducts}}', formattedDatabaseProducts)
+      .replace('{{autoApprovalCriteria}}', autoApprovalCriteria)
 
     // Generate content with prompt
     const result = await model.generateContent([prompt])
@@ -145,27 +169,41 @@ export async function scoreProductMatches(
       }
       
       // Validate and normalize each match
-      const validatedMatches = parsedData.map((match: any) => {
-        if (!match.productId || typeof match.productId !== 'string') {
-          throw new Error(`Invalid productId: ${JSON.stringify(match)}`)
+      const validMatches = [];
+      
+      for (const match of parsedData) {
+        // Skip invalid matches instead of throwing an error
+        if (!match.productId || 
+            typeof match.productId !== 'string' || 
+            match.productId === 'undefined' || 
+            match.productId === 'null') {
+          console.log(`⚠️ Skipping match with invalid productId: ${JSON.stringify(match)}`)
+          continue;
         }
         
+        // Skip matches with invalid relevance scores
         if (match.relevanceScore === undefined || typeof match.relevanceScore !== 'number') {
-          throw new Error(`Invalid relevanceScore for product ${match.productId}`)
+          console.log(`⚠️ Skipping match with invalid relevanceScore: ${JSON.stringify(match)}`)
+          continue;
         }
         
         // Ensure score is within valid range
         const score = Math.max(0, Math.min(1, match.relevanceScore))
         
-        return {
+        // Add valid match to our array
+        validMatches.push({
           productId: match.productId,
           relevanceScore: score,
-          matchReason: match.matchReason || 'No reason provided'
-        }
-      })
+          matchReason: match.matchReason || 'No reason provided',
+          can_auto_merge: match.can_auto_merge === true,
+          autoApprovalReason: match.autoApprovalReason || 'No auto-approval evaluation provided'
+        });
+      }
+      
+      console.log(`✅ Found ${validMatches.length} valid matches after filtering`)
       
       // Sort by relevance score (highest first)
-      return validatedMatches.sort((a, b) => b.relevanceScore - a.relevanceScore)
+      return validMatches.sort((a, b) => b.relevanceScore - a.relevanceScore)
       
     } catch (parseError: any) {
       console.error('❌ JSON parsing error:', parseError.message)

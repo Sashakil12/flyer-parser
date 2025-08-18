@@ -8,7 +8,8 @@ import {
   TrashIcon,
   CheckCircleIcon,
   XCircleIcon,
-  EyeIcon
+  EyeIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { deleteParsedFlyerItem, updateParsedFlyerItem } from '@/lib/firestore'
@@ -250,15 +251,41 @@ export default function ParsedDataTable({ items, isLoading, onRefresh }: ParsedD
                 </td>
                 
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    {item.verified ? (
-                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
-                    ) : (
-                      <XCircleIcon className="h-5 w-5 text-gray-400 mr-2" />
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex items-center">
+                      {item.verified ? (
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-2" />
+                      ) : (
+                        <XCircleIcon className="h-5 w-5 text-gray-400 mr-2" />
+                      )}
+                      <span className={`text-sm ${item.verified ? 'text-green-700' : 'text-gray-500'}`}>
+                        {item.verified ? 'Verified' : 'Unverified'}
+                      </span>
+                    </div>
+                    {item.autoApproved && (
+                      <div 
+                        className="flex items-center cursor-help"
+                        title={`Auto-approved with ${item.autoApprovalConfidence ? Math.round(item.autoApprovalConfidence * 100) : 'unknown'}% confidence${item.autoApprovalReason ? `\n\nReason: ${item.autoApprovalReason}` : ''}`}
+                      >
+                        <SparklesIcon className="h-4 w-4 text-purple-500 mr-1" />
+                        <span className="text-xs text-purple-600 font-medium">
+                          Auto-approved
+                        </span>
+                        {item.autoApprovalConfidence && (
+                          <span className="text-xs text-purple-500 ml-1">
+                            ({Math.round(item.autoApprovalConfidence * 100)}%)
+                          </span>
+                        )}
+                      </div>
                     )}
-                    <span className={`text-sm ${item.verified ? 'text-green-700' : 'text-gray-500'}`}>
-                      {item.verified ? 'Verified' : 'Unverified'}
-                    </span>
+                    {item.selectedProductId && !item.autoApproved && (
+                      <div className="flex items-center">
+                        <CheckCircleIcon className="h-4 w-4 text-blue-500 mr-1" />
+                        <span className="text-xs text-blue-600 font-medium">
+                          Manual match
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </td>
                 

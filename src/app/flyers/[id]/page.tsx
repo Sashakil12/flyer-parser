@@ -12,14 +12,16 @@ import Image from 'next/image'
 import { 
   ChevronLeftIcon, 
   ChevronRightIcon, 
-  CheckCircleIcon, 
+  CheckCircleIcon,
   XCircleIcon,
-  ExclamationTriangleIcon,
-  DocumentTextIcon,
+  PencilIcon,
+  EyeIcon,
+  SparklesIcon,
   CalendarIcon,
   DocumentIcon,
+  DocumentTextIcon,
+  ExclamationTriangleIcon,
   TagIcon,
-  PencilIcon,
   CheckIcon
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
@@ -265,11 +267,31 @@ export default function FlyerDetailPage() {
                                 )}
                               </div>
                               
-                              {item.verified ? (
-                                <CheckCircleIcon className="h-5 w-5 text-green-500" />
-                              ) : (
-                                <div className="h-5 w-5 rounded-full bg-gray-300"></div>
-                              )}
+                              <div className="flex items-center space-x-2">
+                                {item.autoApprovalStatus === 'success' && (
+                                  <div 
+                                    className="flex items-center space-x-1 cursor-help"
+                                    title={`Auto-approved with ${item.autoApprovalConfidence ? Math.round(item.autoApprovalConfidence * 100) : 'unknown'}% confidence${item.autoApprovalReason ? `\n\nReason: ${item.autoApprovalReason}` : ''}`}
+                                  >
+                                    <SparklesIcon className="h-4 w-4 text-purple-500" />
+                                    <span className="text-xs text-purple-600 font-medium">Auto</span>
+                                  </div>
+                                )}
+                                {item.autoApprovalStatus === 'failed' && (
+                                  <div 
+                                    className="flex items-center space-x-1 cursor-help"
+                                    title={`Auto-approval failed\n\nReason: ${item.autoApprovalFailureReason || 'Unknown reason'}`}
+                                  >
+                                    <ExclamationTriangleIcon className="h-4 w-4 text-amber-500" />
+                                    <span className="text-xs text-amber-600 font-medium">Manual</span>
+                                  </div>
+                                )}
+                                {item.verified ? (
+                                  <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                                ) : (
+                                  <div className="h-5 w-5 rounded-full bg-gray-300"></div>
+                                )}
+                              </div>
                             </div>
 
                             {/* Prices */}

@@ -1,22 +1,25 @@
 import { 
   collection, 
-  addDoc, 
-  getDocs, 
   doc, 
+  getDocs, 
+  getDoc, 
+  addDoc, 
   updateDoc, 
   deleteDoc, 
   query, 
+  where, 
   orderBy, 
-  where,
-  serverTimestamp,
-  Timestamp
+  limit as firestoreLimit,
+  Timestamp,
+  serverTimestamp
 } from 'firebase/firestore'
 import { db } from './firebase/config'
-import { FlyerImage, ParsedFlyerItem } from '@/types'
+import { FlyerImage, ParsedFlyerItem, AutoApprovalRule } from '@/types'
 
 // Collections
 const FLYER_IMAGES_COLLECTION = 'flyer-images'
 const PARSED_FLYER_ITEMS_COLLECTION = 'parsed-flyer-items'
+const AUTO_APPROVAL_RULES_COLLECTION = 'auto-approval-rules'
 
 // Flyer Images CRUD Operations
 export const addFlyerImage = async (flyerImage: Omit<FlyerImage, 'id' | 'uploadedAt' | 'createdAt'>): Promise<string> => {
@@ -181,6 +184,91 @@ export const deleteParsedFlyerItem = async (id: string): Promise<void> => {
   } catch (error: any) {
     console.error('Error deleting parsed flyer item:', error)
     throw new Error('Failed to delete parsed data')
+  }
+}
+
+// Auto-Approval Rules CRUD Operations
+export const getAutoApprovalRules = async (): Promise<AutoApprovalRule[]> => {
+  try {
+    const q = query(
+      collection(db, AUTO_APPROVAL_RULES_COLLECTION),
+      orderBy('createdAt', 'desc')
+    )
+    const querySnapshot = await getDocs(q)
+    
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    } as AutoApprovalRule))
+  } catch (error: any) {
+    console.error('Error fetching auto-approval rules:', error)
+    throw new Error('Failed to fetch auto-approval rules')
+  }
+}
+
+export const getActiveAutoApprovalRule = async (): Promise<AutoApprovalRule | null> => {
+  try {
+    const q = query(
+      collection(db, AUTO_APPROVAL_RULES_COLLECTION),
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc'),
+      firestoreLimit(1)
+    )
+    const querySnapshot = await getDocs(q)
+    
+    if (querySnapshot.empty) {
+      return null
+    }
+    
+    const doc = querySnapshot.docs[0]
+    return {
+      id: doc.id,
+      ...doc.data()
+    } as AutoApprovalRule
+  } catch (error: any) {
+    console.error('Error fetching active auto-approval rule:', error)
+    throw new Error('Failed to fetch active auto-approval rule')
+  }
+}
+
+export const saveAutoApprovalRule = async (
+  id: string | null, 
+  ruleData: Omit<AutoApprovalRule, 'id' | 'createdAt' | 'updatedAt' | 'createdBy'>
+): Promise<string> => {
+  try {
+    const now = Timestamp.now()
+    const userId = 'admin' // Replace with actual user ID from auth context
+    
+    if (id) {
+      // Update existing rule
+      const docRef = doc(db, AUTO_APPROVAL_RULES_COLLECTION, id)
+      await updateDoc(docRef, {
+        ...ruleData,
+        updatedAt: now
+      })
+      return id
+    } else {
+      // Create new rule
+      const docRef = await addDoc(collection(db, AUTO_APPROVAL_RULES_COLLECTION), {
+        ...ruleData,
+        createdAt: now,
+        updatedAt: now,
+        createdBy: userId
+      })
+      return docRef.id
+    }
+  } catch (error: any) {
+    console.error('Error saving auto-approval rule:', error)
+    throw new Error('Failed to save auto-approval rule')
+  }
+}
+
+export const deleteAutoApprovalRule = async (id: string): Promise<void> => {
+  try {
+    await deleteDoc(doc(db, AUTO_APPROVAL_RULES_COLLECTION, id))
+  } catch (error: any) {
+    console.error('Error deleting auto-approval rule:', error)
+    throw new Error('Failed to delete auto-approval rule')
   }
 }
 
