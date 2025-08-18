@@ -1,6 +1,23 @@
 import { Timestamp } from 'firebase/firestore'
 
 // Database Types
+
+// Interface for product matches with relevance scores
+export interface MatchedProduct {
+  productId: string
+  relevanceScore: number // 0.0 to 1.0 score from AI
+  matchedAt: Timestamp
+  matchReason?: string // AI explanation for why this product matches
+  productData?: {
+    name: string
+    macedonianname?: string
+    albenianname?: string
+    iconUrl?: string
+    superMarketName?: string
+    categoryId?: string
+  }
+}
+
 export interface FlyerImage {
   id: string
   filename: string
@@ -35,6 +52,11 @@ export interface ParsedFlyerItem {
   confidence: number // AI confidence score (0-1)
   parsedAt: Timestamp
   verified: boolean
+  // Product matching fields
+  matchedProducts?: MatchedProduct[] // Array of potential product matches
+  selectedProductId?: string // ID of the product selected for discount application
+  matchingStatus?: 'pending' | 'processing' | 'completed' | 'failed' // Status of product matching process
+  matchingError?: string // Error message if matching failed
 }
 
 // API Response Types
@@ -138,6 +160,30 @@ export interface ParseStatusUpdateEvent {
   }
 }
 
+export interface ProductMatchEvent {
+  name: 'flyer/product-match'
+  data: {
+    parsedItemId: string
+    flyerImageId: string
+    productName: string
+    productNameMk?: string
+    productNamePrefixes: string[]
+    productNamePrefixesMk?: string[]
+    additionalInfo?: string[]
+    additionalInfoMk?: string[]
+    batchId?: string // For batch processing to avoid overload
+  }
+}
+
+export interface ProductMatchStatusUpdateEvent {
+  name: 'flyer/product-match-status-update'
+  data: {
+    parsedItemId: string
+    status: 'pending' | 'processing' | 'completed' | 'failed'
+    error?: string
+  }
+}
+
 // Error Types
 export class AppError extends Error {
   constructor(
@@ -153,4 +199,4 @@ export class AppError extends Error {
 // Utility Types
 export type ProcessingStatus = FlyerImage['processingStatus']
 export type UserRole = User['role']
-export type InngestEventName = FlyerParseEvent['name'] | ParseStatusUpdateEvent['name']
+export type InngestEventName = FlyerParseEvent['name'] | ParseStatusUpdateEvent['name'] | ProductMatchEvent['name'] | ProductMatchStatusUpdateEvent['name']

@@ -17,11 +17,32 @@ export type Events = {
     data: {
       flyerImageId: string
       storageUrl: string
+      dataUrl: string
     }
   }
   'flyer/parse-status-update': {
     data: {
       flyerImageId: string
+      status: 'pending' | 'processing' | 'completed' | 'failed'
+      error?: string
+    }
+  }
+  'flyer/product-match': {
+    data: {
+      parsedItemId: string
+      flyerImageId: string
+      productName: string
+      productNameMk?: string
+      productNamePrefixes: string[]
+      productNamePrefixesMk?: string[]
+      additionalInfo?: string[]
+      additionalInfoMk?: string[]
+      batchId?: string // For batch processing to avoid overload
+    }
+  }
+  'flyer/product-match-status-update': {
+    data: {
+      parsedItemId: string
       status: 'pending' | 'processing' | 'completed' | 'failed'
       error?: string
     }

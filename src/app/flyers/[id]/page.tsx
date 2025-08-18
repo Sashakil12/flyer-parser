@@ -24,6 +24,8 @@ import {
 } from '@heroicons/react/24/outline'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import EditProductModal from '@/components/ui/EditProductModal'
+import ParsedDataTable from '@/components/dashboard/ParsedDataTable'
+import ParsedItemDetail from '@/components/dashboard/ParsedItemDetail'
 import { filesize } from 'filesize'
 import toast from 'react-hot-toast'
 import { formatPrice as formatCurrencyPrice } from '@/lib/currency'
@@ -44,7 +46,7 @@ export default function FlyerDetailPage() {
   const [editingItem, setEditingItem] = useState<ParsedFlyerItem | null>(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [savingItemId, setSavingItemId] = useState<string | null>(null)
-  const [approvingItemId, setApprovingItemId] = useState<string | null>(null)
+  const [viewingItemId, setViewingItemId] = useState<string | null>(null)
   
   // Pagination logic
   const totalItems = allParsedItems.length
@@ -66,7 +68,6 @@ export default function FlyerDetailPage() {
       setSavingItemId(id)
       await updateParsedFlyerItem(id, updates)
       
-      // Real-time hooks will automatically update the data
       toast.success('Product updated successfully')
       setIsEditModalOpen(false)
       setEditingItem(null)
@@ -78,22 +79,6 @@ export default function FlyerDetailPage() {
     }
   }
 
-  const handleApproveItem = async (item: ParsedFlyerItem) => {
-    if (item.verified) return
-    
-    try {
-      setApprovingItemId(item.id)
-      await approveParsedFlyerItem(item.id)
-      
-      // Real-time hooks will automatically update the data
-      toast.success('Product approved successfully')
-    } catch (error) {
-      console.error('Error approving item:', error)
-      toast.error('Failed to approve product')
-    } finally {
-      setApprovingItemId(null)
-    }
-  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -117,11 +102,13 @@ export default function FlyerDetailPage() {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'EUR'
     }).format(price)
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) {
+    return <LoadingSpinner />
+  }
 
   if (!user) {
     return (
@@ -259,7 +246,11 @@ export default function FlyerDetailPage() {
                   {/* Products List */}
                   <div className="divide-y divide-gray-200">
                     {parsedItems.map((item, index) => (
-                      <div key={item.id} className="p-6">
+                      <div 
+                        key={item.id} 
+                        className="p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                        onClick={() => setViewingItemId(item.id)}
+                      >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center space-x-3">
@@ -351,31 +342,16 @@ export default function FlyerDetailPage() {
                             <div className="flex space-x-2">
                               {/* Edit Button */}
                               <button
-                                onClick={() => handleEditItem(item)}
-                                disabled={savingItemId === item.id}
-                                className="p-2 text-gray-400 hover:text-indigo-600 transition-colors disabled:opacity-50"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleEditItem(item)
+                                }}
+                                className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
                                 title="Edit product"
                               >
                                 <PencilIcon className="h-4 w-4" />
                               </button>
                               
-                              {/* Approve Button */}
-                              <button
-                                onClick={() => handleApproveItem(item)}
-                                disabled={item.verified || approvingItemId === item.id}
-                                className={`p-2 transition-colors disabled:opacity-50 ${
-                                  item.verified 
-                                    ? 'text-green-500 cursor-default' 
-                                    : 'text-gray-400 hover:text-green-600'
-                                }`}
-                                title={item.verified ? 'Already approved' : 'Approve product'}
-                              >
-                                {approvingItemId === item.id ? (
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
-                                ) : (
-                                  <CheckIcon className="h-4 w-4" />
-                                )}
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -460,6 +436,29 @@ export default function FlyerDetailPage() {
         onSave={handleSaveItem}
         isLoading={savingItemId !== null}
       />
+
+      {/* ParsedItemDetail Modal */}
+      {viewingItemId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Product Details</h2>
+                <button
+                  onClick={() => setViewingItemId(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XCircleIcon className="h-6 w-6" />
+                </button>
+              </div>
+              <ParsedItemDetail 
+                item={allParsedItems.find(item => item.id === viewingItemId)!}
+                onClose={() => setViewingItemId(null)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
