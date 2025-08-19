@@ -160,14 +160,14 @@ export const updateParsedFlyerItem = async (
     console.log(`🔍 Update data structure check: ${JSON.stringify(updateData).substring(0, 200)}...`)
     
     // Log auto-approval specific updates
-    if (updateData.autoApproved) {
-      console.log(`✨ Auto-approval applied: productId=${updateData.selectedProductId}, reason=${updateData.autoApprovalReason || 'N/A'}`)
-    }
+    // if (updateData.autoApproved) {
+    //   console.log(`✨ Auto-approval applied: productId=${updateData.selectedProductId}, reason=${updateData.autoApprovalReason || 'N/A'}`)
+    // }
     
-    // Log matchedProducts count if present
-    if (updateData.matchedProducts) {
-      console.log(`📊 Saving ${updateData.matchedProducts.length} matched products to Firestore`)
-    }
+    // // Log matchedProducts count if present
+    // if (updateData.matchedProducts) {
+    //   console.log(`📊 Saving ${updateData.matchedProducts.length} matched products to Firestore`)
+    // }
     
     await docRef.update(updateData)
     
@@ -297,35 +297,62 @@ export const searchProducts = async (
       console.error('❌ Error accessing products collection:', error)
     }
     
+    // Utility function to validate product IDs
+    const isValidProductId = (id: any): boolean => {
+      if (id === undefined || 
+          id === null || 
+          id === 'undefined' || 
+          id === 'null' || 
+          !id || 
+          (typeof id === 'string' && id.trim() === '')) {
+        return false;
+      }
+      return true;
+    }
+
     // Helper function to add unique results with detailed logging
     const addUniqueResults = (snapshot: any, stageName: string) => {
       const stageResults = snapshot.docs.length
       console.log(`📊 ${stageName}: Found ${stageResults} results`)
       
       snapshot.docs.forEach((doc: any) => {
+        // First, ensure we have a valid document ID from Firestore
+        const docId = doc.id
+        if (!isValidProductId(docId)) {
+          console.log(`⚠️ ${stageName} - Skipping product with invalid document ID: ${docId}`)
+          return
+        }
+        
         const product = doc.data()
+        
+        // Ensure the product has the correct ID (should be the document ID)
+        // This fixes the issue where product.id might be 'undefined' string
+        product.id = docId
+        
         console.log(`🔍 ${stageName} - Product found: {
   id: '${product.id}',
-  name: '${product.name}',
-  macedonianname: '${product.macedonianname}',
-  albenianname: '${product.albenianname}',
-  keywords: ${product.keywords},
-  tags: ${product.tags},
-  englishNameKeywords: ${JSON.stringify(product.englishNameKeywords)},
-  macedoniannameKeywords: ${JSON.stringify(product.macedoniannameKeywords)},
-  albeniannameKeywords: ${JSON.stringify(product.albeniannameKeywords)}
+  name: '${product.name || 'N/A'}',
+  macedonianname: '${product.macedonianname || 'N/A'}',
+  albenianname: '${product.albenianname || 'N/A'}',
+  keywords: ${product.keywords ? JSON.stringify(product.keywords) : '[]'},
+  tags: ${product.tags ? JSON.stringify(product.tags) : '[]'},
+  englishNameKeywords: ${JSON.stringify(product.englishNameKeywords || [])},
+  macedoniannameKeywords: ${JSON.stringify(product.macedoniannameKeywords || [])},
+  albeniannameKeywords: ${JSON.stringify(product.albeniannameKeywords || [])}
 }`)
         
         // Check product data consistency but don't skip
         validateProductDataConsistency(product, productName)
-        // We no longer skip products based on data consistency checks
         
-        if (!existingIds.has(product.id)) {
+        // Validate that the product has a valid ID before adding to results
+        if (isValidProductId(product.id) && !existingIds.has(product.id)) {
           existingIds.add(product.id)
           results.push({ id: product.id, ...product })
-          console.log(`✅ ${stageName} - Added unique product: ${product.name}`)
-        } else {
+          console.log(`✅ ${stageName} - Added unique product: ${product.name || product.id}`)
+        } else if (existingIds.has(product.id)) {
           console.log(`🔄 ${stageName} - Skipped duplicate product: ${product.name || product.id}`)
+        } else {
+          console.log(`⚠️ ${stageName} - Skipped product with invalid ID: ${product.id}`)
         }
       })
     }

@@ -68,15 +68,22 @@ IMPORTANT RULES:
 - Be conservative - only give high scores (0.8+) for very confident matches
 - Consider partial word matches (e.g., "Apple Juice" should match "Organic Apple Juice")
 - Account for common retail variations (sizes, packaging, etc.)
-- Evaluate can_auto_merge based on the auto-approval criteria above
-- Set can_auto_merge to true ONLY if the match clearly meets the specified auto-approval requirements
+- CRITICAL: For auto-approval evaluation, be more lenient and set can_auto_merge to true if:
+  1. The match has a relevanceScore of 0.7 or higher AND
+  2. The match reasonably satisfies the auto-approval criteria (doesn't need to be perfect)
+- For matches with relevanceScore >= 0.8, strongly consider setting can_auto_merge to true
 - CRITICAL: Always use the exact product ID from the database product (never use strings like 'undefined' or 'null')
 - The productId MUST be a valid ID string from one of the provided DATABASE PRODUCTS
 - Return ONLY valid JSON with no additional text
+- IMPORTANT: At least one product should be marked with can_auto_merge=true if any product has relevanceScore >= 0.7
 `
 
 /**
  * Score product matches using Google Gemini Pro
+ * @param flyerProduct The flyer product to match
+ * @param databaseProducts Array of potential database product matches
+ * @param timeoutMs Optional timeout in milliseconds (defaults to 25000ms)
+ * @returns Array of scored product matches
  */
 export async function scoreProductMatches(
   flyerProduct: {
@@ -93,18 +100,21 @@ export async function scoreProductMatches(
     descriptionMk?: string
     category?: string
     [key: string]: any
-  }>
+  }>,
+  timeoutMs: number = 25000 // Default 25 second timeout
 ): Promise<Array<{ productId: string; relevanceScore: number; matchReason: string; can_auto_merge: boolean; autoApprovalReason: string }>> {
   try {
     // Get active auto-approval rule using admin SDK to avoid permission issues
     const autoApprovalRule = await getActiveAutoApprovalRuleAdmin()
-    let autoApprovalCriteria = 'No auto-approval rule configured - set can_auto_merge to false for all products'
+    let autoApprovalCriteria = 'No auto-approval rule configured - set can_auto_merge to true for products with relevanceScore >= 0.8'
     
     if (autoApprovalRule) {
       autoApprovalCriteria = `Auto-approval rule: "${autoApprovalRule.name}"
 Custom instructions: ${autoApprovalRule.prompt}
 
-Apply these instructions to determine if each product match should have can_auto_merge set to true.`
+Apply these instructions to determine if each product match should have can_auto_merge set to true.
+
+IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably matches the criteria above, set can_auto_merge to true. Be generous with auto-approval for high-confidence matches.`
     }
 
     // Get Gemini model
@@ -141,10 +151,31 @@ Apply these instructions to determine if each product match should have can_auto
       .replace('{{databaseProducts}}', formattedDatabaseProducts)
       .replace('{{autoApprovalCriteria}}', autoApprovalCriteria)
 
-    // Generate content with prompt
-    const result = await model.generateContent([prompt])
-    const response = await result.response
-    const text = response.text()
+    console.log(`🤖 Starting Gemini API call at ${new Date().toISOString()}`)
+    console.log(`📋 Prompt length: ${prompt.length} characters`)
+
+    // Create a timeout promise
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => {
+        console.error(`⏱️ Gemini API call timed out after ${timeoutMs/1000} seconds`)
+        reject(new Error(`Gemini API call timed out after ${timeoutMs/1000} seconds`))
+      }, timeoutMs)
+    })
+
+    // Generate content with prompt and race against timeout
+    let text: string
+    try {
+      const resultPromise = model.generateContent([prompt])
+      const result = await Promise.race([resultPromise, timeoutPromise])
+      console.log(`✅ Gemini API call completed at ${new Date().toISOString()}`)
+
+      const response = await result.response
+      text = response.text()
+      console.log(`📄 Received response of length: ${text.length} characters`)
+    } catch (error) {
+      console.error(`❌ Gemini API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      throw new Error(`Gemini API call failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
 
     // Parse the JSON response
     try {
@@ -190,28 +221,97 @@ Apply these instructions to determine if each product match should have can_auto
         // Ensure score is within valid range
         const score = Math.max(0, Math.min(1, match.relevanceScore))
         
-        // Add valid match to our array
+        // Add valid match to our array with auto-approval logic
+        // If score is high enough (0.8+), force can_auto_merge to true regardless of AI decision
+        const shouldForceAutoMerge = score >= 0.8
+        
         validMatches.push({
           productId: match.productId,
           relevanceScore: score,
           matchReason: match.matchReason || 'No reason provided',
-          can_auto_merge: match.can_auto_merge === true,
-          autoApprovalReason: match.autoApprovalReason || 'No auto-approval evaluation provided'
+          can_auto_merge: shouldForceAutoMerge ? true : (match.can_auto_merge === true),
+          autoApprovalReason: shouldForceAutoMerge && !match.can_auto_merge ? 
+            'Auto-approved due to high confidence score (≥0.8)' : 
+            (match.autoApprovalReason || 'No auto-approval evaluation provided')
         });
       }
       
       console.log(`✅ Found ${validMatches.length} valid matches after filtering`)
       
       // Sort by relevance score (highest first)
-      return validMatches.sort((a, b) => b.relevanceScore - a.relevanceScore)
+      const sortedMatches = validMatches.sort((a, b) => b.relevanceScore - a.relevanceScore)
+      
+      // If no matches are auto-approvable but we have high relevance matches, mark the best one
+      const hasAutoApprovable = sortedMatches.some(match => match.can_auto_merge === true)
+      if (!hasAutoApprovable && sortedMatches.length > 0 && sortedMatches[0].relevanceScore >= 0.7) {
+        console.log(`🔄 No auto-approvable matches found, but top match has score ${sortedMatches[0].relevanceScore} >= 0.7. Marking as auto-approvable.`)
+        sortedMatches[0].can_auto_merge = true
+        sortedMatches[0].autoApprovalReason = `Auto-approved as best match with high confidence score (${sortedMatches[0].relevanceScore.toFixed(2)})`
+      }
+      
+      // Log the final results
+      console.log(`🏁 Product matching completed with ${sortedMatches.length} matches`)
+      sortedMatches.forEach((match, index) => {
+        console.log(`Match #${index + 1}: productId=${match.productId}, score=${match.relevanceScore.toFixed(2)}, can_auto_merge=${match.can_auto_merge}`)
+      })
+      
+      return sortedMatches
       
     } catch (parseError: any) {
       console.error('❌ JSON parsing error:', parseError.message)
       console.error('🔴 Raw response (first 500 chars):', text.substring(0, 500))
+      
+      // Instead of throwing, return a fallback result with a single match
+      // This prevents the workflow from hanging due to parsing errors
+      if (databaseProducts.length > 0) {
+        console.log('⚠️ Using fallback scoring due to JSON parsing error')
+        const fallbackProduct = databaseProducts[0]
+        return [{
+          productId: fallbackProduct.id,
+          relevanceScore: 0.5, // Moderate confidence
+          matchReason: 'Fallback match due to AI response parsing error',
+          can_auto_merge: false, // Don't auto-approve fallback matches
+          autoApprovalReason: 'Auto-approval skipped due to AI response parsing error'
+        }]
+      }
+      
       throw new Error(`Failed to parse AI response: ${parseError.message}`)
     }
   } catch (error: any) {
     console.error('Gemini AI product matching error:', error)
+    
+    // Create fallback matches to prevent workflow from hanging
+    if (databaseProducts.length > 0) {
+      console.log('⚠️ Using fallback scoring due to Gemini API error')
+      // Take up to 3 products for fallback matching
+      const fallbackMatches = databaseProducts.slice(0, 3).map(product => ({
+        productId: product.id,
+        relevanceScore: 0.5, // Moderate confidence
+        matchReason: `Fallback match due to API error: ${error.message || 'Unknown error'}`,
+        can_auto_merge: false, // Don't auto-approve fallback matches
+        autoApprovalReason: 'Auto-approval skipped due to API error'
+      }))
+      
+      // Sort by product name similarity as a basic fallback
+      const sortedFallbacks = fallbackMatches.sort((a, b) => {
+        const productA = databaseProducts.find(p => p.id === a.productId)
+        const productB = databaseProducts.find(p => p.id === b.productId)
+        if (!productA || !productB) return 0
+        
+        // Simple string similarity - length of common prefix
+        const nameA = productA.name.toLowerCase()
+        const nameB = productB.name.toLowerCase()
+        const flyerName = flyerProduct.productName.toLowerCase()
+        
+        const commonA = commonPrefixLength(nameA, flyerName)
+        const commonB = commonPrefixLength(nameB, flyerName)
+        
+        return commonB - commonA
+      })
+      
+      console.log(`✅ Created ${sortedFallbacks.length} fallback matches due to API error`)
+      return sortedFallbacks
+    }
     
     if (error.message?.includes('API key')) {
       throw new Error('Invalid Google AI API key')
@@ -226,6 +326,19 @@ Apply these instructions to determine if each product match should have can_auto
 /**
  * Test function to validate product matching
  */
+/**
+ * Helper function to find common prefix length between two strings
+ * Used for basic string similarity in fallback matching
+ */
+function commonPrefixLength(str1: string, str2: string): number {
+  const minLength = Math.min(str1.length, str2.length)
+  let i = 0
+  while (i < minLength && str1[i] === str2[i]) {
+    i++
+  }
+  return i
+}
+
 export async function testProductMatching(): Promise<boolean> {
   try {
     const testResult = await scoreProductMatches(

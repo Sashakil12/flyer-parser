@@ -23,13 +23,6 @@ export interface AutoApprovalRule {
   name: string
   prompt: string
   isActive: boolean
-  fieldCriteria: {
-    [fieldName: string]: {
-      matchPercentage: number
-      isRequired: boolean
-      ignore: boolean
-    }
-  }
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string

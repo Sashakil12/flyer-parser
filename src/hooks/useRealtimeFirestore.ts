@@ -91,11 +91,21 @@ export const useRealtimeParsedItems = (flyerImageId?: string) => {
       q,
       (snapshot) => {
         try {
-          const items = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            parsedAt: doc.data().parsedAt as Timestamp,
-          })) as ParsedFlyerItem[]
+          const items = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              parsedAt: data.parsedAt as Timestamp,
+              // Explicitly map auto-approval fields to ensure they're included
+              autoApprovalStatus: data.autoApprovalStatus,
+              autoApprovalReason: data.autoApprovalReason,
+              autoApprovalFailureReason: data.autoApprovalFailureReason,
+              autoApprovalConfidence: data.autoApprovalConfidence,
+              autoApprovedAt: data.autoApprovedAt,
+              autoApprovalFailedAt: data.autoApprovalFailedAt
+            } as ParsedFlyerItem
+          })
           
           setParsedItems(items)
           setError(null)
