@@ -8,6 +8,12 @@ import { applyDiscountPercentage } from '@/lib/utils'
 import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { GeminiParseResult, ParsedFlyerItem, MatchedProduct } from '@/types'
 import { adminDb } from '../firebase/admin'
+import { applyDiscountWithTimeout as helperApplyDiscountWithTimeout, Logger } from './helpers'
+
+// Constants for timeouts and circuit breaker settings
+const AI_SCORING_TIMEOUT = 90000; // 90 seconds timeout for AI scoring
+
+// Constants for Inngest functions
 
 // Interface for auto-approval results
 export interface AutoApprovalResult {
@@ -51,27 +57,99 @@ export const parseFlyerFunction = inngest.createFunction(
     } | {
       success: false;
       error: string;
+      errorCode?: string;
+      timestamp?: string;
     }> => {
-      try {
-        // Download image from Firebase Storage URL
-        const response = await fetch(storageUrl)
-        if (!response.ok) {
-          throw new Error(`Failed to download image: ${response.statusText}`)
+      const MAX_RETRIES = 2;
+      let retryCount = 0;
+      let lastError: any = null;
+      
+      while (retryCount <= MAX_RETRIES) {
+        try {
+          // If this is a retry, log it
+          if (retryCount > 0) {
+            console.log(`🔄 Retry attempt ${retryCount}/${MAX_RETRIES} for parsing image ${flyerImageId}`);
+          }
+          
+          // Download image from Firebase Storage URL with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+          
+          try {
+            const response = await fetch(storageUrl, { 
+              signal: controller.signal 
+            });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+              throw new Error(`Failed to download image: ${response.statusText}`)
+            }
+            
+            // Convert to base64 data URL
+            const buffer = await response.arrayBuffer()
+            const base64 = Buffer.from(buffer).toString('base64')
+            const contentType = response.headers.get('content-type') || 'image/jpeg'
+            const dataUrl = `data:${contentType};base64,${base64}`
+            
+            // Parse with Gemini
+            const result = await parseImageWithGemini(dataUrl)
+            return { success: true, data: result }
+          } catch (error: unknown) {
+            const fetchError = error as Error;
+            if (fetchError.name === 'AbortError') {
+              throw new Error('Image download timed out after 30 seconds');
+            }
+            throw fetchError;
+          }
+        } catch (error: any) {
+          lastError = error;
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorCode = error.code || 'PARSING_ERROR';
+          
+          // Log the error but don't return yet if we have retries left
+          console.error(`❌ Gemini parsing error on attempt ${retryCount + 1}/${MAX_RETRIES + 1} [${errorCode}]:`, {
+            message: errorMessage,
+            flyerImageId: event.data.flyerImageId,
+            retryCount,
+            errorStack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
+          
+          // If this is a network error or timeout, retry
+          const isNetworkError = errorMessage.includes('network') || 
+                               errorMessage.includes('timeout') || 
+                               errorMessage.includes('timed out') ||
+                               errorMessage.includes('ECONNRESET');
+          
+          // If we have retries left and it's a retryable error
+          if (retryCount < MAX_RETRIES && isNetworkError) {
+            retryCount++;
+            // Exponential backoff: 2s, then 4s
+            const backoffMs = Math.pow(2, retryCount) * 1000;
+            console.log(`⏱️ Backing off for ${backoffMs}ms before retry ${retryCount}`);
+            await new Promise(resolve => setTimeout(resolve, backoffMs));
+            continue;
+          }
+          
+          // If we've exhausted retries or it's not a retryable error, return the error
+          return { 
+            success: false, 
+            error: errorMessage,
+            errorCode,
+            timestamp: new Date().toISOString()
+          };
         }
-        
-        // Convert to base64 data URL
-        const buffer = await response.arrayBuffer()
-        const base64 = Buffer.from(buffer).toString('base64')
-        const contentType = response.headers.get('content-type') || 'image/jpeg'
-        const dataUrl = `data:${contentType};base64,${base64}`
-        
-        // Parse with Gemini
-        const result = await parseImageWithGemini(dataUrl)
-        return { success: true, data: result }
-      } catch (error: any) {
-        console.error('Gemini parsing error:', error)
-        return { success: false, error: error.message }
       }
+      
+      // This should never be reached due to the return statements above,
+      // but TypeScript needs it for type safety
+      const errorMessage = lastError instanceof Error ? lastError.message : 'Unknown error after retries';
+      return {
+        success: false,
+        error: errorMessage,
+        errorCode: 'MAX_RETRIES_EXCEEDED',
+        timestamp: new Date().toISOString()
+      };
     })
 
     if (!parseResult.success) {
@@ -119,7 +197,18 @@ export const parseFlyerFunction = inngest.createFunction(
           const itemId = await addParsedFlyerItem(parsedFlyerItem)
           savedItemIds.push(itemId)
         } catch (error: any) {
-          console.error('Error saving parsed item:', error)
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorType = error.name || 'FirestoreError';
+          
+          console.error(`❌ Error saving parsed item [${errorType}]:`, {
+            message: errorMessage,
+            flyerImageId,
+            itemIndex: results.indexOf(item),
+            errorStack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Continue with other items - this item will be skipped
         }
       }
       
@@ -130,45 +219,118 @@ export const parseFlyerFunction = inngest.createFunction(
     await step.run('trigger-product-matching', async () => {
       // Use batch processing to avoid overloading the system
       const batchId = `batch-${flyerImageId}-${Date.now()}`
+      const MAX_RETRIES_PER_ITEM = 2;
+      const failedItems: Array<{index: number, itemId: string, error: string}> = [];
       
       for (let index = 0; index < savedItems.length; index++) {
-        try {
-          const itemId = savedItems[index]
-          
-          // Get the item details from the parsing results (no nested step needed)
-          const matchingItem = parseResult.data[index]
-          if (!matchingItem) throw new Error(`Item ${itemId} not found in results`)
-          
-          const item = {
-            id: itemId,
-            productName: matchingItem.product_name,
-            productNameMk: matchingItem.product_name_mk,
-            productNamePrefixes: matchingItem.product_name_prefixes,
-            productNamePrefixesMk: matchingItem.product_name_prefixes_mk,
-            additionalInfo: matchingItem.additional_info,
-            additionalInfoMk: matchingItem.additional_info_mk
-          }
-          
-          // Trigger product matching event
-          await inngest.send({
-            name: 'flyer/product-match',
-            data: {
-              parsedItemId: itemId,
-              flyerImageId,
-              productName: item.productName,
-              productNameMk: item.productNameMk,
-              productNamePrefixes: item.productNamePrefixes,
-              productNamePrefixesMk: item.productNamePrefixesMk,
-              additionalInfo: item.additionalInfo,
-              additionalInfoMk: item.additionalInfoMk,
-              batchId
+        let retryCount = 0;
+        let success = false;
+        
+        while (retryCount <= MAX_RETRIES_PER_ITEM && !success) {
+          try {
+            const itemId = savedItems[index]
+            
+            // If this is a retry, log it
+            if (retryCount > 0) {
+              console.log(`🔄 Retry ${retryCount}/${MAX_RETRIES_PER_ITEM} for triggering product matching for item ${itemId}`);
             }
-          })
-        } catch (error) {
-          console.error(`Error triggering product matching for item ${savedItems[index]}:`, error)
-          // Continue with other items even if one fails
+            
+            // Get the item details from the parsing results (no nested step needed)
+            const matchingItem = parseResult.data[index]
+            if (!matchingItem) {
+              throw new Error(`Item ${itemId} not found in results`);
+            }
+            
+            // Safely extract data with fallbacks for missing fields
+            const item = {
+              id: itemId,
+              productName: matchingItem.product_name || '',
+              productNameMk: matchingItem.product_name_mk || '',
+              productNamePrefixes: matchingItem.product_name_prefixes || [],
+              productNamePrefixesMk: matchingItem.product_name_prefixes_mk || [],
+              additionalInfo: matchingItem.additional_info || [],
+              additionalInfoMk: matchingItem.additional_info_mk || []
+            }
+            
+            // Trigger product matching event with timeout
+            const sendPromise = inngest.send({
+              name: 'flyer/product-match',
+              data: {
+                parsedItemId: itemId,
+                flyerImageId,
+                productName: item.productName,
+                productNameMk: item.productNameMk,
+                productNamePrefixes: item.productNamePrefixes,
+                productNamePrefixesMk: item.productNamePrefixesMk,
+                additionalInfo: item.additionalInfo,
+                additionalInfoMk: item.additionalInfoMk,
+                batchId
+              }
+            });
+            
+            // Add a timeout to the send operation
+            const timeoutPromise = new Promise((_, reject) => {
+              setTimeout(() => reject(new Error('Inngest send operation timed out after 10 seconds')), 10000);
+            });
+            
+            // Wait for either the send to complete or the timeout
+            await Promise.race([sendPromise, timeoutPromise]);
+            success = true;
+            
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorType = error instanceof Error ? error.name : 'InngestError';
+            
+            console.error(`❌ Error triggering product matching (attempt ${retryCount + 1}/${MAX_RETRIES_PER_ITEM + 1}) [${errorType}]:`, {
+              message: errorMessage,
+              itemId: savedItems[index],
+              flyerImageId,
+              batchId,
+              retryCount,
+              errorStack: error instanceof Error ? error.stack : undefined,
+              timestamp: new Date().toISOString()
+            });
+            
+            // If we have retries left, retry after a delay
+            if (retryCount < MAX_RETRIES_PER_ITEM) {
+              retryCount++;
+              // Exponential backoff: 1s, then 2s
+              const backoffMs = Math.pow(2, retryCount) * 500;
+              console.log(`⏱️ Backing off for ${backoffMs}ms before retry ${retryCount} for item ${savedItems[index]}`);
+              await new Promise(resolve => setTimeout(resolve, backoffMs));
+            } else {
+              // If we've exhausted retries, track the failed item
+              failedItems.push({
+                index,
+                itemId: savedItems[index],
+                error: errorMessage
+              });
+              break; // Move to the next item
+            }
+          }
         }
       }
+      
+      // Log summary of failed items
+      if (failedItems.length > 0) {
+        console.error(`❌ Failed to trigger product matching for ${failedItems.length}/${savedItems.length} items after retries:`, {
+          failedItems,
+          flyerImageId,
+          batchId,
+          timestamp: new Date().toISOString()
+        });
+        
+        // If all items failed, we should consider this a critical error
+        if (failedItems.length === savedItems.length) {
+          console.error(`⚠️ CRITICAL: All items failed to trigger product matching for flyer ${flyerImageId}`);
+        }
+      }
+      
+      return {
+        totalItems: savedItems.length,
+        successfulItems: savedItems.length - failedItems.length,
+        failedItems: failedItems.length
+      };
     })
 
     // Step 5: Update status to completed
@@ -192,23 +354,310 @@ export const statusUpdateFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { flyerImageId, status, error } = event.data
 
-    await step.run('update-flyer-status', async () => {
-      await updateFlyerImageStatus(flyerImageId, status)
-      
-      if (error) {
-        console.error(`Status update for ${flyerImageId}:`, error)
-      }
-      
-      return { flyerImageId, status, error }
-    })
+    try {
+      await step.run('update-flyer-status', async () => {
+        try {
+          await updateFlyerImageStatus(flyerImageId, status)
+          
+          if (error) {
+            console.error(`❌ Status update for ${flyerImageId} includes error:`, {
+              message: typeof error === 'string' ? error : error?.message || 'Unknown error',
+              flyerImageId,
+              status,
+              errorDetails: typeof error === 'object' ? error : undefined,
+              timestamp: new Date().toISOString()
+            })
+          }
+          
+          return { flyerImageId, status, error }
+        } catch (updateError: unknown) {
+          const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
+          const errorType = updateError instanceof Error ? updateError.name : 'StatusUpdateError';
+          
+          console.error(`❌ Failed to update flyer status [${errorType}]:`, {
+            message: errorMessage,
+            flyerImageId,
+            targetStatus: status,
+            errorStack: updateError instanceof Error ? updateError.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
+          throw updateError; // Re-throw to allow Inngest to retry
+        }
+      })
 
-    return { success: true }
+      return { success: true, flyerImageId, status }
+    } catch (e: unknown) {
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      const errorType = e instanceof Error ? e.name : 'StatusUpdateFunctionError';
+      
+      console.error(`❌ Error in status-update function [${errorType}]:`, {
+        message: errorMessage,
+        flyerImageId,
+        status,
+        eventId: event.id,
+        errorStack: e instanceof Error ? e.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Re-throw for Inngest retry mechanism
+      throw e;
+    }
   }
 )
 
 /**
  * Match products for a parsed flyer item
  */
+/**
+ * Function to apply discount by calling the API endpoint
+ * This replaces the direct implementation to avoid nested step.* tooling
+ */
+async function applyDiscount({
+  productId,
+  flyerId,
+  storeId,
+  matchConfidence,
+}: {
+  productId: string;
+  flyerId: string;
+  storeId: string;
+  matchConfidence: number;
+}) {
+  try {
+    // Get the parsed flyer item to extract price information
+    const parsedItemRef = adminDb.collection('parsed-flyer-items').doc(flyerId);
+    const parsedItemDoc = await parsedItemRef.get();
+    const parsedItem = parsedItemDoc.data();
+    
+    if (!parsedItem) {
+      const error = new Error(`Parsed item ${flyerId} data not found`);
+      console.error(`❌ Discount application failed [DataNotFoundError]:`, {
+        message: error.message,
+        errorCode: 'PARSED_ITEM_NOT_FOUND',
+        parsedItemId: flyerId,
+        productId,
+        storeId,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+    
+    // Get the product to update
+    const productRef = adminDb.collection('products').doc(productId);
+    const productDoc = await productRef.get();
+    
+    if (!productDoc.exists) {
+      const error = new Error(`Product ${productId} not found for auto-discount application`);
+      console.error(`❌ Discount application failed [ProductNotFoundError]:`, {
+        message: error.message,
+        errorCode: 'PRODUCT_NOT_FOUND',
+        parsedItemId: flyerId,
+        productId,
+        storeId,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+    
+    const product = productDoc.data();
+    const currentPrice = product?.price || 0;
+    
+    // Extract price information from parsed item
+    const regularPrice = parsedItem.regularPrice || parsedItem.oldPrice;
+    const discountPrice = parsedItem.discountPrice;
+    
+    if (!regularPrice || !discountPrice) {
+      const error = new Error('Missing price information for auto-discount application');
+      console.error(`❌ Discount application failed [MissingPriceDataError]:`, {
+        message: error.message,
+        errorCode: 'MISSING_PRICE_DATA',
+        parsedItemId: flyerId,
+        productId,
+        availableFields: Object.keys(parsedItem).filter(key => key.toLowerCase().includes('price')),
+        errorStack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+    
+    // Calculate discount percentage
+    const discountPercentage = Math.round(((regularPrice - discountPrice) / regularPrice) * 100);
+    if (discountPercentage <= 0 || discountPercentage >= 100) {
+      const error = new Error(`Invalid discount percentage calculated: ${discountPercentage}%`);
+      console.error(`❌ Discount application failed [InvalidDiscountError]:`, {
+        message: error.message,
+        errorCode: 'INVALID_DISCOUNT_PERCENTAGE',
+        parsedItemId: flyerId,
+        productId,
+        regularPrice,
+        discountPrice,
+        calculatedPercentage: discountPercentage,
+        errorStack: error.stack,
+        timestamp: new Date().toISOString()
+      });
+      throw error;
+    }
+    
+    // Update the product with the discount
+    const discountedPrice = applyDiscountPercentage(currentPrice, discountPercentage);
+    
+    // Add retry mechanism for product update
+    const MAX_RETRIES = 2;
+    let retryCount = 0;
+    let updateSuccess = false;
+    
+    while (retryCount <= MAX_RETRIES && !updateSuccess) {
+      try {
+        if (retryCount > 0) {
+          console.log(`🔄 Retry ${retryCount}/${MAX_RETRIES} for updating product ${productId} with discount`);
+        }
+        
+        await productRef.update({
+          discountedPrice,
+          discountPercentage,
+          discountSource: {
+            type: 'flyer',
+            parsedItemId: flyerId,
+            appliedAt: new Date(),
+            appliedBy: 'auto-approval',
+            originalPrice: currentPrice,
+            confidence: matchConfidence
+          },
+          hasActiveDiscount: true
+        });
+        
+        updateSuccess = true;
+      } catch (updateError: unknown) {
+        const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
+        const errorType = updateError instanceof Error ? updateError.name : 'ProductUpdateError';
+        
+        console.error(`❌ Failed to update product with discount (attempt ${retryCount + 1}/${MAX_RETRIES + 1}) [${errorType}]:`, {
+          message: errorMessage,
+          errorCode: 'PRODUCT_UPDATE_FAILED',
+          parsedItemId: flyerId,
+          productId,
+          discountPercentage,
+          discountedPrice,
+          retryCount,
+          errorStack: updateError instanceof Error ? updateError.stack : undefined,
+          timestamp: new Date().toISOString()
+        });
+        
+        // Check if this is a retryable error (network, timeout, or transient Firestore error)
+        const isRetryableError = errorMessage.includes('network') || 
+                               errorMessage.includes('timeout') || 
+                               errorMessage.includes('ECONNRESET') ||
+                               errorMessage.includes('unavailable') ||
+                               errorMessage.includes('resource_exhausted');
+        
+        if (retryCount < MAX_RETRIES && isRetryableError) {
+          retryCount++;
+          // Exponential backoff: 1s, then 2s
+          const backoffMs = Math.pow(2, retryCount) * 500;
+          console.log(`⏱️ Backing off for ${backoffMs}ms before retry ${retryCount} for product update`);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        } else {
+          // If we've exhausted retries or it's not a retryable error, throw
+          throw updateError;
+        }
+      }
+    }
+    
+    if (!updateSuccess) {
+      throw new Error(`Failed to update product ${productId} with discount after ${MAX_RETRIES} retries`);
+    }
+    
+    // Update the parsed flyer item to mark the discount as applied
+    try {
+      await parsedItemRef.update({
+        selectedProductId: productId,
+        discountApplied: true,
+        discountAppliedAt: new Date(),
+        discountPercentage,
+        autoDiscountApplied: true
+      });
+    } catch (updateError: unknown) {
+      const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
+      const errorType = updateError instanceof Error ? updateError.name : 'ParsedItemUpdateError';
+      
+      console.error(`❌ Failed to update parsed item with discount status [${errorType}]:`, {
+        message: errorMessage,
+        errorCode: 'PARSED_ITEM_UPDATE_FAILED',
+        parsedItemId: flyerId,
+        productId,
+        discountPercentage,
+        errorStack: updateError instanceof Error ? updateError.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+      // We don't throw here since the discount was already applied to the product
+      // Just log the error and continue
+    }
+    
+    return {
+      success: true,
+      productId,
+      originalPrice: currentPrice,
+      discountedPrice,
+      discountPercentage
+    };
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'UNKNOWN_ERROR';
+    const isTimeout = errorMessage.includes('timed out') || errorMessage.includes('timeout');
+    
+    console.log('applyDiscount.failure', {
+      productId,
+      parsedItemId: flyerId,
+      error: errorMessage,
+      errorCode: isTimeout ? 'TIMEOUT' : errorCode,
+      retryAttempts: 0,
+      elapsedTimeMs: 0,
+      timestamp: new Date().toISOString()
+    });
+    
+    // For timeout errors, provide a more specific error with recovery suggestion
+    if (isTimeout) {
+      const timeoutError = new Error(`Discount application timed out after 30 seconds`);
+      (timeoutError as any).code = 'DISCOUNT_TIMEOUT';
+      (timeoutError as any).recoveryAction = 'MANUAL_DISCOUNT';
+      throw timeoutError;
+    }
+  }
+}
+
+// Watchdog timer to detect and abort long-running operations
+class WatchdogTimer {
+  private timeoutId: NodeJS.Timeout | null = null;
+  private startTime: number = 0;
+  private onTimeoutCallback: (() => void) | null = null;
+  
+  start(timeoutMs: number, onTimeout: () => void): void {
+    this.startTime = Date.now();
+    this.onTimeoutCallback = onTimeout;
+    this.timeoutId = setTimeout(() => {
+      const elapsed = Date.now() - this.startTime;
+      console.log(`⏱️ Watchdog timer triggered after ${elapsed}ms`);
+      if (this.onTimeoutCallback) {
+        this.onTimeoutCallback();
+      }
+    }, timeoutMs);
+  }
+  
+  stop(): void {
+    if (this.timeoutId) {
+      clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+      this.onTimeoutCallback = null;
+    }
+  }
+  
+  getElapsed(): number {
+    return Date.now() - this.startTime;
+  }
+}
+
 export const matchProductsFunction = inngest.createFunction(
   { 
     id: 'match-products', 
@@ -222,8 +671,33 @@ export const matchProductsFunction = inngest.createFunction(
   },
   { event: 'flyer/product-match' },
   async ({ event, step }) => {
+    // Create a global watchdog timer for the entire function
+    const globalWatchdog = new WatchdogTimer();
+    // Set a 2m55s timeout (slightly less than the 3m Inngest timeout)
+    const GLOBAL_TIMEOUT_MS = 175000; // 2m55s
+    
+    // Create an abort controller for cancelling operations
+    const globalController = new AbortController();
+    const globalSignal = globalController.signal;
+    
+    // Start the watchdog timer
+    globalWatchdog.start(GLOBAL_TIMEOUT_MS, () => {
+      console.error(`⚠️ GLOBAL WATCHDOG TRIGGERED - Function running too long (${GLOBAL_TIMEOUT_MS}ms)`);
+      globalController.abort('Global watchdog timeout triggered');
+      
+      // Attempt to update the item status to prevent hanging
+      try {
+        updateParsedFlyerItem(event.data.parsedItemId, {
+          matchingStatus: 'failed',
+          matchingError: `Matching process timed out after ${GLOBAL_TIMEOUT_MS/1000} seconds`
+        }).catch(e => console.error('Failed to update status after watchdog timeout', e));
+      } catch (e) {
+        console.error('Failed to update status after watchdog timeout', e);
+      }
+    });
     console.log('🔄 PRODUCT MATCHING WORKFLOW STARTED', { eventId: event.id, parsedItemId: event.data.parsedItemId })
-    const { parsedItemId, productName, productNameMk, additionalInfo, additionalInfoMk } = event.data
+    
+    const { parsedItemId, productName, productNameMk, additionalInfo, additionalInfoMk } = event.data;
 
     try {
       // Update status to processing
@@ -237,28 +711,87 @@ export const matchProductsFunction = inngest.createFunction(
       const potentialMatches = await step.run('search-products', async () => {
         console.log(`🔍 Searching for products matching: ${productName}`)
         try {
+          console.log(`🔍 Starting product search`);
+          console.log(`📊 SEARCH_PARAMS - Search parameters:`, {
+            parsedItemId,
+            productName,
+            productNameMk,
+            additionalInfo: Array.isArray(additionalInfo) ? additionalInfo.join(', ') : additionalInfo,
+            additionalInfoMk: Array.isArray(additionalInfoMk) ? additionalInfoMk.join(', ') : additionalInfoMk,
+            limit: 10,
+            timestamp: new Date().toISOString()
+          });
+          
           const results = await searchProducts(
             productName,
             productNameMk,
             additionalInfo?.join(', '),
             additionalInfoMk?.join(', '),
             10 // Limit to top 10 matches for performance
-          )
-          console.log(`✅ Found ${results.length} potential matches`)
-          return results
+          );
+          
+          console.log(`✅ Found ${results.length} potential matches`);
+          console.log(`📊 SEARCH_RESULTS - Search results summary:`, {
+            parsedItemId,
+            productName,
+            resultCount: results.length,
+            topMatchIds: results.slice(0, 3).map(r => r.id),
+            timestamp: new Date().toISOString()
+          });
+          
+          return results;
         } catch (error: any) {
-          console.error('❌ Product search failed:', error.message)
-          return [] // Return empty array instead of failing
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorType = error instanceof Error ? error.name : 'SearchError';
+          const errorCode = error.code || 'SEARCH_FAILED';
+          
+          console.error(`❌ Product search failed [${errorType}:${errorCode}]:`, {
+            message: errorMessage,
+            parsedItemId,
+            productName,
+            errorStack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
+          
+          // Return empty array instead of failing to allow the workflow to continue
+          return [];
         }
       })
 
       if (potentialMatches.length === 0) {
-        // No potential matches found
+        // No potential matches found - add detailed diagnostic logging
         console.log('⚠️ No potential matches found, marking as completed')
+        console.log(`📊 MATCH_FAILURE_ANALYSIS - No potential matches found for product:`, {
+          parsedItemId,
+          productName,
+          productNameMk,
+          additionalInfo: Array.isArray(additionalInfo) ? additionalInfo.join(', ') : additionalInfo,
+          additionalInfoMk: Array.isArray(additionalInfoMk) ? additionalInfoMk.join(', ') : additionalInfoMk,
+          possibleReasons: [
+            'Product not in database',
+            'Search keywords did not match database entries',
+            'Search circuit breaker triggered',
+            'Search timeout occurred',
+            'Database indexing issues'
+          ].join(', '),
+          timestamp: new Date().toISOString()
+        })
+        
         await step.run('update-no-matches', async () => {
           await updateParsedFlyerItem(parsedItemId, {
             matchingStatus: 'completed',
-            matchedProducts: [] // Empty array indicates no matches found
+            matchedProducts: [], // Empty array indicates no matches found
+            matchingDiagnostics: {
+              searchAttempted: true,
+              searchTimestamp: new Date().toISOString(),
+              searchTerms: {
+                productName,
+                productNameMk,
+                additionalInfo,
+                additionalInfoMk
+              },
+              noMatchReason: 'No potential matches found in database'
+            }
           })
         })
         return { success: true, message: 'No potential matches found' }
@@ -306,40 +839,89 @@ export const matchProductsFunction = inngest.createFunction(
         }))
         
         try {
-          // Add timeout to prevent hanging - increased to 40 seconds for more reliability
-          const AI_SCORING_TIMEOUT = 40000; // 40 seconds
-          console.log(`⏱️ Setting AI scoring timeout to ${AI_SCORING_TIMEOUT/1000} seconds`)
-          
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => {
-              console.error(`⏱️ AI scoring timeout after ${AI_SCORING_TIMEOUT/1000} seconds`)
-              reject(new Error(`AI scoring timeout after ${AI_SCORING_TIMEOUT/1000} seconds`))
-            }, AI_SCORING_TIMEOUT)
-          })
-          
-          // Pass the timeout value to the scoreProductMatches function
-          const scoringPromise = scoreProductMatches(flyerProduct, formattedProducts, AI_SCORING_TIMEOUT - 5000) // 5s buffer
-          
-          console.log(`🚀 AI scoring promise created at ${new Date().toISOString()}`)
-          const result = await Promise.race([scoringPromise, timeoutPromise])
-          console.log(`🎯 AI scoring completed at ${new Date().toISOString()} with ${result.length} scored matches`)
-          
-          // Validate the result structure to ensure it's usable
-          const validatedResult = result.filter(match => {
-            if (!match || typeof match !== 'object') return false;
-            if (typeof match.productId !== 'string' || !match.productId) return false;
-            if (typeof match.relevanceScore !== 'number') return false;
-            return true;
+          console.log(`📊 SCORING_START - Starting AI scoring with parameters:`, {
+            parsedItemId,
+            productName,
+            uniqueProductCount: formattedProducts.length,
+            timestamp: new Date().toISOString()
           });
           
-          if (validatedResult.length === 0 && result.length > 0) {
-            console.warn('⚠️ All AI scoring results were invalid - using fallback')
-            throw new Error('Invalid AI scoring results structure')
+          try {
+            const abortController = new AbortController();
+            const signal = abortController.signal;
+            
+            // Set up a watchdog timer to abort if the operation takes too long
+            const watchdog = new WatchdogTimer();
+            watchdog.start(AI_SCORING_TIMEOUT, () => {
+              console.log(`⏱️ AI scoring watchdog triggered - aborting operation`);
+              abortController.abort('AI scoring operation timed out');
+            });
+            
+            const timeoutPromise = new Promise<never>((_, reject) => {
+              setTimeout(() => {
+                console.error(`⏱️ AI scoring timeout after ${AI_SCORING_TIMEOUT/1000} seconds`);
+                reject(new Error(`AI scoring timeout after ${AI_SCORING_TIMEOUT/1000} seconds`));
+              }, AI_SCORING_TIMEOUT);
+            });
+            
+            // Pass the timeout value to the scoreProductMatches function
+            const scoringPromise = scoreProductMatches(flyerProduct, formattedProducts, AI_SCORING_TIMEOUT - 5000); // 5s buffer
+            
+            console.log(`🚀 AI scoring promise created at ${new Date().toISOString()}`);
+            const result = await Promise.race([scoringPromise, timeoutPromise]);
+            console.log(`🎯 AI scoring completed at ${new Date().toISOString()} with ${result.length} scored matches`);
+        
+            // Validate the result structure to ensure it's usable
+            const validatedResult = result.filter(match => {
+              if (!match || typeof match !== 'object') return false;
+              if (typeof match.productId !== 'string' || !match.productId) return false;
+              if (typeof match.relevanceScore !== 'number') return false;
+              return true;
+            });
+            
+            if (validatedResult.length === 0 && result.length > 0) {
+              console.warn('⚠️ All AI scoring results were invalid - using fallback');
+              throw new Error('Invalid AI scoring results structure');
+            }
+            
+            return validatedResult;
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorType = error instanceof Error ? error.name : 'AIScoringError';
+            const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'SCORING_FAILED';
+            
+            console.error(`❌ AI scoring failed [${errorType}:${errorCode}]:`, {
+              message: errorMessage,
+              parsedItemId,
+              productCount: formattedProducts.length,
+              errorStack: error instanceof Error ? error.stack : undefined,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Fallback: create basic matches with moderate scores and no auto-approval
+            const fallbackMatches = formattedProducts.slice(0, 3).map(product => ({
+              productId: product.id,
+              relevanceScore: 0.5, // Moderate score as fallback
+              matchReason: `Fallback match due to AI scoring failure: ${error instanceof Error ? error.message : 'Unknown error'}`,
+              can_auto_merge: false, // Never auto-approve fallback matches
+              autoApprovalReason: 'Auto-approval skipped due to AI scoring failure'
+            }));
+            console.log(`🔄 Using fallback scoring for ${fallbackMatches.length} products`);
+            return fallbackMatches;
           }
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorType = error instanceof Error ? error.name : 'ScoringError';
+          const errorCode = error instanceof Error && 'code' in error ? (error as any).code : 'SCORING_FAILED';
           
-          return validatedResult
-        } catch (error: any) {
-          console.error(`❌ AI scoring failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          console.error(`❌ AI scoring failed [${errorType}:${errorCode}]:`, {
+            message: errorMessage,
+            parsedItemId,
+            productCount: formattedProducts.length,
+            errorStack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
+          
           // Fallback: create basic matches with moderate scores and no auto-approval
           const fallbackMatches = formattedProducts.slice(0, 3).map(product => ({
             productId: product.id,
@@ -347,17 +929,17 @@ export const matchProductsFunction = inngest.createFunction(
             matchReason: `Fallback match due to AI scoring failure: ${error instanceof Error ? error.message : 'Unknown error'}`,
             can_auto_merge: false, // Never auto-approve fallback matches
             autoApprovalReason: 'Auto-approval skipped due to AI scoring failure'
-          }))
-          console.log(`🔄 Using fallback scoring for ${fallbackMatches.length} products`)
-          return fallbackMatches
+          }));
+          console.log(`🔄 Using fallback scoring for ${fallbackMatches.length} products`);
+          return fallbackMatches;
         } finally {
-          console.log(`⏱️ Score matches step completed at ${new Date().toISOString()}`)
+          console.log(`⏱️ Score matches step completed at ${new Date().toISOString()}`);
         }
       })
 
       // Step 3: Filter matches with minimum relevance score
-      const MIN_RELEVANCE_SCORE = 0.4 // Only keep matches with at least 40% relevance
-      const filteredMatches = scoredMatches.filter((match: { relevanceScore: number }) => match.relevanceScore >= MIN_RELEVANCE_SCORE)
+      const MIN_RELEVANCE_SCORE = 0.4; // Only keep matches with at least 40% relevance
+      const filteredMatches = scoredMatches ? scoredMatches.filter((match: { relevanceScore: number }) => match.relevanceScore >= MIN_RELEVANCE_SCORE) : [];
 
       // Step 4: Format matches for database and check auto-approval
       const matchedProducts = filteredMatches
@@ -397,8 +979,8 @@ export const matchProductsFunction = inngest.createFunction(
           return null
         }
 
-        // Add timeout to prevent this step from hanging - increased to 20 seconds
-        const MAX_AUTO_APPROVAL_TIME = 20000; // 20 seconds timeout
+        // Add timeout to prevent this step from hanging - increased to 30 seconds
+        const MAX_AUTO_APPROVAL_TIME = 30000; // 30 seconds timeout
         console.log(`⏱️ Setting auto-approval timeout to ${MAX_AUTO_APPROVAL_TIME/1000} seconds`)
         
         // Create a controller to abort the operation if needed
@@ -469,8 +1051,19 @@ export const matchProductsFunction = inngest.createFunction(
                 } as AutoApprovalResult
               }
             }
-          } catch (error) {
-            console.error(`❌ Error in processAutoApproval: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorType = error instanceof Error ? error.name : 'AutoApprovalError';
+            
+            console.error(`❌ Error in processAutoApproval [${errorType}]:`, {
+              message: errorMessage,
+              parsedItemId,
+              matchCount: matchedProducts.length,
+              errorStack: error instanceof Error ? error.stack : undefined,
+              timestamp: new Date().toISOString()
+            });
+            
+            // Re-throw to be handled by the outer catch block
             throw error;
           }
         }
@@ -479,7 +1072,7 @@ export const matchProductsFunction = inngest.createFunction(
           // Execute the auto-approval process with timeout handling
           const result = await Promise.race([
             processAutoApproval(),
-            new Promise<AutoApprovalResult>((resolve, reject) => {
+            new Promise<never>((_, reject) => {
               setTimeout(() => {
                 // Instead of rejecting, return a fallback result
                 console.log(`⏱️ Auto-approval timed out after ${MAX_AUTO_APPROVAL_TIME/1000} seconds, using fallback result`)
@@ -492,11 +1085,20 @@ export const matchProductsFunction = inngest.createFunction(
           clearTimeout(timeoutId);
           console.log(`✅ Auto-approval completed successfully at ${new Date().toISOString()}`)
           return result;
-        } catch (error) {
+        } catch (error: unknown) {
           // Clear the timeout to prevent memory leaks
           clearTimeout(timeoutId);
           
-          console.error(`❌ Auto-approval error: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          const errorType = error instanceof Error ? error.name : 'AutoApprovalTimeoutError';
+          
+          console.error(`❌ Auto-approval error [${errorType}]:`, {
+            message: errorMessage,
+            parsedItemId,
+            matchCount: matchedProducts.length,
+            errorStack: error instanceof Error ? error.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
           
           // If we have any matches at all, use the best one as a fallback
           if (matchedProducts.length > 0 && matchedProducts.some(match => isValidProductId(match.productId))) {
@@ -534,7 +1136,7 @@ export const matchProductsFunction = inngest.createFunction(
         console.log(`⏱️ Save matches step started at ${new Date().toISOString()}`)
         
         // Add timeout to prevent this step from hanging
-        const MAX_SAVE_TIME = 25000; // 25 seconds timeout
+        const MAX_SAVE_TIME = 30000; // 30 seconds timeout
         let saveTimeoutId: NodeJS.Timeout | null = null;
         
         const saveTimeoutPromise = new Promise<never>((_, reject) => {
@@ -613,8 +1215,18 @@ export const matchProductsFunction = inngest.createFunction(
                 }, 20000)
               })
             ])
-          } catch (error) {
-            console.error(`❌ Failed to update parsed flyer item: ${error instanceof Error ? error.message : 'Unknown error'}`)
+          } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorType = error instanceof Error ? error.name : 'FirestoreUpdateError';
+            
+            console.error(`❌ Failed to update parsed flyer item [${errorType}]:`, {
+              message: errorMessage,
+              parsedItemId,
+              updateOperation: 'save-matches-and-auto-approve',
+              errorStack: error instanceof Error ? error.stack : undefined,
+              timestamp: new Date().toISOString()
+            });
+            
             // Even if the update fails, we'll continue with the workflow
             // This prevents the workflow from getting stuck due to Firestore errors
           }
@@ -624,152 +1236,119 @@ export const matchProductsFunction = inngest.createFunction(
             status: updateData.autoApprovalStatus,
             reason: updateData.autoApprovalReason || updateData.autoApprovalFailureReason,
             confidence: updateData.autoApprovalConfidence,
-            timestamp: updateData.autoApprovedAt || updateData.autoApprovalFailedAt
           })}`)
-          console.log(`⏱️ Workflow step completed at ${new Date().toISOString()}`)
-          // Fix the lint error by ensuring event.ts is a valid timestamp
-          const startTime = typeof event.ts === 'number' ? event.ts : Date.now()
-          console.log(`🔄 Total workflow duration: ${(Date.now() - startTime) / 1000} seconds`)
-
-          // Step 7: Apply discount automatically if auto-approved
-          if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
-            await step.run('auto-apply-discount', async () => {
-              console.log(`⏱️ Auto-discount application step started at ${new Date().toISOString()}`)
-              // Add timeout to prevent this step from hanging
-              const MAX_DISCOUNT_APPLICATION_TIME = 20000; // 20 seconds timeout
+          
+              // If auto-approved, apply discount
+              if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
+            console.log(`⏱️ Auto-discount application step started at ${new Date().toISOString()}`);
+            
+            try {
+              // Create a logger for the discount application
+              const logger: Logger = {
+                log: (message, data) => console.log(`📝 ${message}`, data || ''),
+                info: (message, data) => console.log(`ℹ️ ${message}`, data || ''),
+                error: (message, data) => console.error(`❌ ${message}`, data || '')
+              };
               
-              try {
-                // Create a promise that will be rejected after the timeout
-                const timeoutPromise = new Promise((_, reject) => {
-                  setTimeout(() => {
-                    console.error(`⏱️ Auto-discount application timed out after ${MAX_DISCOUNT_APPLICATION_TIME/1000} seconds`)
-                    reject(new Error(`Auto-discount application timed out after ${MAX_DISCOUNT_APPLICATION_TIME/1000} seconds`))
-                  }, MAX_DISCOUNT_APPLICATION_TIME);
-                });
-                
-                // Create the actual discount application promise
-                const discountPromise = (async () => {
-                  const productId = autoApprovalResult.productId as string;
-                  
-                  try {
-                    // Get the parsed flyer item to extract price information
-                    const parsedItemRef = adminDb.collection('parsed-flyer-items').doc(parsedItemId);
-                    const parsedItemDoc = await parsedItemRef.get();
-                    const parsedItem = parsedItemDoc.data();
-                    
-                    // Get the product to update
-                    const productRef = adminDb.collection('products').doc(productId);
-                    const productDoc = await productRef.get();
-                    
-                    if (!productDoc.exists) {
-                      console.error(`❌ Product ${productId} not found for auto-discount application`);
-                      return { success: false, error: 'Product not found' };
-                    }
-                    
-                    if (!parsedItem) {
-                      console.error(`❌ Parsed item ${parsedItemId} data not found`);
-                      return { success: false, error: 'Parsed item data not found' };
-                    }
-                    
-                    const product = productDoc.data();
-                    const currentPrice = product?.price || 0;
-                    
-                    // Extract price information from parsed item
-                    const regularPrice = parsedItem.regularPrice;
-                    const discountPrice = parsedItem.discountPrice;
-                    
-                    if (!regularPrice || !discountPrice) {
-                      console.log(`⚠️ Missing price information for auto-discount application`);
-                      return { success: false, error: 'Missing price information' };
-                    }
-                    
-                    // Calculate discount percentage
-                    const discountPercentage = applyDiscountPercentage(regularPrice, discountPrice);
-                    const discountedPrice = discountPrice;
-                    
-                    // Update product with discount
-                    try {
-                      await productRef.update({
-                        discountPercentage,
-                        discountAppliedAt: FieldValue.serverTimestamp(),
-                        discountAppliedBy: 'auto-approval',
-                        discountSource: `flyer-item-${parsedItemId}`,
-                        discountActive: true
-                      });
-                      console.log(`✅ Successfully updated product ${productId} with discount`);
-                    } catch (error) {
-                      console.error(`❌ Failed to update product with discount: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                      return { success: false, error: 'Failed to update product' };
-                    }
-                    
-                    // Update the parsed flyer item to mark the discount as applied
-                    try {
-                      await parsedItemRef.update({
-                        discountApplied: true,
-                        discountAppliedAt: new Date(),
-                        discountPercentage,
-                        autoDiscountApplied: true
-                      });
-                      console.log(`✅ Successfully marked parsed item as discount applied`);
-                    } catch (error) {
-                      console.error(`❌ Failed to update parsed item: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                      // Even if this fails, we've already applied the discount to the product
-                    }
-                    
-                    console.log(`🎁 Auto-applied discount of ${discountPercentage}% to product ${productId}`);
-                    return { success: true, productId, discountPercentage, discountedPrice };
-                  } catch (error) {
-                    console.error(`❌ Error in discount application: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-                  }
-                })();
-                
-                // Race the discount application against the timeout
-                const result = await Promise.race([discountPromise, timeoutPromise]);
-                console.log(`✅ Auto-discount application completed at ${new Date().toISOString()}`);
-                return result;
-              } catch (error) {
-                console.error(`❌ Auto-discount application failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
-                // Instead, log it and continue with the workflow
-                console.log('⚠️ Continuing workflow despite discount application error to prevent hanging');
-                return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-              } finally {
-                console.log(`⏱️ Auto-discount application step completed at ${new Date().toISOString()}`);
+              // Use the imported helper function
+              await helperApplyDiscountWithTimeout({
+                productId: autoApprovalResult.productId,
+                flyerId: parsedItemId,
+                storeId: 'auto-approval',
+                matchConfidence: autoApprovalResult.confidence || 0,
+                logger
+              });
+              
+              console.log(`✅ Auto-discount application completed at ${new Date().toISOString()}`);
+            } catch (error: unknown) {
+              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              const errorType = error instanceof Error ? error.name : 'DiscountApplicationError';
+              
+              console.error(`❌ Error in auto-discount application [${errorType}]:`, {
+                message: errorMessage,
+                parsedItemId,
+                productId: autoApprovalResult.productId,
+                confidence: autoApprovalResult.confidence || 0,
+                errorStack: error instanceof Error ? error.stack : undefined,
+                timestamp: new Date().toISOString()
+              });
+              
+                  // Continue workflow even if discount application fails
+                }
               }
-            });
-          }
-        } finally {
-          // Clear the timeout to prevent memory leaks
-          if (saveTimeoutId) clearTimeout(saveTimeoutId);
-          console.log(`⏱️ Save matches step completed at ${new Date().toISOString()}`)
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+          const errorType = e instanceof Error ? e.name : 'SaveMatchesError';
+          
+          console.error(`❌ Error in save-matches-and-auto-approve step [${errorType}]:`, {
+            message: errorMessage,
+            parsedItemId,
+            matchCount: matchedProducts.length,
+            errorStack: e instanceof Error ? e.stack : undefined,
+            timestamp: new Date().toISOString()
+          });
         }
       })
-
+      
+      // Stop the global watchdog timer since we completed successfully
+      globalWatchdog.stop();
+      
+      // Calculate and log the total execution time
+      const totalExecutionTime = globalWatchdog.getElapsed();
+      console.log(`✅ Total execution time: ${totalExecutionTime}ms`);
+      
       return {
         success: true,
-        matchCount: matchedProducts.length,
-        message: `Successfully matched ${matchedProducts.length} products`
+        parsedItemId,
+        matchedProducts: matchedProducts.length,
+        autoApproved: autoApprovalResult?.shouldAutoApprove || false,
+        executionTimeMs: totalExecutionTime
+      };
+    } catch (e: unknown) {
+      // Stop the watchdog timer on error
+      globalWatchdog.stop();
+      
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+      const errorType = e instanceof Error ? e.name : 'MatchProductsError';
+      const isAbortError = errorMessage.includes('aborted') || (e instanceof Error && e.name === 'AbortError');
+      
+      console.error(`❌ Error in match-products function [${errorType}]:`, {
+        message: errorMessage,
+        parsedItemId,
+        eventId: event.id,
+        isAbortError,
+        executionTimeMs: globalWatchdog.getElapsed(),
+        errorStack: e instanceof Error ? e.stack : undefined,
+        timestamp: new Date().toISOString()
+      });
+      
+      // Try to update the item status to prevent hanging
+      try {
+        await updateParsedFlyerItem(event.data.parsedItemId, {
+          matchingStatus: 'failed',
+          matchingError: `Matching process failed: ${errorMessage.substring(0, 200)}`
+        }).catch(updateError => {
+          console.error('Failed to update status after error', updateError);
+        });
+      } catch (updateError) {
+        console.error('Failed to update status after error', updateError);
       }
-    } catch (error: any) {
-      console.error('Product matching error:', error)
       
-      // Update status to failed
-      await updateParsedFlyerItem(parsedItemId, {
-        matchingStatus: 'failed',
-        matchingError: error.message || 'Unknown error during product matching'
-      })
-      
-      return {
-        success: false,
-        error: error.message || 'Unknown error during product matching'
+      // Re-throw the error for Inngest to handle (will trigger retries based on the retry configuration)
+      // Don't retry if it was an abort error (timeout)
+      if (isAbortError) {
+        console.log('⚠️ Not retrying aborted operation');
+        return {
+          success: false,
+          parsedItemId,
+          error: errorMessage,
+          executionTimeMs: globalWatchdog.getElapsed()
+        };
+      } else {
+        throw e;
       }
     }
-  }
-)
+  })
 
-// Export all functions
-export const inngestFunctions = [
-  parseFlyerFunction,
-  matchProductsFunction,
-  statusUpdateFunction,
-]
+// Export all functions for Inngest registration
+export const inngestFunctions = [parseFlyerFunction, matchProductsFunction]

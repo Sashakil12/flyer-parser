@@ -219,6 +219,13 @@ export const searchProducts = async (
 ): Promise<Array<{ id: string; [key: string]: any }>> => {
   try {
     console.log(`🔍 Enhanced search for products matching: ${productName}`)
+    console.log(`📊 SEARCH_START - Product matching search initiated with parameters:`, {
+      productName,
+      productNameMk,
+      additionalInfo: Array.isArray(additionalInfo) ? additionalInfo.join(', ') : additionalInfo,
+      additionalInfoMk: Array.isArray(additionalInfoMk) ? additionalInfoMk.join(', ') : additionalInfoMk,
+      limit
+    })
     
     // Generate cache key
     const cacheKey = productSearchCache.generateKey({
@@ -233,6 +240,10 @@ export const searchProducts = async (
     const cachedResults = productSearchCache.get(cacheKey)
     if (cachedResults) {
       console.log(`📦 Returning cached search results (${cachedResults.length} items)`)
+      console.log(`📊 SEARCH_CACHE_HIT - Using cached search results with ${cachedResults.length} items`)
+      if (cachedResults.length === 0) {
+        console.log(`⚠️ SEARCH_ZERO_RESULTS - Cached search returned zero results for product: ${productName}`)
+      }
       return cachedResults
     }
     
@@ -250,6 +261,16 @@ export const searchProducts = async (
       extractedMacedonianKeywords: macedonianKeywords
     })
     
+    // Enhanced keyword extraction logging
+    console.log(`📊 SEARCH_KEYWORDS - Extracted keywords for search:`, {
+      productName,
+      englishKeywords: englishKeywords.join(', '),
+      englishKeywordCount: englishKeywords.length,
+      macedonianKeywords: macedonianKeywords.join(', '),
+      macedonianKeywordCount: macedonianKeywords.length,
+      keywordExtractionMethod: 'standard tokenization with stopword removal'
+    })
+    
     // Combine all keywords for search
     const allKeywords = Array.from(new Set([...englishKeywords, ...macedonianKeywords]))
     
@@ -258,6 +279,8 @@ export const searchProducts = async (
     
     if (limitedKeywords.length === 0) {
       console.log('⚠️ No keywords extracted for search')
+      console.log(`❌ SEARCH_NO_KEYWORDS - Failed to extract any usable keywords from product: ${productName}`)
+      console.log(`📊 SEARCH_ZERO_RESULTS - Search aborted due to no keywords for product: ${productName}`)
       return []
     }
     
@@ -314,6 +337,7 @@ export const searchProducts = async (
     const addUniqueResults = (snapshot: any, stageName: string) => {
       const stageResults = snapshot.docs.length
       console.log(`📊 ${stageName}: Found ${stageResults} results`)
+      console.log(`📊 SEARCH_STAGE_RESULTS - ${stageName}: Found ${stageResults} results`)
       
       snapshot.docs.forEach((doc: any) => {
         // First, ensure we have a valid document ID from Firestore
@@ -347,7 +371,8 @@ export const searchProducts = async (
         // Validate that the product has a valid ID before adding to results
         if (isValidProductId(product.id) && !existingIds.has(product.id)) {
           existingIds.add(product.id)
-          results.push({ id: product.id, ...product })
+          // Add metadata about which search stage found this product
+          results.push({ id: product.id, ...product, _matchedVia: stageName })
           console.log(`✅ ${stageName} - Added unique product: ${product.name || product.id}`)
         } else if (existingIds.has(product.id)) {
           console.log(`🔄 ${stageName} - Skipped duplicate product: ${product.name || product.id}`)
@@ -512,6 +537,37 @@ export const searchProducts = async (
     productSearchCache.set(cacheKey, results)
     
     console.log(`✅ Found ${results.length} potential product matches`)
+    
+    // Log final search results with detailed information
+    if (results.length === 0) {
+      console.log(`❌ SEARCH_ZERO_RESULTS - No matches found for product: ${productName}`)
+      console.log(`📊 SEARCH_FAILURE_ANALYSIS - Search failed with parameters:`, {
+        productName,
+        productNameMk,
+        keywordsUsed: limitedKeywords.join(', '),
+        searchStagesAttempted: [
+          'englishNameKeywords', 'macedoniannameKeywords', 'albeniannameKeywords',
+          'keywords', 'tags', 'name', 'macedonianname', 'albenianname',
+          'superMarketName', 'description'
+        ].join(', '),
+        possibleReasons: [
+          'Product not in database',
+          'Keyword extraction failed to capture relevant terms',
+          'Language/character encoding mismatch',
+          'Product name too generic or too specific',
+          'Database indexing issues'
+        ].join(', ')
+      })
+    } else {
+      console.log(`📊 SEARCH_SUCCESS - Found ${results.length} matches for product: ${productName}`)
+      console.log(`📊 SEARCH_RESULT_SUMMARY - Top matches:`, results.slice(0, 3).map(r => ({
+        id: r.id,
+        name: r.name || 'N/A',
+        macedonianname: r.macedonianname || 'N/A',
+        matchedVia: r._matchedVia || 'unknown'
+      })))
+    }
+    
     return results
   } catch (error: any) {
     console.error('❌ Error searching for products:', error)
@@ -527,6 +583,17 @@ export const searchProducts = async (
         limit
       }
     })
+    
+    // Enhanced error logging with structured format
+    console.error(`❌ SEARCH_ERROR - Product search failed with error:`, {
+      errorType: error.name || 'Unknown',
+      errorCode: error.code || 'UNKNOWN_ERROR',
+      errorMessage: error.message,
+      productName,
+      productNameMk,
+      timestamp: new Date().toISOString()
+    })
+    
     throw new Error(`Failed to search products: ${error.message}`)
   }
 }

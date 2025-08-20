@@ -82,6 +82,19 @@ export interface ParsedFlyerItem {
   autoApprovalConfidence?: number // AI confidence score for auto-approval (0-1)
   autoApprovedAt?: Timestamp // When auto-approval occurred
   autoApprovalFailedAt?: Timestamp // When auto-approval failed
+  // Diagnostic fields for debugging matching issues
+  matchingDiagnostics?: {
+    searchAttempted?: boolean
+    searchTimestamp?: string
+    searchTerms?: any
+    noMatchReason?: string
+    errorTimestamp?: string
+    errorType?: string
+    errorReason?: string
+    circuitBreakerState?: string
+    failureCount?: number
+    [key: string]: any
+  }
 }
 
 // API Response Types

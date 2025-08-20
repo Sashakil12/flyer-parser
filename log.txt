@@ -11,72 +11,107 @@ PS F:\badiyala-flyer-parser> pnpm dev
  ⚠ Invalid next.config.js options detected:
  ⚠     Unrecognized key(s) in object: 'appDir' at "experimental"
  ⚠ See more info here: https://nextjs.org/docs/messages/invalid-next-config
- ✓ Ready in 3.8s
+ ✓ Ready in 5.4s
  ○ Compiling /api/inngest ...
- ✓ Compiled /api/inngest in 1075ms (209 modules)
+ ✓ Compiled /api/inngest in 8.7s (1103 modules)
 📋 Loading Firebase service account from: ./firebase-service-account.json
 ✅ Firebase Admin initialized with service account file
+ PUT /api/inngest 200 in 10770ms
 🔧 Initializing Inngest serve handler...
-📊 Functions to register: 3
+📊 Functions to register: 2
+[Inngest] error - SyntaxError: Failed calling `body` from serve handler when checking body for request signing as method is PUT; Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:5738:19)
+    at successSteps (node:internal/deps/undici/undici:5719:27)
+    at consumeBody (node:internal/deps/undici/undici:5725:9)
+    at NextRequest.json (node:internal/deps/undici/undici:5665:18)
+    at body (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/next.js:78:67)
+    at fn (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/components/InngestCommHandler.js:363:42)
+ ⨯ SyntaxError: Failed calling `body` from serve handler when checking body for request signing as method is PUT; Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:5738:19)
+    at successSteps (node:internal/deps/undici/undici:5719:27)
+    at consumeBody (node:internal/deps/undici/undici:5725:9)
+    at NextRequest.json (node:internal/deps/undici/undici:5665:18)
+    at body (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/next.js:78:67)
+    at fn (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/components/InngestCommHandler.js:363:42)
+ ✓ Compiled in 2.9s (353 modules)
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: true,
-  'sync_id.omitempty': '6ecf7f93-4070-4a56-887e-0b543bfa1799',
+  'sync_id.omitempty': 'b7b4964d-bd40-4fac-a716-499601d59ff2',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 3248ms
- ○ Compiling / ...
- ✓ Compiled / in 7.3s (1102 modules)
-🔧 Initializing Inngest serve handler...
-📊 Functions to register: 3
+ PUT /api/inngest 200 in 70ms
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': 'e44d4be5-7289-449e-9057-f3d6235396c5',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 3539ms
- ✓ Compiled in 1125ms (353 modules)
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': '888996c0-bc07-423d-a81e-8aad88f86e5e',
+  'sync_id.omitempty': 'd33eb805-3be7-4b83-a0f9-79c0adf5add5',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
  PUT /api/inngest 200 in 31ms
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '33ef621a-da6b-49fa-9a4e-3f004c8165aa',
+  'sync_id.omitempty': 'f966995d-124a-4986-886c-eac5815b5dc4',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 24ms
+ PUT /api/inngest 200 in 33ms
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '895f9fe4-98ed-42f9-8b1a-b15344ed4e5d',
+  'sync_id.omitempty': 'e448fcfe-666a-484a-bd86-9b38aa273078',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
  PUT /api/inngest 200 in 28ms
- ✓ Compiled /api/inngest/trigger-parse in 481ms (777 modules)
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '54df0f61-2935-41de-98be-f7984b46db11',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 28ms
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '8d22b7ca-876a-41e2-8006-002118f8a535',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 38ms
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': 'a5b35039-5019-40cd-aa3f-539b10f8cc92',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 33ms
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '90b7e24c-24f1-4b11-9391-65efa96ef8e0',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 41ms
+ ○ Compiling /api/inngest/trigger-parse ...
+ ✓ Compiled /api/inngest/trigger-parse in 839ms (778 modules)
 🚀 Trigger parse API called
 📦 Request body: {
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz',
-  storageUrl: 'https://firebasestorage.googleapis.com/v0/b/badiyala-staging.firebasestorage.app/o/flyer-images%2F0ed2b7b2-f5fd-4286-aec2-6644a4a40c9e.jpg?alt=media&token=940b870a-d579-401a-b104-e15111c75f68'
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y',
+  storageUrl: 'https://firebasestorage.googleapis.com/v0/b/badiyala-staging.firebasestorage.app/o/flyer-images%2Fb0959d0a-6035-46a3-a9b6-8ab88b1f16b1.jpg?alt=media&token=701332ef-fde0-467d-b838-780b92db0060'
 }
 🔄 Sending event to Inngest...
-✅ Inngest event sent: { ids: [ '01K31ATSRPM67FNAH93GSM9RB5' ] }
- POST /api/inngest/trigger-parse 200 in 2165ms
+✅ Inngest event sent: { ids: [ '01K33K0TR8B0QACM3XW6HCFX69' ] }
+ POST /api/inngest/trigger-parse 200 in 3039ms
 🔧 Initializing Inngest serve handler...
-📊 Functions to register: 3
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z created new V1 execution for run; discovering steps +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z existing state keys: [] +1ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z starting V1 execution +1ms
+📊 Functions to register: 2
+  inngest:01K33K0TYQR6T81181MK033QG4 created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 existing state keys: [] +1ms
+  inngest:01K33K0TYQR6T81181MK033QG4 starting V1 execution +0ms
 🔥 INNGEST FUNCTION TRIGGERED! {
-  eventId: '01K31ATSRPM67FNAH93GSM9RB5',
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz'
+  eventId: '01K33K0TR8B0QACM3XW6HCFX69',
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y'
 }
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z checkpoint: {
+  inngest:01K33K0TYQR6T81181MK033QG4 checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -97,28 +132,28 @@ PS F:\badiyala-flyer-parser> pnpm dev
     }
   ]
 } +10ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z executing step "update-status-processing" +2ms
-📝 Updating flyer image ZVZmbXKnALyQjbVhB0lz status to: processing
+  inngest:01K33K0TYQR6T81181MK033QG4 executing step "update-status-processing" +1ms
+📝 Updating flyer image ao11oMTEwElLwlqHNY5y status to: processing
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '0d346f08-12d8-47c9-9025-09f1b86f6f5f',
+  'sync_id.omitempty': 'c15d51f7-59a4-4512-9075-b37be5b2d50a',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 29ms
-✅ Successfully updated flyer image ZVZmbXKnALyQjbVhB0lz status to: processing
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z result: {
+ PUT /api/inngest 200 in 59ms
+✅ Successfully updated flyer image ao11oMTEwElLwlqHNY5y status to: processing
+  inngest:01K33K0TYQR6T81181MK033QG4 result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31ATSRPM67FNAH93GSM9RB5',
+      id: '01K33K0TR8B0QACM3XW6HCFX69',
       name: 'flyer/parse',
-      ts: 1755612800790,
+      ts: 1755688495880,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31ATSXVJQY2E3PXSHRHZG1Z',
+    runId: '01K33K0TYQR6T81181MK033QG4',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -161,16 +196,16 @@ PS F:\badiyala-flyer-parser> pnpm dev
     displayName: 'update-status-processing',
     data: { status: 'processing' }
   }
-} +968ms
- POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 1041ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z created new V1 execution for run; discovering steps +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z existing state keys: [ 'f7da0e77dad8df9368c4406057dce67b98eed9fa' ] +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z starting V1 execution +1ms
+} +812ms
+ POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 891ms
+  inngest:01K33K0TYQR6T81181MK033QG4 created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 existing state keys: [ 'f7da0e77dad8df9368c4406057dce67b98eed9fa' ] +1ms
+  inngest:01K33K0TYQR6T81181MK033QG4 starting V1 execution +2ms
 🔥 INNGEST FUNCTION TRIGGERED! {
-  eventId: '01K31ATSRPM67FNAH93GSM9RB5',
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz'
+  eventId: '01K33K0TR8B0QACM3XW6HCFX69',
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y'
 }
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z checkpoint: {
+  inngest:01K33K0TYQR6T81181MK033QG4 checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -206,60 +241,55 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +3ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z executing step "parse-with-gemini" +1ms
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': '62129eb6-dfe7-45ee-a114-689df13d7da7',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 29ms
+} +7ms
+  inngest:01K33K0TYQR6T81181MK033QG4 executing step "parse-with-gemini" +1ms
  ○ Compiling /flyers ...
- ✓ Compiled /flyers in 1096ms (1159 modules)
+ ✓ Compiled /flyers in 2.2s (1160 modules)
 🔧 Initializing Inngest serve handler...
-📊 Functions to register: 3
+📊 Functions to register: 2
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '573860e3-7660-4cb9-907a-7a2cb019037f',
+  'sync_id.omitempty': '2d814467-0489-46af-bdf1-484df038d7f4',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 48ms
+ PUT /api/inngest 200 in 2948ms
  ⚠ The "images.domains" configuration is deprecated. Please use "images.remotePatterns" configuration instead.
  ○ Compiling /flyers/[id] ...
- ✓ Compiled /flyers/[id] in 1145ms (1205 modules)
+ ✓ Compiled /flyers/[id] in 11.7s (1206 modules)
 🔧 Initializing Inngest serve handler...
-📊 Functions to register: 3
+📊 Functions to register: 2
+[Inngest] error - SyntaxError: Failed calling `body` from serve handler when checking body for request signing as method is PUT; Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:5738:19)
+    at successSteps (node:internal/deps/undici/undici:5719:27)
+    at consumeBody (node:internal/deps/undici/undici:5725:9)
+    at NextRequest.json (node:internal/deps/undici/undici:5665:18)
+    at body (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/next.js:78:67)
+    at fn (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/components/InngestCommHandler.js:363:42)
+ ⨯ SyntaxError: Failed calling `body` from serve handler when checking body for request signing as method is PUT; Unexpected end of JSON input
+    at JSON.parse (<anonymous>)
+    at parseJSONFromBytes (node:internal/deps/undici/undici:5738:19)
+    at successSteps (node:internal/deps/undici/undici:5719:27)
+    at consumeBody (node:internal/deps/undici/undici:5725:9)
+    at NextRequest.json (node:internal/deps/undici/undici:5665:18)
+    at body (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/next.js:78:67)
+    at fn (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/components/InngestCommHandler.js:363:42)
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
-  modified: false,
-  'sync_id.omitempty': '97422411-8b7b-43bf-a0e8-b1d5a266d16b',
+  modified: true,
+  'sync_id.omitempty': '15d415a3-0f76-499d-9a15-ae005675e337',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 109ms
+ PUT /api/inngest 200 in 59ms
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '8b85ad12-048e-4c0b-8727-eb90e6912793',
+  'sync_id.omitempty': '1cdc271c-9c0c-460f-ac60-dabb78b5315e',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
  PUT /api/inngest 200 in 25ms
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': '7cfd06cd-d0f9-48c1-b0ec-40864058b62a',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 30ms
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': 'a141d0e7-0292-4af5-aec5-6e618213c629',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 24ms
-🤖 Raw Gemini response length: 6387
+🤖 Raw Gemini response length: 6909
 🔍 Raw response preview: [
   {
     "product_name": "Savex Premium Color & Care Detergent 5.5kg",
@@ -268,20 +298,20 @@ PS F:\badiyala-flyer-parser> pnpm dev
       "S",
       "Sa",
      ...
-✨ Cleaned text length: 6245
+✨ Cleaned text length: 6754
 🔍 Cleaned text preview: [  {    "product_name": "Savex Premium Color & Care Detergent 5.5kg",    "product_name_mk": "Савекс Премиум Колор & Кер Детергент 5.5кг",    "product_name_prefixes": [      "S",      "Sa",      "Sav",...
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z result: {
+  inngest:01K33K0TYQR6T81181MK033QG4 result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31ATSRPM67FNAH93GSM9RB5',
+      id: '01K33K0TR8B0QACM3XW6HCFX69',
       name: 'flyer/parse',
-      ts: 1755612800790,
+      ts: 1755688495880,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31ATSXVJQY2E3PXSHRHZG1Z',
+    runId: '01K33K0TYQR6T81181MK033QG4',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -340,19 +370,19 @@ PS F:\badiyala-flyer-parser> pnpm dev
     displayName: 'parse-with-gemini',
     data: { success: true, data: [Array] }
   }
-} +32s
- POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 32248ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z created new V1 execution for run; discovering steps +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z existing state keys: [
+} +33s
+ POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 33118ms
+  inngest:01K33K0TYQR6T81181MK033QG4 created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 existing state keys: [
   'd6aa71717215b46efa2d36ca14a6e091fc7a9b3d',
   'f7da0e77dad8df9368c4406057dce67b98eed9fa'
-] +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z starting V1 execution +0ms
+] +1ms
+  inngest:01K33K0TYQR6T81181MK033QG4 starting V1 execution +0ms
 🔥 INNGEST FUNCTION TRIGGERED! {
-  eventId: '01K31ATSRPM67FNAH93GSM9RB5',
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz'
+  eventId: '01K33K0TR8B0QACM3XW6HCFX69',
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y'
 }
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z checkpoint: {
+  inngest:01K33K0TYQR6T81181MK033QG4 checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -404,24 +434,24 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +12ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z executing step "save-parsed-data" +1ms
-📝 Adding parsed item for flyer: ZVZmbXKnALyQjbVhB0lz
-✅ Successfully added parsed item with ID: 01xb6vZYNPK6CFmFbJov
-📝 Adding parsed item for flyer: ZVZmbXKnALyQjbVhB0lz
-✅ Successfully added parsed item with ID: ppfi7h7S0wO4Sm0ixgNC
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z result: {
+} +14ms
+  inngest:01K33K0TYQR6T81181MK033QG4 executing step "save-parsed-data" +2ms
+📝 Adding parsed item for flyer: ao11oMTEwElLwlqHNY5y
+✅ Successfully added parsed item with ID: RAcEGlgxXBqCtiT7zvDj
+📝 Adding parsed item for flyer: ao11oMTEwElLwlqHNY5y
+✅ Successfully added parsed item with ID: tFbEu4u2Hlsn7TZrimA1
+  inngest:01K33K0TYQR6T81181MK033QG4 result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31ATSRPM67FNAH93GSM9RB5',
+      id: '01K33K0TR8B0QACM3XW6HCFX69',
       name: 'flyer/parse',
-      ts: 1755612800790,
+      ts: 1755688495880,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31ATSXVJQY2E3PXSHRHZG1Z',
+    runId: '01K33K0TYQR6T81181MK033QG4',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -494,22 +524,22 @@ PS F:\badiyala-flyer-parser> pnpm dev
     name: 'save-parsed-data',
     opts: {},
     displayName: 'save-parsed-data',
-    data: [ '01xb6vZYNPK6CFmFbJov', 'ppfi7h7S0wO4Sm0ixgNC' ]
+    data: [ 'RAcEGlgxXBqCtiT7zvDj', 'tFbEu4u2Hlsn7TZrimA1' ]
   }
-} +940ms
- POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 974ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z created new V1 execution for run; discovering steps +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z existing state keys: [
+} +2s
+ POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 1705ms
+  inngest:01K33K0TYQR6T81181MK033QG4 created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 existing state keys: [
   '1d6a9892f7c8144392ea31eec78dc637b362d10f',
   'd6aa71717215b46efa2d36ca14a6e091fc7a9b3d',
   'f7da0e77dad8df9368c4406057dce67b98eed9fa'
 ] +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z starting V1 execution +1ms
+  inngest:01K33K0TYQR6T81181MK033QG4 starting V1 execution +1ms
 🔥 INNGEST FUNCTION TRIGGERED! {
-  eventId: '01K31ATSRPM67FNAH93GSM9RB5',
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz'
+  eventId: '01K33K0TR8B0QACM3XW6HCFX69',
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y'
 }
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z checkpoint: {
+  inngest:01K33K0TYQR6T81181MK033QG4 checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -577,20 +607,20 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +4ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z executing step "trigger-product-matching" +1ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z result: {
+} +5ms
+  inngest:01K33K0TYQR6T81181MK033QG4 executing step "trigger-product-matching" +2ms
+  inngest:01K33K0TYQR6T81181MK033QG4 result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31ATSRPM67FNAH93GSM9RB5',
+      id: '01K33K0TR8B0QACM3XW6HCFX69',
       name: 'flyer/parse',
-      ts: 1755612800790,
+      ts: 1755688495880,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31ATSXVJQY2E3PXSHRHZG1Z',
+    runId: '01K33K0TYQR6T81181MK033QG4',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -679,23 +709,23 @@ PS F:\badiyala-flyer-parser> pnpm dev
     name: 'trigger-product-matching',
     opts: {},
     displayName: 'trigger-product-matching',
-    data: null
+    data: { totalItems: 2, successfulItems: 2, failedItems: 0 }
   }
-} +12ms
- POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 36ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z created new V1 execution for run; discovering steps +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z existing state keys: [
+} +29ms
+ POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 69ms
+  inngest:01K33K0TYQR6T81181MK033QG4 created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 existing state keys: [
   '1d6a9892f7c8144392ea31eec78dc637b362d10f',
   'd6aa71717215b46efa2d36ca14a6e091fc7a9b3d',
   'f5ef091509a1e35daf3df114b407c52c12a359e5',
   'f7da0e77dad8df9368c4406057dce67b98eed9fa'
-] +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z starting V1 execution +0ms
+] +16ms
+  inngest:01K33K0TYQR6T81181MK033QG4 starting V1 execution +60ms
 🔥 INNGEST FUNCTION TRIGGERED! {
-  eventId: '01K31ATSRPM67FNAH93GSM9RB5',
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz'
+  eventId: '01K33K0TR8B0QACM3XW6HCFX69',
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y'
 }
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z checkpoint: {
+  inngest:01K33K0TYQR6T81181MK033QG4 checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -779,24 +809,24 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +5ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z executing step "update-status-completed" +1ms
-📝 Updating flyer image ZVZmbXKnALyQjbVhB0lz status to: completed
-  inngest:01K31AVVY48R5M456VQHMPM5EV created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV existing state keys: [] +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV starting V1 execution +1ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 existing state keys: [] +1ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 starting V1 execution +0ms
+} +49ms
+  inngest:01K33K0TYQR6T81181MK033QG4 executing step "update-status-completed" +5ms
+📝 Updating flyer image ao11oMTEwElLwlqHNY5y status to: completed
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF existing state keys: [] +8ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF starting V1 execution +2ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X existing state keys: [] +1ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X starting V1 execution +0ms
 🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-  parsedItemId: 'ppfi7h7S0wO4Sm0ixgNC'
+  eventId: '01K33K1Y6N2K58P00FKTAZ65DY',
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj'
 }
 🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVWV4DAW9NBN5DWHVNXT',
-  parsedItemId: '01xb6vZYNPK6CFmFbJov'
+  eventId: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1'
 }
-  inngest:01K31AVVY48R5M456VQHMPM5EV checkpoint: {
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -816,8 +846,8 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +6ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 checkpoint: {
+} +13ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -837,24 +867,24 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +6ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV executing step "update-status-to-processing" +1ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 executing step "update-status-to-processing" +0ms
-📝 Updating parsed flyer item ppfi7h7S0wO4Sm0ixgNC
-📝 Updating parsed flyer item 01xb6vZYNPK6CFmFbJov
-✅ Successfully updated flyer image ZVZmbXKnALyQjbVhB0lz status to: completed
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z result: {
+} +13ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF executing step "update-status-to-processing" +4ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X executing step "update-status-to-processing" +2ms
+📝 Updating parsed flyer item RAcEGlgxXBqCtiT7zvDj
+📝 Updating parsed flyer item tFbEu4u2Hlsn7TZrimA1
+✅ Successfully updated flyer image ao11oMTEwElLwlqHNY5y status to: completed
+  inngest:01K33K0TYQR6T81181MK033QG4 result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31ATSRPM67FNAH93GSM9RB5',
+      id: '01K33K0TR8B0QACM3XW6HCFX69',
       name: 'flyer/parse',
-      ts: 1755612800790,
+      ts: 1755688495880,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31ATSXVJQY2E3PXSHRHZG1Z',
+    runId: '01K33K0TYQR6T81181MK033QG4',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -961,41 +991,41 @@ PS F:\badiyala-flyer-parser> pnpm dev
     displayName: 'update-status-completed',
     data: { status: 'completed', savedItems: 2 }
   }
-} +414ms
- POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 443ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z created new V1 execution for run; discovering steps +0ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z existing state keys: [
+} +356ms
+ POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 206 in 582ms
+  inngest:01K33K0TYQR6T81181MK033QG4 created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 existing state keys: [
   '1d6a9892f7c8144392ea31eec78dc637b362d10f',
   '36c11c3a280bc8856f5fadb4a32c725b2269d4e5',
   'd6aa71717215b46efa2d36ca14a6e091fc7a9b3d',
   'f5ef091509a1e35daf3df114b407c52c12a359e5',
   'f7da0e77dad8df9368c4406057dce67b98eed9fa'
-] +1ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z starting V1 execution +0ms
+] +0ms
+  inngest:01K33K0TYQR6T81181MK033QG4 starting V1 execution +0ms
 🔥 INNGEST FUNCTION TRIGGERED! {
-  eventId: '01K31ATSRPM67FNAH93GSM9RB5',
-  flyerImageId: 'ZVZmbXKnALyQjbVhB0lz'
+  eventId: '01K33K0TR8B0QACM3XW6HCFX69',
+  flyerImageId: 'ao11oMTEwElLwlqHNY5y'
 }
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z checkpoint: {
+  inngest:01K33K0TYQR6T81181MK033QG4 checkpoint: {
   type: 'function-resolved',
   data: {
-    flyerImageId: 'ZVZmbXKnALyQjbVhB0lz',
+    flyerImageId: 'ao11oMTEwElLwlqHNY5y',
     itemsSaved: 2,
     status: 'completed'
   }
 } +4ms
-  inngest:01K31ATSXVJQY2E3PXSHRHZG1Z result: {
+  inngest:01K33K0TYQR6T81181MK033QG4 result: {
   type: 'function-resolved',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31ATSRPM67FNAH93GSM9RB5',
+      id: '01K33K0TR8B0QACM3XW6HCFX69',
       name: 'flyer/parse',
-      ts: 1755612800790,
+      ts: 1755688495880,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31ATSXVJQY2E3PXSHRHZG1Z',
+    runId: '01K33K0TYQR6T81181MK033QG4',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -1095,34 +1125,27 @@ PS F:\badiyala-flyer-parser> pnpm dev
     }
   },
   data: {
-    flyerImageId: 'ZVZmbXKnALyQjbVhB0lz',
+    flyerImageId: 'ao11oMTEwElLwlqHNY5y',
     itemsSaved: 2,
     status: 'completed'
   }
-} +0ms
- POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 200 in 25ms
-🔍 Update data structure check: {"matchingStatus":"processing","updatedAt":"2025-08-19T14:13:56.599Z"}...
-🔍 Update data structure check: {"matchingStatus":"processing","updatedAt":"2025-08-19T14:13:56.784Z"}...
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': '797c95f0-ae5e-40c5-a539-165576afc93f',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 21ms
-✅ Successfully updated parsed flyer item 01xb6vZYNPK6CFmFbJov
-  inngest:01K31AVVYACFAN20C9RTA786Z3 result: {
+} +1ms
+ POST /api/inngest?fnId=badiyala-flyer-parser-parse-flyer&stepId=step 200 in 27ms
+🔍 Update data structure check: {"matchingStatus":"processing","updatedAt":"2025-08-20T11:15:34.018Z"}...
+🔍 Update data structure check: {"matchingStatus":"processing","updatedAt":"2025-08-20T11:15:34.154Z"}...
+✅ Successfully updated parsed flyer item RAcEGlgxXBqCtiT7zvDj
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31AVVWV4DAW9NBN5DWHVNXT',
+      id: '01K33K1Y6N2K58P00FKTAZ65DY',
       name: 'flyer/product-match',
-      ts: 1755612835739,
+      ts: 1755688532181,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31AVVYACFAN20C9RTA786Z3',
+    runId: '01K33K1Y7N07NXVNVENBTN5HXF',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -1165,16 +1188,16 @@ PS F:\badiyala-flyer-parser> pnpm dev
     displayName: 'update-status-to-processing',
     data: null
   }
-} +1s
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 1126ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 existing state keys: [ 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d' ] +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 starting V1 execution +1ms
+} +2s
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 2181ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF existing state keys: [ 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d' ] +1ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF starting V1 execution +0ms
 🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVWV4DAW9NBN5DWHVNXT',
-  parsedItemId: '01xb6vZYNPK6CFmFbJov'
+  eventId: '01K33K1Y6N2K58P00FKTAZ65DY',
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj'
 }
-  inngest:01K31AVVYACFAN20C9RTA786Z3 checkpoint: {
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -1210,128 +1233,197 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +1ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 executing step "search-products" +1ms
+} +5ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF executing step "search-products" +1ms
 🔍 Searching for products matching: Savex Premium Color & Care Detergent 5.5kg
+🔍 Starting product search with timeout protection
+📊 SEARCH_PARAMS - Search parameters: {
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Колор & Кер Детергент 5.5кг',
+  additionalInfo: '68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  limit: 10,
+  timestamp: '2025-08-20T11:15:34.573Z'
+}
 🔍 Enhanced search for products matching: Savex Premium Color & Care Detergent 5.5kg
+📊 SEARCH_START - Product matching search initiated with parameters: {
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Колор & Кер Детергент 5.5кг',
+  additionalInfo: '68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  limit: 10
+}
 🔍 Extracting keywords from: "Savex Premium Color & Care Detergent 5.5kg"
-🔍 Additional texts: -30%, 68 washes, +50 points, 1kg = 107 ден.
+🔍 Additional texts: 68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%
 🔍 Cleaned text: "savex premium color care detergent 5 5kg"
 🔍 Base words extracted: [ 'savex', 'premium', 'color', 'care', 'detergent', '5kg' ]
-🔍 Additional words from "-30%, 68 washes, +50 points, 1kg = 107 ден.": [
-  '30',     '68',
-  'washes', '50',
-  'points', '1kg',
-  '107'
+🔍 Additional words from "68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%": [
+  '68',           'washes',
+  'color',        'care',
+  '30',           'cold',
+  'wash',         'technology',
+  'concentrated', 'detergent',
+  'supreme',      'clean',
+  'protect',      '50',
+  'points',       '1kg',
+  '107',          '30'
 ]
 🔍 Final unique keywords: [
-  'savex',     'premium',
-  'color',     'care',
-  'detergent', '5kg',
-  '30',        '68',
-  'washes',    '50',
-  'points',    '1kg',
-  '107'
+  'savex',        'premium',
+  'color',        'care',
+  'detergent',    '5kg',
+  '68',           'washes',
+  '30',           'cold',
+  'wash',         'technology',
+  'concentrated', 'supreme',
+  'clean',        'protect',
+  '50',           'points',
+  '1kg',          '107'
 ]
 🔍 Extracting keywords from: "Савекс Премиум Колор & Кер Детергент 5.5кг"
-🔍 Additional texts: -30%, 68 перења, +50 поени, 1кг = 107 ден.
+🔍 Additional texts: 68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%
 🔍 Cleaned text: "савекс премиум колор кер детергент 5 5кг"
 🔍 Base words extracted: [ 'савекс', 'премиум', 'колор', 'кер', 'детергент', '5кг' ]
-🔍 Additional words from "-30%, 68 перења, +50 поени, 1кг = 107 ден.": [
-  '30',     '68',
-  'перења', '50',
-  'поени',  '1кг',
-  '107'
+🔍 Additional words from "68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%": [
+  '68',        'перења',
+  'колор',     'кер',
+  '30',        'технологија',
+  'за',        'ладно',
+  'перење',    'концентриран',
+  'детергент', 'врвна',
+  'чистота',   'заштита',
+  '50',        'поени',
+  '1кг',       '107',
+  '30'
 ]
 🔍 Final unique keywords: [
   'савекс',    'премиум',
   'колор',     'кер',
   'детергент', '5кг',
-  '30',        '68',
-  'перења',    '50',
+  '68',        'перења',
+  '30',        'технологија',
+  'за',        'ладно',
+  'перење',    'концентриран',
+  'врвна',     'чистота',
+  'заштита',   '50',
   'поени',     '1кг',
   '107'
 ]
 🔍 Keyword extraction debug: {
   productName: 'Savex Premium Color & Care Detergent 5.5kg',
   productNameMk: 'Савекс Премиум Колор & Кер Детергент 5.5кг',
-  additionalInfo: '-30%, 68 washes, +50 points, 1kg = 107 ден.',
-  additionalInfoMk: '-30%, 68 перења, +50 поени, 1кг = 107 ден.',
+  additionalInfo: '68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
   extractedEnglishKeywords: [
-    'savex',     'premium',
-    'color',     'care',
-    'detergent', '5kg',
-    '30',        '68',
-    'washes',    '50',
-    'points',    '1kg',
-    '107'
+    'savex',        'premium',
+    'color',        'care',
+    'detergent',    '5kg',
+    '68',           'washes',
+    '30',           'cold',
+    'wash',         'technology',
+    'concentrated', 'supreme',
+    'clean',        'protect',
+    '50',           'points',
+    '1kg',          '107'
   ],
   extractedMacedonianKeywords: [
     'савекс',    'премиум',
     'колор',     'кер',
     'детергент', '5кг',
-    '30',        '68',
-    'перења',    '50',
+    '68',        'перења',
+    '30',        'технологија',
+    'за',        'ладно',
+    'перење',    'концентриран',
+    'врвна',     'чистота',
+    'заштита',   '50',
     'поени',     '1кг',
     '107'
   ]
 }
-🔍 Searching with keywords: savex, premium, color, care, detergent, 5kg, 30, 68, washes, 50
+📊 SEARCH_KEYWORDS - Extracted keywords for search: {
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  englishKeywords: 'savex, premium, color, care, detergent, 5kg, 68, washes, 30, cold, wash, technology, concentrated, supreme, clean, protect, 50, points, 1kg, 107',
+  englishKeywordCount: 20,
+  macedonianKeywords: 'савекс, премиум, колор, кер, детергент, 5кг, 68, перења, 30, технологија, за, ладно, перење, концентриран, врвна, чистота, заштита, 50, поени, 1кг, 107',
+  macedonianKeywordCount: 21,
+  keywordExtractionMethod: 'standard tokenization with stopword removal'
+}
+🔍 Searching with keywords: savex, premium, color, care, detergent, 5kg, 68, washes, 30, cold
 📋 Search parameters: {
   productName: 'Savex Premium Color & Care Detergent 5.5kg',
   productNameMk: 'Савекс Премиум Колор & Кер Детергент 5.5кг',
-  additionalInfo: '-30%, 68 washes, +50 points, 1kg = 107 ден.',
-  additionalInfoMk: '-30%, 68 перења, +50 поени, 1кг = 107 ден.',
+  additionalInfo: '68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
   englishKeywords: [
-    'savex',     'premium',
-    'color',     'care',
-    'detergent', '5kg',
-    '30',        '68',
-    'washes',    '50',
-    'points',    '1kg',
-    '107'
+    'savex',        'premium',
+    'color',        'care',
+    'detergent',    '5kg',
+    '68',           'washes',
+    '30',           'cold',
+    'wash',         'technology',
+    'concentrated', 'supreme',
+    'clean',        'protect',
+    '50',           'points',
+    '1kg',          '107'
   ],
   macedonianKeywords: [
     'савекс',    'премиум',
     'колор',     'кер',
     'детергент', '5кг',
-    '30',        '68',
-    'перења',    '50',
+    '68',        'перења',
+    '30',        'технологија',
+    'за',        'ладно',
+    'перење',    'концентриран',
+    'врвна',     'чистота',
+    'заштита',   '50',
     'поени',     '1кг',
     '107'
   ],
   allKeywords: [
-    'savex', 'premium',   'color',
-    'care',  'detergent', '5kg',
-    '30',    '68',        'washes',
-    '50',    'points',    '1kg',
-    '107',   'савекс',    'премиум',
-    'колор', 'кер',       'детергент',
-    '5кг',   'перења',    'поени',
+    'savex',        'premium',      'color',
+    'care',         'detergent',    '5kg',
+    '68',           'washes',       '30',
+    'cold',         'wash',         'technology',
+    'concentrated', 'supreme',      'clean',
+    'protect',      '50',           'points',
+    '1kg',          '107',          'савекс',
+    'премиум',      'колор',        'кер',
+    'детергент',    '5кг',          'перења',
+    'технологија',  'за',           'ладно',
+    'перење',       'концентриран', 'врвна',
+    'чистота',      'заштита',      'поени',
     '1кг'
   ],
   limitedKeywords: [
     'savex',     'premium',
     'color',     'care',
     'detergent', '5kg',
-    '30',        '68',
-    'washes',    '50'
+    '68',        'washes',
+    '30',        'cold'
   ]
 }
 🔍 Testing products collection access...
-✅ Successfully updated parsed flyer item ppfi7h7S0wO4Sm0ixgNC
-  inngest:01K31AVVY48R5M456VQHMPM5EV result: {
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '691d65a2-f6f4-4feb-8ee1-0a4ad5d6e208',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 24ms
+✅ Successfully updated parsed flyer item tFbEu4u2Hlsn7TZrimA1
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X result: {
   type: 'step-ran',
   ctx: {
     event: {
       data: [Object],
-      id: '01K31AVVX0ZH0NHGH3JHZN0E3V',
+      id: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
       name: 'flyer/product-match',
-      ts: 1755612835744,
+      ts: 1755688532191,
       user: {}
     },
     events: [ [Object] ],
-    runId: '01K31AVVY48R5M456VQHMPM5EV',
+    runId: '01K33K1Y7WW55RWE7MFRZJR07X',
     attempt: 0,
     step: {
       sendEvent: [AsyncFunction (anonymous)],
@@ -1374,16 +1466,25 @@ PS F:\badiyala-flyer-parser> pnpm dev
     displayName: 'update-status-to-processing',
     data: null
   }
-} +1s
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 1392ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV existing state keys: [ 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d' ] +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV starting V1 execution +1ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-  parsedItemId: 'ppfi7h7S0wO4Sm0ixgNC'
+} +3s
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 3267ms
+📊 Products collection accessible: 1 test doc(s) found
+📊 Sample product structure: {
+  id: ' 00GAOMXjQNgFXhjef5NA',
+  name: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  hasEnglishNameKeywords: true,
+  hasMacedonianname: true,
+  hasKeywords: false
 }
-  inngest:01K31AVVY48R5M456VQHMPM5EV checkpoint: {
+🔍 Stage 1: Searching englishNameKeywords
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X existing state keys: [ 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d' ] +0ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X starting V1 execution +0ms
+🔄 PRODUCT MATCHING WORKFLOW STARTED {
+  eventId: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1'
+}
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X checkpoint: {
   type: 'steps-found',
   steps: [
     {
@@ -1419,134 +1520,179 @@ PS F:\badiyala-flyer-parser> pnpm dev
       handle: [Function: handle]
     }
   ]
-} +2ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV executing step "search-products" +0ms
+} +4ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X executing step "search-products" +0ms
 🔍 Searching for products matching: Savex Premium Fresh Universal Detergent 5.5kg
+🔍 Starting product search with timeout protection
+📊 SEARCH_PARAMS - Search parameters: {
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Фреш Универзал Детергент 5.5кг',
+  additionalInfo: '68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  limit: 10,
+  timestamp: '2025-08-20T11:15:35.773Z'
+}
 🔍 Enhanced search for products matching: Savex Premium Fresh Universal Detergent 5.5kg
+📊 SEARCH_START - Product matching search initiated with parameters: {
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Фреш Универзал Детергент 5.5кг',
+  additionalInfo: '68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  limit: 10
+}
 🔍 Extracting keywords from: "Savex Premium Fresh Universal Detergent 5.5kg"
-🔍 Additional texts: -30%, 68 washes, +50 points, 1kg = 107 ден.
+🔍 Additional texts: 68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%
 🔍 Cleaned text: "savex premium fresh universal detergent 5 5kg"
 🔍 Base words extracted: [ 'savex', 'premium', 'fresh', 'universal', 'detergent', '5kg' ]
-🔍 Additional words from "-30%, 68 washes, +50 points, 1kg = 107 ден.": [
-  '30',     '68',
-  'washes', '50',
-  'points', '1kg',
-  '107'
+🔍 Additional words from "68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%": [
+  '68',           'washes',
+  'fresh',        'universal',
+  '30',           'cold',
+  'wash',         'technology',
+  'concentrated', 'detergent',
+  'supreme',      'clean',
+  'protect',      '50',
+  'points',       '1kg',
+  '107',          '30'
 ]
 🔍 Final unique keywords: [
-  'savex',     'premium',
-  'fresh',     'universal',
-  'detergent', '5kg',
-  '30',        '68',
-  'washes',    '50',
-  'points',    '1kg',
-  '107'
+  'savex',        'premium',
+  'fresh',        'universal',
+  'detergent',    '5kg',
+  '68',           'washes',
+  '30',           'cold',
+  'wash',         'technology',
+  'concentrated', 'supreme',
+  'clean',        'protect',
+  '50',           'points',
+  '1kg',          '107'
 ]
 🔍 Extracting keywords from: "Савекс Премиум Фреш Универзал Детергент 5.5кг"
-🔍 Additional texts: -30%, 68 перења, +50 поени, 1кг = 107 ден.
+🔍 Additional texts: 68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%
 🔍 Cleaned text: "савекс премиум фреш универзал детергент 5 5кг"
 🔍 Base words extracted: [ 'савекс', 'премиум', 'фреш', 'универзал', 'детергент', '5кг' ]
-🔍 Additional words from "-30%, 68 перења, +50 поени, 1кг = 107 ден.": [
-  '30',     '68',
-  'перења', '50',
-  'поени',  '1кг',
-  '107'
+🔍 Additional words from "68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%": [
+  '68',        'перења',
+  'фреш',      'универзал',
+  '30',        'технологија',
+  'за',        'ладно',
+  'перење',    'концентриран',
+  'детергент', 'врвна',
+  'чистота',   'заштита',
+  '50',        'поени',
+  '1кг',       '107',
+  '30'
 ]
 🔍 Final unique keywords: [
   'савекс',    'премиум',
   'фреш',      'универзал',
   'детергент', '5кг',
-  '30',        '68',
-  'перења',    '50',
+  '68',        'перења',
+  '30',        'технологија',
+  'за',        'ладно',
+  'перење',    'концентриран',
+  'врвна',     'чистота',
+  'заштита',   '50',
   'поени',     '1кг',
   '107'
 ]
 🔍 Keyword extraction debug: {
   productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
   productNameMk: 'Савекс Премиум Фреш Универзал Детергент 5.5кг',
-  additionalInfo: '-30%, 68 washes, +50 points, 1kg = 107 ден.',
-  additionalInfoMk: '-30%, 68 перења, +50 поени, 1кг = 107 ден.',
+  additionalInfo: '68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
   extractedEnglishKeywords: [
-    'savex',     'premium',
-    'fresh',     'universal',
-    'detergent', '5kg',
-    '30',        '68',
-    'washes',    '50',
-    'points',    '1kg',
-    '107'
+    'savex',        'premium',
+    'fresh',        'universal',
+    'detergent',    '5kg',
+    '68',           'washes',
+    '30',           'cold',
+    'wash',         'technology',
+    'concentrated', 'supreme',
+    'clean',        'protect',
+    '50',           'points',
+    '1kg',          '107'
   ],
   extractedMacedonianKeywords: [
     'савекс',    'премиум',
     'фреш',      'универзал',
     'детергент', '5кг',
-    '30',        '68',
-    'перења',    '50',
+    '68',        'перења',
+    '30',        'технологија',
+    'за',        'ладно',
+    'перење',    'концентриран',
+    'врвна',     'чистота',
+    'заштита',   '50',
     'поени',     '1кг',
     '107'
   ]
 }
-🔍 Searching with keywords: savex, premium, fresh, universal, detergent, 5kg, 30, 68, washes, 50
+📊 SEARCH_KEYWORDS - Extracted keywords for search: {
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  englishKeywords: 'savex, premium, fresh, universal, detergent, 5kg, 68, washes, 30, cold, wash, technology, concentrated, supreme, clean, protect, 50, points, 1kg, 107',
+  englishKeywordCount: 20,
+  macedonianKeywords: 'савекс, премиум, фреш, универзал, детергент, 5кг, 68, перења, 30, технологија, за, ладно, перење, концентриран, врвна, чистота, заштита, 50, поени, 1кг, 107',
+  macedonianKeywordCount: 21,
+  keywordExtractionMethod: 'standard tokenization with stopword removal'
+}
+🔍 Searching with keywords: savex, premium, fresh, universal, detergent, 5kg, 68, washes, 30, cold
 📋 Search parameters: {
   productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
   productNameMk: 'Савекс Премиум Фреш Универзал Детергент 5.5кг',
-  additionalInfo: '-30%, 68 washes, +50 points, 1kg = 107 ден.',
-  additionalInfoMk: '-30%, 68 перења, +50 поени, 1кг = 107 ден.',
+  additionalInfo: '68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
   englishKeywords: [
-    'savex',     'premium',
-    'fresh',     'universal',
-    'detergent', '5kg',
-    '30',        '68',
-    'washes',    '50',
-    'points',    '1kg',
-    '107'
+    'savex',        'premium',
+    'fresh',        'universal',
+    'detergent',    '5kg',
+    '68',           'washes',
+    '30',           'cold',
+    'wash',         'technology',
+    'concentrated', 'supreme',
+    'clean',        'protect',
+    '50',           'points',
+    '1kg',          '107'
   ],
   macedonianKeywords: [
     'савекс',    'премиум',
     'фреш',      'универзал',
     'детергент', '5кг',
-    '30',        '68',
-    'перења',    '50',
+    '68',        'перења',
+    '30',        'технологија',
+    'за',        'ладно',
+    'перење',    'концентриран',
+    'врвна',     'чистота',
+    'заштита',   '50',
     'поени',     '1кг',
     '107'
   ],
   allKeywords: [
-    'savex',     'premium',   'fresh',
-    'universal', 'detergent', '5kg',
-    '30',        '68',        'washes',
-    '50',        'points',    '1kg',
-    '107',       'савекс',    'премиум',
-    'фреш',      'универзал', 'детергент',
-    '5кг',       'перења',    'поени',
+    'savex',        'premium',      'fresh',
+    'universal',    'detergent',    '5kg',
+    '68',           'washes',       '30',
+    'cold',         'wash',         'technology',
+    'concentrated', 'supreme',      'clean',
+    'protect',      '50',           'points',
+    '1kg',          '107',          'савекс',
+    'премиум',      'фреш',         'универзал',
+    'детергент',    '5кг',          'перења',
+    'технологија',  'за',           'ладно',
+    'перење',       'концентриран', 'врвна',
+    'чистота',      'заштита',      'поени',
     '1кг'
   ],
   limitedKeywords: [
     'savex',     'premium',
     'fresh',     'universal',
     'detergent', '5kg',
-    '30',        '68',
-    'washes',    '50'
+    '68',        'washes',
+    '30',        'cold'
   ]
 }
 🔍 Testing products collection access...
-📊 Products collection accessible: 1 test doc(s) found
-📊 Sample product structure: {
-  id: ' 00GAOMXjQNgFXhjef5NA',
-  name: 'Savex Premium Fresh Universal Detergent 5.5kg',
-  hasEnglishNameKeywords: true,
-  hasMacedonianname: true,
-  hasKeywords: false
-}
-🔍 Stage 1: Searching englishNameKeywords
-📊 Products collection accessible: 1 test doc(s) found
-📊 Sample product structure: {
-  id: ' 00GAOMXjQNgFXhjef5NA',
-  name: 'Savex Premium Fresh Universal Detergent 5.5kg',
-  hasEnglishNameKeywords: true,
-  hasMacedonianname: true,
-  hasKeywords: false
-}
-🔍 Stage 1: Searching englishNameKeywords
 📊 Stage 1: englishNameKeywords: Found 1 results
+📊 SEARCH_STAGE_RESULTS - Stage 1: englishNameKeywords: Found 1 results
 🔍 Stage 1: englishNameKeywords - Product found: {
   id: '00GAOMXjQNgFXhjef5NA',
   name: 'Savex Premium Fresh Universal Detergent 5.5kg',
@@ -1560,7 +1706,20 @@ PS F:\badiyala-flyer-parser> pnpm dev
 }
 ✅ Stage 1: englishNameKeywords - Added unique product: Savex Premium Fresh Universal Detergent 5.5kg
 🔍 Stage 2: Searching macedoniannameKeywords
+📊 Products collection accessible: 1 test doc(s) found
+📊 Sample product structure: {
+  id: ' 00GAOMXjQNgFXhjef5NA',
+  name: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  hasEnglishNameKeywords: true,
+  hasMacedonianname: true,
+  hasKeywords: false
+}
+🔍 Stage 1: Searching englishNameKeywords
+📊 Stage 2: macedoniannameKeywords: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 2: macedoniannameKeywords: Found 0 results
+🔍 Stage 3: Searching albeniannameKeywords
 📊 Stage 1: englishNameKeywords: Found 1 results
+📊 SEARCH_STAGE_RESULTS - Stage 1: englishNameKeywords: Found 1 results
 🔍 Stage 1: englishNameKeywords - Product found: {
   id: '00GAOMXjQNgFXhjef5NA',
   name: 'Savex Premium Fresh Universal Detergent 5.5kg',
@@ -1574,29 +1733,47 @@ PS F:\badiyala-flyer-parser> pnpm dev
 }
 ✅ Stage 1: englishNameKeywords - Added unique product: Savex Premium Fresh Universal Detergent 5.5kg
 🔍 Stage 2: Searching macedoniannameKeywords
-📊 Stage 2: macedoniannameKeywords: Found 0 results
-🔍 Stage 3: Searching albeniannameKeywords
-📊 Stage 2: macedoniannameKeywords: Found 0 results
-🔍 Stage 3: Searching albeniannameKeywords
 📊 Stage 3: albeniannameKeywords: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 3: albeniannameKeywords: Found 0 results
 🔍 Stage 4: Searching keywords array
+📊 Stage 2: macedoniannameKeywords: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 2: macedoniannameKeywords: Found 0 results
+🔍 Stage 3: Searching albeniannameKeywords
+📊 Stage 4: keywords: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 4: keywords: Found 0 results
+🔍 Stage 5: Searching tags array
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '2f46dfba-4a33-4d86-8525-596240caedcc',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 28ms
 📊 Stage 3: albeniannameKeywords: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 3: albeniannameKeywords: Found 0 results
 🔍 Stage 4: Searching keywords array
-📊 Stage 4: keywords: Found 0 results
-🔍 Stage 5: Searching tags array
-📊 Stage 4: keywords: Found 0 results
-🔍 Stage 5: Searching tags array
 📊 Stage 5: tags: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 5: tags: Found 0 results
 🔍 Stage 6: Searching name field
 🔍 Stage 6a: Trying exact name match for: "Savex Premium Color & Care Detergent 5.5kg"
-📊 Stage 5: tags: Found 0 results
-🔍 Stage 6: Searching name field
-🔍 Stage 6a: Trying exact name match for: "Savex Premium Fresh Universal Detergent 5.5kg"
+📊 Stage 4: keywords: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 4: keywords: Found 0 results
+🔍 Stage 5: Searching tags array
 📊 Stage 6a: Exact name match found 0 results
 📊 Stage 6a: exact name match: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6a: exact name match: Found 0 results
 🔍 Stage 6b: Searching name field with keyword: "savex"
+📊 Stage 5: tags: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 5: tags: Found 0 results
+🔍 Stage 6: Searching name field
+🔍 Stage 6a: Trying exact name match for: "Savex Premium Fresh Universal Detergent 5.5kg"
+📊 Stage 6b: Keyword "savex" found 0 results
+📊 Stage 6b: name field keyword "savex": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "savex": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "premium"
 📊 Stage 6a: Exact name match found 2 results
 📊 Stage 6a: exact name match: Found 2 results
+📊 SEARCH_STAGE_RESULTS - Stage 6a: exact name match: Found 2 results
 🔍 Stage 6a: exact name match - Product found: {
   id: ' 00GAOMXjQNgFXhjef5NA',
   name: 'Savex Premium Fresh Universal Detergent 5.5kg',
@@ -1623,1334 +1800,1084 @@ PS F:\badiyala-flyer-parser> pnpm dev
 }
 🔄 Stage 6a: exact name match - Skipped duplicate product: Savex Premium Fresh Universal Detergent 5.5kg
 🔍 Stage 6b: Searching name field with keyword: "savex"
-📊 Stage 6b: Keyword "savex" found 0 results
-📊 Stage 6b: name field keyword "savex": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "premium"
-📊 Stage 6b: Keyword "savex" found 0 results
-📊 Stage 6b: name field keyword "savex": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "premium"
 📊 Stage 6b: Keyword "premium" found 0 results
 📊 Stage 6b: name field keyword "premium": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "premium": Found 0 results
 🔍 Stage 6b: Searching name field with keyword: "color"
-📊 Stage 6b: Keyword "premium" found 0 results
-📊 Stage 6b: name field keyword "premium": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "fresh"
+📊 Stage 6b: Keyword "savex" found 0 results
+📊 Stage 6b: name field keyword "savex": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "savex": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "premium"
 📊 Stage 6b: Keyword "color" found 0 results
 📊 Stage 6b: name field keyword "color": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "color": Found 0 results
 🔍 Stage 6b: Searching name field with keyword: "care"
-📊 Stage 6b: Keyword "fresh" found 0 results
-📊 Stage 6b: name field keyword "fresh": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "universal"
-📊 Stage 6b: Keyword "care" found 0 results
-📊 Stage 6b: name field keyword "care": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "detergent"
+📊 Stage 6b: Keyword "premium" found 0 results
+📊 Stage 6b: name field keyword "premium": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "premium": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "fresh"
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '2a81622a-98dd-4f10-8950-7dd5122ad52c',
+  'sync_id.omitempty': 'b6cf53c8-2826-47bc-b798-a1893cb0cdac',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 29ms
+ PUT /api/inngest 200 in 24ms
+📊 Stage 6b: Keyword "care" found 0 results
+📊 Stage 6b: name field keyword "care": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "care": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "detergent"
+📊 Stage 6b: Keyword "fresh" found 0 results
+📊 Stage 6b: name field keyword "fresh": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "fresh": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "universal"
+📊 Stage 6b: Keyword "detergent" found 0 results
+📊 Stage 6b: name field keyword "detergent": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "detergent": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "5kg"
 📊 Stage 6b: Keyword "universal" found 0 results
 📊 Stage 6b: name field keyword "universal": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "universal": Found 0 results
 🔍 Stage 6b: Searching name field with keyword: "detergent"
-📊 Stage 6b: Keyword "detergent" found 0 results
-📊 Stage 6b: name field keyword "detergent": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "5kg"
-📊 Stage 6b: Keyword "detergent" found 0 results
-📊 Stage 6b: name field keyword "detergent": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "5kg"
 📊 Stage 6b: Keyword "5kg" found 0 results
 📊 Stage 6b: name field keyword "5kg": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "30"
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "5kg": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "68"
+📊 Stage 6b: Keyword "detergent" found 0 results
+📊 Stage 6b: name field keyword "detergent": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "detergent": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "5kg"
+📊 Stage 6b: Keyword "68" found 0 results
+📊 Stage 6b: name field keyword "68": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "68": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "washes"
 📊 Stage 6b: Keyword "5kg" found 0 results
 📊 Stage 6b: name field keyword "5kg": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "5kg": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "68"
+📊 Stage 6b: Keyword "washes" found 0 results
+📊 Stage 6b: name field keyword "washes": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "washes": Found 0 results
 🔍 Stage 6b: Searching name field with keyword: "30"
-📊 Stage 6b: Keyword "30" found 0 results
-📊 Stage 6b: name field keyword "30": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "68"
-📊 Stage 6b: Keyword "30" found 0 results
-📊 Stage 6b: name field keyword "30": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "68"
 📊 Stage 6b: Keyword "68" found 0 results
 📊 Stage 6b: name field keyword "68": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "68": Found 0 results
 🔍 Stage 6b: Searching name field with keyword: "washes"
-📊 Stage 6b: Keyword "68" found 0 results
-📊 Stage 6b: name field keyword "68": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "washes"
-📊 Stage 6b: Keyword "washes" found 0 results
-📊 Stage 6b: name field keyword "washes": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "50"
-📊 Stage 6b: Keyword "washes" found 0 results
-📊 Stage 6b: name field keyword "washes": Found 0 results
-🔍 Stage 6b: Searching name field with keyword: "50"
-📊 Stage 6b: Keyword "50" found 0 results
-📊 Stage 6b: name field keyword "50": Found 0 results
-🔍 Stage 7: Searching macedonianname field
-📊 Stage 6b: Keyword "50" found 0 results
-📊 Stage 6b: name field keyword "50": Found 0 results
-🔍 Stage 7: Searching macedonianname field
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
-📊 Stage 7: macedonianname field: Found 0 results
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '20fcfb14-6f04-41c3-b2cd-a39af4805a1f',
+  'sync_id.omitempty': 'f8f2673c-f914-4e77-8ea6-bc2f0f171b73',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 20ms
+📊 Stage 6b: Keyword "30" found 0 results
+📊 Stage 6b: name field keyword "30": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "30": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "cold"
+📊 Stage 6b: Keyword "washes" found 0 results
+📊 Stage 6b: name field keyword "washes": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "washes": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "30"
+📊 Stage 6b: Keyword "cold" found 0 results
+📊 Stage 6b: name field keyword "cold": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "cold": Found 0 results
+🔍 Stage 7: Searching macedonianname field
+📊 Stage 6b: Keyword "30" found 0 results
+📊 Stage 6b: name field keyword "30": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "30": Found 0 results
+🔍 Stage 6b: Searching name field with keyword: "cold"
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 6b: Keyword "cold" found 0 results
+📊 Stage 6b: name field keyword "cold": Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 6b: name field keyword "cold": Found 0 results
+🔍 Stage 7: Searching macedonianname field
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+⏱️ CIRCUIT_BREAKER_TIMEOUT - Search circuit breaker timed out after 20s {
+  timestamp: '2025-08-20T11:15:54.575Z',
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  operation: 'search-products'
+}
+⚠️ CIRCUIT_BREAKER_FALLBACK - Search circuit breaker triggered fallback - returning empty results {
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  reason: 'Circuit breaker open due to failures or timeout',
+  timestamp: '2025-08-20T11:15:54.576Z'
+}
+📊 CIRCUIT_BREAKER_DIAGNOSTICS - Search circuit breaker diagnostics: {
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  state: 'closed',
+  failureCount: 1,
+  lastFailureReason: 'Unknown',
+  timestamp: '2025-08-20T11:15:54.577Z'
+}
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF result: {
+  type: 'step-ran',
+  ctx: {
+    event: {
+      data: [Object],
+      id: '01K33K1Y6N2K58P00FKTAZ65DY',
+      name: 'flyer/product-match',
+      ts: 1755688532181,
+      user: {}
+    },
+    events: [ [Object] ],
+    runId: '01K33K1Y7N07NXVNVENBTN5HXF',
+    attempt: 0,
+    step: {
+      sendEvent: [AsyncFunction (anonymous)],
+      waitForSignal: [AsyncFunction (anonymous)],
+      sendSignal: [AsyncFunction (anonymous)],
+      waitForEvent: [AsyncFunction (anonymous)],
+      run: [AsyncFunction (anonymous)],
+      ai: [Object],
+      sleep: [AsyncFunction (anonymous)],
+      sleepUntil: [AsyncFunction (anonymous)],
+      invoke: [AsyncFunction (anonymous)],
+      fetch: [AsyncFunction],
+      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
+    },
+    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
+  },
+  ops: {
+    'update-status-to-processing': {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'search-products': {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: false,
+      hasStepState: false,
+      handled: false,
+      handle: [Function: handle]
+    }
+  },
+  step: {
+    id: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+    op: 'StepRun',
+    name: 'search-products',
+    opts: {},
+    displayName: 'search-products',
+    data: []
+  }
+} +20s
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 20043ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF existing state keys: [
+  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
+] +0ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF starting V1 execution +0ms
+🔄 PRODUCT MATCHING WORKFLOW STARTED {
+  eventId: '01K33K1Y6N2K58P00FKTAZ65DY',
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj'
+}
+⚠️ No potential matches found, marking as completed
+📊 MATCH_FAILURE_ANALYSIS - No potential matches found for product: {
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Колор & Кер Детергент 5.5кг',
+  additionalInfo: '68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  possibleReasons: 'Product not in database, Search keywords did not match database entries, Search circuit breaker triggered, Search timeout occurred, Database indexing issues',
+  timestamp: '2025-08-20T11:15:54.665Z'
+}
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF checkpoint: {
+  type: 'steps-found',
+  steps: [
+    {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    {
+      id: 'update-no-matches',
+      op: 'StepPlanned',
+      name: 'update-no-matches',
+      displayName: 'update-no-matches',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '0542d8111c81d573530db093c488c15121198784',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: false,
+      hasStepState: false,
+      handled: false,
+      handle: [Function: handle]
+    }
+  ]
+} +6ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF executing step "update-no-matches" +0ms
+📝 Updating parsed flyer item RAcEGlgxXBqCtiT7zvDj
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': 'a5a6364f-4a99-4401-aae2-d8166659386c',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
  PUT /api/inngest 200 in 27ms
 📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
 📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+⏱️ CIRCUIT_BREAKER_TIMEOUT - Search circuit breaker timed out after 20s {
+  timestamp: '2025-08-20T11:15:55.774Z',
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  operation: 'search-products'
+}
+⚠️ CIRCUIT_BREAKER_FALLBACK - Search circuit breaker triggered fallback - returning empty results {
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  reason: 'Circuit breaker open due to failures or timeout',
+  timestamp: '2025-08-20T11:15:55.775Z'
+}
+📊 CIRCUIT_BREAKER_DIAGNOSTICS - Search circuit breaker diagnostics: {
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  state: 'closed',
+  failureCount: 1,
+  lastFailureReason: 'Unknown',
+  timestamp: '2025-08-20T11:15:55.775Z'
+}
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X result: {
+  type: 'step-ran',
+  ctx: {
+    event: {
+      data: [Object],
+      id: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+      name: 'flyer/product-match',
+      ts: 1755688532191,
+      user: {}
+    },
+    events: [ [Object] ],
+    runId: '01K33K1Y7WW55RWE7MFRZJR07X',
+    attempt: 0,
+    step: {
+      sendEvent: [AsyncFunction (anonymous)],
+      waitForSignal: [AsyncFunction (anonymous)],
+      sendSignal: [AsyncFunction (anonymous)],
+      waitForEvent: [AsyncFunction (anonymous)],
+      run: [AsyncFunction (anonymous)],
+      ai: [Object],
+      sleep: [AsyncFunction (anonymous)],
+      sleepUntil: [AsyncFunction (anonymous)],
+      invoke: [AsyncFunction (anonymous)],
+      fetch: [AsyncFunction],
+      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
+    },
+    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
+  },
+  ops: {
+    'update-status-to-processing': {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'search-products': {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: false,
+      hasStepState: false,
+      handled: false,
+      handle: [Function: handle]
+    }
+  },
+  step: {
+    id: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+    op: 'StepRun',
+    name: 'search-products',
+    opts: {},
+    displayName: 'search-products',
+    data: []
+  }
+} +20s
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 20036ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X existing state keys: [
+  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
+] +1ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X starting V1 execution +0ms
+🔄 PRODUCT MATCHING WORKFLOW STARTED {
+  eventId: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1'
+}
+⚠️ No potential matches found, marking as completed
+📊 MATCH_FAILURE_ANALYSIS - No potential matches found for product: {
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Фреш Универзал Детергент 5.5кг',
+  additionalInfo: '68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  possibleReasons: 'Product not in database, Search keywords did not match database entries, Search circuit breaker triggered, Search timeout occurred, Database indexing issues',
+  timestamp: '2025-08-20T11:15:55.860Z'
+}
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X checkpoint: {
+  type: 'steps-found',
+  steps: [
+    {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    {
+      id: 'update-no-matches',
+      op: 'StepPlanned',
+      name: 'update-no-matches',
+      displayName: 'update-no-matches',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '0542d8111c81d573530db093c488c15121198784',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: false,
+      hasStepState: false,
+      handled: false,
+      handle: [Function: handle]
+    }
+  ]
+} +5ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X executing step "update-no-matches" +1ms
+📝 Updating parsed flyer item tFbEu4u2Hlsn7TZrimA1
+🔍 Update data structure check: {"matchingStatus":"completed","matchedProducts":[],"matchingDiagnostics":{"searchAttempted":true,"searchTimestamp":"2025-08-20T11:15:54.668Z","searchTerms":{"productName":"Savex Premium Color & Care D...
 📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
 📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+🔍 Update data structure check: {"matchingStatus":"completed","matchedProducts":[],"matchingDiagnostics":{"searchAttempted":true,"searchTimestamp":"2025-08-20T11:15:55.863Z","searchTerms":{"productName":"Savex Premium Fresh Universa...
 📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+✅ Successfully updated parsed flyer item RAcEGlgxXBqCtiT7zvDj
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF result: {
+  type: 'step-ran',
+  ctx: {
+    event: {
+      data: [Object],
+      id: '01K33K1Y6N2K58P00FKTAZ65DY',
+      name: 'flyer/product-match',
+      ts: 1755688532181,
+      user: {}
+    },
+    events: [ [Object] ],
+    runId: '01K33K1Y7N07NXVNVENBTN5HXF',
+    attempt: 0,
+    step: {
+      sendEvent: [AsyncFunction (anonymous)],
+      waitForSignal: [AsyncFunction (anonymous)],
+      sendSignal: [AsyncFunction (anonymous)],
+      waitForEvent: [AsyncFunction (anonymous)],
+      run: [AsyncFunction (anonymous)],
+      ai: [Object],
+      sleep: [AsyncFunction (anonymous)],
+      sleepUntil: [AsyncFunction (anonymous)],
+      invoke: [AsyncFunction (anonymous)],
+      fetch: [AsyncFunction],
+      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
+    },
+    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
+  },
+  ops: {
+    'update-status-to-processing': {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'search-products': {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'update-no-matches': {
+      id: 'update-no-matches',
+      op: 'StepPlanned',
+      name: 'update-no-matches',
+      displayName: 'update-no-matches',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '0542d8111c81d573530db093c488c15121198784',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: false,
+      hasStepState: false,
+      handled: false,
+      handle: [Function: handle]
+    }
+  },
+  step: {
+    id: '0542d8111c81d573530db093c488c15121198784',
+    op: 'StepRun',
+    name: 'update-no-matches',
+    opts: {},
+    displayName: 'update-no-matches',
+    data: null
+  }
+} +3s
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 2772ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF existing state keys: [
+  '0542d8111c81d573530db093c488c15121198784',
+  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
+] +0ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF starting V1 execution +0ms
+🔄 PRODUCT MATCHING WORKFLOW STARTED {
+  eventId: '01K33K1Y6N2K58P00FKTAZ65DY',
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj'
+}
+⚠️ No potential matches found, marking as completed
+📊 MATCH_FAILURE_ANALYSIS - No potential matches found for product: {
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Колор & Кер Детергент 5.5кг',
+  additionalInfo: '68 washes, Color & Care, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Колор & Кер, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  possibleReasons: 'Product not in database, Search keywords did not match database entries, Search circuit breaker triggered, Search timeout occurred, Database indexing issues',
+  timestamp: '2025-08-20T11:15:57.510Z'
+}
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF checkpoint: {
+  type: 'function-resolved',
+  data: { success: true, message: 'No potential matches found' }
+} +6ms
+  inngest:01K33K1Y7N07NXVNVENBTN5HXF result: {
+  type: 'function-resolved',
+  ctx: {
+    event: {
+      data: [Object],
+      id: '01K33K1Y6N2K58P00FKTAZ65DY',
+      name: 'flyer/product-match',
+      ts: 1755688532181,
+      user: {}
+    },
+    events: [ [Object] ],
+    runId: '01K33K1Y7N07NXVNVENBTN5HXF',
+    attempt: 0,
+    step: {
+      sendEvent: [AsyncFunction (anonymous)],
+      waitForSignal: [AsyncFunction (anonymous)],
+      sendSignal: [AsyncFunction (anonymous)],
+      waitForEvent: [AsyncFunction (anonymous)],
+      run: [AsyncFunction (anonymous)],
+      ai: [Object],
+      sleep: [AsyncFunction (anonymous)],
+      sleepUntil: [AsyncFunction (anonymous)],
+      invoke: [AsyncFunction (anonymous)],
+      fetch: [AsyncFunction],
+      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
+    },
+    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
+  },
+  ops: {
+    'update-status-to-processing': {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'search-products': {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'update-no-matches': {
+      id: 'update-no-matches',
+      op: 'StepPlanned',
+      name: 'update-no-matches',
+      displayName: 'update-no-matches',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '0542d8111c81d573530db093c488c15121198784',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    }
+  },
+  data: { success: true, message: 'No potential matches found' }
+} +1ms
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 200 in 28ms
 📊 Stage 7: macedonianname field: Found 0 results
-🔍 Stage 8: Searching albenianname field
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+✅ Successfully updated parsed flyer item tFbEu4u2Hlsn7TZrimA1
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X result: {
+  type: 'step-ran',
+  ctx: {
+    event: {
+      data: [Object],
+      id: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+      name: 'flyer/product-match',
+      ts: 1755688532191,
+      user: {}
+    },
+    events: [ [Object] ],
+    runId: '01K33K1Y7WW55RWE7MFRZJR07X',
+    attempt: 0,
+    step: {
+      sendEvent: [AsyncFunction (anonymous)],
+      waitForSignal: [AsyncFunction (anonymous)],
+      sendSignal: [AsyncFunction (anonymous)],
+      waitForEvent: [AsyncFunction (anonymous)],
+      run: [AsyncFunction (anonymous)],
+      ai: [Object],
+      sleep: [AsyncFunction (anonymous)],
+      sleepUntil: [AsyncFunction (anonymous)],
+      invoke: [AsyncFunction (anonymous)],
+      fetch: [AsyncFunction],
+      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
+    },
+    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
+  },
+  ops: {
+    'update-status-to-processing': {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'search-products': {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'update-no-matches': {
+      id: 'update-no-matches',
+      op: 'StepPlanned',
+      name: 'update-no-matches',
+      displayName: 'update-no-matches',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '0542d8111c81d573530db093c488c15121198784',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: false,
+      hasStepState: false,
+      handled: false,
+      handle: [Function: handle]
+    }
+  },
+  step: {
+    id: '0542d8111c81d573530db093c488c15121198784',
+    op: 'StepRun',
+    name: 'update-no-matches',
+    opts: {},
+    displayName: 'update-no-matches',
+    data: null
+  }
+} +3s
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 2634ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X created new V1 execution for run; discovering steps +0ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X existing state keys: [
+  '0542d8111c81d573530db093c488c15121198784',
+  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
+] +0ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X starting V1 execution +0ms
+🔄 PRODUCT MATCHING WORKFLOW STARTED {
+  eventId: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1'
+}
+⚠️ No potential matches found, marking as completed
+📊 MATCH_FAILURE_ANALYSIS - No potential matches found for product: {
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  productNameMk: 'Савекс Премиум Фреш Универзал Детергент 5.5кг',
+  additionalInfo: '68 washes, Fresh Universal, 30° Cold Wash Technology, Concentrated Detergent, Supreme Clean & Protect, +50 points, 1kg = 107 den., -30%',
+  additionalInfoMk: '68 перења, Фреш Универзал, 30° Технологија за ладно перење, Концентриран детергент, Врвна чистота & заштита, +50 поени, 1кг = 107 ден., -30%',
+  possibleReasons: 'Product not in database, Search keywords did not match database entries, Search circuit breaker triggered, Search timeout occurred, Database indexing issues',
+  timestamp: '2025-08-20T11:15:58.558Z'
+}
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X checkpoint: {
+  type: 'function-resolved',
+  data: { success: true, message: 'No potential matches found' }
+} +4ms
+  inngest:01K33K1Y7WW55RWE7MFRZJR07X result: {
+  type: 'function-resolved',
+  ctx: {
+    event: {
+      data: [Object],
+      id: '01K33K1Y6ZVBBCCNAAVPAXZNF0',
+      name: 'flyer/product-match',
+      ts: 1755688532191,
+      user: {}
+    },
+    events: [ [Object] ],
+    runId: '01K33K1Y7WW55RWE7MFRZJR07X',
+    attempt: 0,
+    step: {
+      sendEvent: [AsyncFunction (anonymous)],
+      waitForSignal: [AsyncFunction (anonymous)],
+      sendSignal: [AsyncFunction (anonymous)],
+      waitForEvent: [AsyncFunction (anonymous)],
+      run: [AsyncFunction (anonymous)],
+      ai: [Object],
+      sleep: [AsyncFunction (anonymous)],
+      sleepUntil: [AsyncFunction (anonymous)],
+      invoke: [AsyncFunction (anonymous)],
+      fetch: [AsyncFunction],
+      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
+    },
+    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
+  },
+  ops: {
+    'update-status-to-processing': {
+      id: 'update-status-to-processing',
+      op: 'StepPlanned',
+      name: 'update-status-to-processing',
+      displayName: 'update-status-to-processing',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'search-products': {
+      id: 'search-products',
+      op: 'StepPlanned',
+      name: 'search-products',
+      displayName: 'search-products',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    },
+    'update-no-matches': {
+      id: 'update-no-matches',
+      op: 'StepPlanned',
+      name: 'update-no-matches',
+      displayName: 'update-no-matches',
+      opts: {},
+      rawArgs: [Array],
+      hashedId: '0542d8111c81d573530db093c488c15121198784',
+      input: undefined,
+      fn: [Function (anonymous)],
+      promise: [Promise],
+      fulfilled: true,
+      hasStepState: true,
+      handled: true,
+      handle: [Function: handle]
+    }
+  },
+  data: { success: true, message: 'No potential matches found' }
+} +1ms
+ POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 200 in 25ms
 📊 Stage 7: macedonianname field: Found 0 results
-🔍 Stage 8: Searching albenianname field
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-🔍 Stage 9: Searching superMarketName field
-📊 Stage 8: albenianname field: Found 0 results
-📊 Stage 8: albenianname field: Found 0 results
-🔍 Stage 9: Searching superMarketName field
-📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '002dda7c-efcc-47a6-8ccf-06335ca7c923',
+  'sync_id.omitempty': '0ca08785-67f7-470d-a95a-8fa04165ed93',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 22ms
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+🔍 Stage 8: Searching albenianname field
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 7: macedonianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 7: macedonianname field: Found 0 results
+🔍 Stage 8: Searching albenianname field
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': 'c44b42f5-02e2-4681-b853-5db38ac7fcdf',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 27ms
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '3b0fa6cf-a266-4f32-b003-b694dd3e49a0',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 33ms
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+🔍 Stage 9: Searching superMarketName field
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 8: albenianname field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 8: albenianname field: Found 0 results
+🔍 Stage 9: Searching superMarketName field
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '4b633ecf-823d-43b4-b7b0-c572662ba89e',
+  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
+}
+ PUT /api/inngest 200 in 20ms
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+🔍 Stage 10: Searching description field (fallback)
+📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
+[Inngest] debug - registered inngest functions: 200 OK {
+  ok: true,
+  modified: false,
+  'sync_id.omitempty': '06ee4a07-69ab-409f-bcf6-f6ef975a8446',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
  PUT /api/inngest 200 in 21ms
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-📊 Stage 9: superMarketName field: Found 0 results
-🔍 Stage 10: Searching description field (fallback)
-📊 Stage 9: superMarketName field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 9: superMarketName field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 9: superMarketName field: Found 0 results
 🔍 Stage 10: Searching description field (fallback)
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': 'f139784a-110d-4924-a1ad-6f5c4c3c1614',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 24ms
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 ✅ Found 1 potential product matches
+📊 SEARCH_SUCCESS - Found 1 matches for product: Savex Premium Color & Care Detergent 5.5kg
+📊 SEARCH_RESULT_SUMMARY - Top matches: [
+  {
+    id: '00GAOMXjQNgFXhjef5NA',
+    name: 'Savex Premium Fresh Universal Detergent 5.5kg',
+    macedonianname: 'Савекс Премиум Фреш Универзален Детергент 5.5кг',
+    matchedVia: 'Stage 1: englishNameKeywords'
+  }
+]
 ✅ Found 1 potential matches
-  inngest:01K31AVVYACFAN20C9RTA786Z3 result: {
-  type: 'step-ran',
-  ctx: {
-    event: {
-      data: [Object],
-      id: '01K31AVVWV4DAW9NBN5DWHVNXT',
-      name: 'flyer/product-match',
-      ts: 1755612835739,
-      user: {}
-    },
-    events: [ [Object] ],
-    runId: '01K31AVVYACFAN20C9RTA786Z3',
-    attempt: 0,
-    step: {
-      sendEvent: [AsyncFunction (anonymous)],
-      waitForSignal: [AsyncFunction (anonymous)],
-      sendSignal: [AsyncFunction (anonymous)],
-      waitForEvent: [AsyncFunction (anonymous)],
-      run: [AsyncFunction (anonymous)],
-      ai: [Object],
-      sleep: [AsyncFunction (anonymous)],
-      sleepUntil: [AsyncFunction (anonymous)],
-      invoke: [AsyncFunction (anonymous)],
-      fetch: [AsyncFunction],
-      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
-    },
-    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
-  },
-  ops: {
-    'update-status-to-processing': {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'search-products': {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  },
-  step: {
-    id: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-    op: 'StepRun',
-    name: 'search-products',
-    opts: {},
-    displayName: 'search-products',
-    data: [ [Object] ]
-  }
-} +22s
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 21795ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 existing state keys: [
-  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
-] +1ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 starting V1 execution +0ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVWV4DAW9NBN5DWHVNXT',
-  parsedItemId: '01xb6vZYNPK6CFmFbJov'
+📊 SEARCH_RESULTS - Search results summary: {
+  parsedItemId: 'RAcEGlgxXBqCtiT7zvDj',
+  productName: 'Savex Premium Color & Care Detergent 5.5kg',
+  resultCount: 1,
+  topMatchIds: [ '00GAOMXjQNgFXhjef5NA' ],
+  timestamp: '2025-08-20T11:16:23.858Z'
 }
-  inngest:01K31AVVYACFAN20C9RTA786Z3 checkpoint: {
-  type: 'steps-found',
-  steps: [
-    {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  ]
-} +2ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 executing step "score-matches" +0ms
-🧠 Processing 1 potential matches for deduplication and AI scoring
-⏱️ Score matches step started at 2025-08-19T14:14:18.986Z
-🔄 Deduplicated from 1 to 1 unique products
-⏱️ Setting AI scoring timeout to 40 seconds
-🔍 Fetching active auto-approval rule using admin SDK
-🚀 AI scoring promise created at 2025-08-19T14:14:18.989Z
 📊 Stage 10: description field: Found 0 results
-✅ Found active auto-approval rule: 6LwmkueLAuQfQnxo1t8k
-🤖 Starting Gemini API call at 2025-08-19T14:14:19.365Z
-📋 Prompt length: 3561 characters
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 📊 Stage 10: description field: Found 0 results
+📊 SEARCH_STAGE_RESULTS - Stage 10: description field: Found 0 results
 ✅ Found 2 potential product matches
+📊 SEARCH_SUCCESS - Found 2 matches for product: Savex Premium Fresh Universal Detergent 5.5kg
+📊 SEARCH_RESULT_SUMMARY - Top matches: [
+  {
+    id: '00GAOMXjQNgFXhjef5NA',
+    name: 'Savex Premium Fresh Universal Detergent 5.5kg',
+    macedonianname: 'Савекс Премиум Фреш Универзален Детергент 5.5кг',
+    matchedVia: 'Stage 1: englishNameKeywords'
+  },
+  {
+    id: ' 00GAOMXjQNgFXhjef5NA',
+    name: 'Savex Premium Fresh Universal Detergent 5.5kg',
+    macedonianname: 'Имако вино 0.75л',
+    matchedVia: 'Stage 6a: exact name match'
+  }
+]
 ✅ Found 2 potential matches
-  inngest:01K31AVVY48R5M456VQHMPM5EV result: {
-  type: 'step-ran',
-  ctx: {
-    event: {
-      data: [Object],
-      id: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-      name: 'flyer/product-match',
-      ts: 1755612835744,
-      user: {}
-    },
-    events: [ [Object] ],
-    runId: '01K31AVVY48R5M456VQHMPM5EV',
-    attempt: 0,
-    step: {
-      sendEvent: [AsyncFunction (anonymous)],
-      waitForSignal: [AsyncFunction (anonymous)],
-      sendSignal: [AsyncFunction (anonymous)],
-      waitForEvent: [AsyncFunction (anonymous)],
-      run: [AsyncFunction (anonymous)],
-      ai: [Object],
-      sleep: [AsyncFunction (anonymous)],
-      sleepUntil: [AsyncFunction (anonymous)],
-      invoke: [AsyncFunction (anonymous)],
-      fetch: [AsyncFunction],
-      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
-    },
-    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
-  },
-  ops: {
-    'update-status-to-processing': {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'search-products': {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  },
-  step: {
-    id: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-    op: 'StepRun',
-    name: 'search-products',
-    opts: {},
-    displayName: 'search-products',
-    data: [ [Object], [Object] ]
-  }
-} +22s
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 22036ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV existing state keys: [
-  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
-] +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV starting V1 execution +0ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-  parsedItemId: 'ppfi7h7S0wO4Sm0ixgNC'
+📊 SEARCH_RESULTS - Search results summary: {
+  parsedItemId: 'tFbEu4u2Hlsn7TZrimA1',
+  productName: 'Savex Premium Fresh Universal Detergent 5.5kg',
+  resultCount: 2,
+  topMatchIds: [ '00GAOMXjQNgFXhjef5NA', ' 00GAOMXjQNgFXhjef5NA' ],
+  timestamp: '2025-08-20T11:16:24.231Z'
 }
-  inngest:01K31AVVY48R5M456VQHMPM5EV checkpoint: {
-  type: 'steps-found',
-  steps: [
-    {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  ]
-} +2ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV executing step "score-matches" +1ms
-🧠 Processing 2 potential matches for deduplication and AI scoring
-⏱️ Score matches step started at 2025-08-19T14:14:19.440Z
-🔄 Deduplicated from 2 to 2 unique products
-⏱️ Setting AI scoring timeout to 40 seconds
-🔍 Fetching active auto-approval rule using admin SDK
-🚀 AI scoring promise created at 2025-08-19T14:14:19.441Z
-✅ Found active auto-approval rule: 6LwmkueLAuQfQnxo1t8k
-🤖 Starting Gemini API call at 2025-08-19T14:14:19.789Z
-📋 Prompt length: 3778 characters
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': 'dacde03e-aa70-4def-81b4-fd3d416609c9',
-  app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
-}
- PUT /api/inngest 200 in 19ms
-✅ Gemini API call completed at 2025-08-19T14:14:23.217Z
-📄 Received response of length: 356 characters
-🤖 Raw Gemini response length: 356
-✅ Found 1 valid matches after filtering
-🏁 Product matching completed with 1 matches
-Match #1: productId=00GAOMXjQNgFXhjef5NA, score=0.85, can_auto_merge=true
-🎯 AI scoring completed at 2025-08-19T14:14:23.219Z with 1 scored matches
-⏱️ Score matches step completed at 2025-08-19T14:14:23.219Z
-  inngest:01K31AVVYACFAN20C9RTA786Z3 result: {
-  type: 'step-ran',
-  ctx: {
-    event: {
-      data: [Object],
-      id: '01K31AVVWV4DAW9NBN5DWHVNXT',
-      name: 'flyer/product-match',
-      ts: 1755612835739,
-      user: {}
-    },
-    events: [ [Object] ],
-    runId: '01K31AVVYACFAN20C9RTA786Z3',
-    attempt: 0,
-    step: {
-      sendEvent: [AsyncFunction (anonymous)],
-      waitForSignal: [AsyncFunction (anonymous)],
-      sendSignal: [AsyncFunction (anonymous)],
-      waitForEvent: [AsyncFunction (anonymous)],
-      run: [AsyncFunction (anonymous)],
-      ai: [Object],
-      sleep: [AsyncFunction (anonymous)],
-      sleepUntil: [AsyncFunction (anonymous)],
-      invoke: [AsyncFunction (anonymous)],
-      fetch: [AsyncFunction],
-      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
-    },
-    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
-  },
-  ops: {
-    'update-status-to-processing': {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'search-products': {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'score-matches': {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  },
-  step: {
-    id: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-    op: 'StepRun',
-    name: 'score-matches',
-    opts: {},
-    displayName: 'score-matches',
-    data: [ [Object] ]
-  }
-} +4s
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 4254ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 existing state keys: [
-  '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
-] +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 starting V1 execution +1ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVWV4DAW9NBN5DWHVNXT',
-  parsedItemId: '01xb6vZYNPK6CFmFbJov'
-}
-  inngest:01K31AVVYACFAN20C9RTA786Z3 checkpoint: {
-  type: 'steps-found',
-  steps: [
-    {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'check-auto-approval',
-      op: 'StepPlanned',
-      name: 'check-auto-approval',
-      displayName: 'check-auto-approval',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '264b57991efed85f2e14313161ab14957e9cb996',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  ]
-} +3ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 executing step "check-auto-approval" +1ms
-📊 Checking auto-approval for 1 potential matches
-🔍 Auto-approval workflow step started at 2025-08-19T14:14:23.340Z
-📋 Parsed item ID: 01xb6vZYNPK6CFmFbJov
-⏱️ Setting auto-approval timeout to 20 seconds
-Match #1: productId=00GAOMXjQNgFXhjef5NA, relevanceScore=0.85, reason=Strong name similarity (Savex Premium, 5.5kg) and matching brand, same category.
-🚀 Auto-approval approved for product: 00GAOMXjQNgFXhjef5NA with confidence 0.85
-📝 Reason: Strong name similarity (Savex Premium, 5.5kg) and matching brand, same category.
-✅ Auto-approval completed successfully at 2025-08-19T14:14:23.341Z
-⏱️ Auto-approval step completed at 2025-08-19T14:14:23.342Z
-  inngest:01K31AVVYACFAN20C9RTA786Z3 result: {
-  type: 'step-ran',
-  ctx: {
-    event: {
-      data: [Object],
-      id: '01K31AVVWV4DAW9NBN5DWHVNXT',
-      name: 'flyer/product-match',
-      ts: 1755612835739,
-      user: {}
-    },
-    events: [ [Object] ],
-    runId: '01K31AVVYACFAN20C9RTA786Z3',
-    attempt: 0,
-    step: {
-      sendEvent: [AsyncFunction (anonymous)],
-      waitForSignal: [AsyncFunction (anonymous)],
-      sendSignal: [AsyncFunction (anonymous)],
-      waitForEvent: [AsyncFunction (anonymous)],
-      run: [AsyncFunction (anonymous)],
-      ai: [Object],
-      sleep: [AsyncFunction (anonymous)],
-      sleepUntil: [AsyncFunction (anonymous)],
-      invoke: [AsyncFunction (anonymous)],
-      fetch: [AsyncFunction],
-      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
-    },
-    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
-  },
-  ops: {
-    'update-status-to-processing': {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'search-products': {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'score-matches': {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'check-auto-approval': {
-      id: 'check-auto-approval',
-      op: 'StepPlanned',
-      name: 'check-auto-approval',
-      displayName: 'check-auto-approval',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '264b57991efed85f2e14313161ab14957e9cb996',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  },
-  step: {
-    id: '264b57991efed85f2e14313161ab14957e9cb996',
-    op: 'StepRun',
-    name: 'check-auto-approval',
-    opts: {},
-    displayName: 'check-auto-approval',
-    data: {
-      shouldAutoApprove: true,
-      productId: '00GAOMXjQNgFXhjef5NA',
-      reasoning: 'Auto-approved based on high relevance score of 0.85',
-      confidence: 0.85
-    }
-  }
-} +3ms
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 27ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 existing state keys: [
-  '264b57991efed85f2e14313161ab14957e9cb996',
-  '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
-] +1ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 starting V1 execution +0ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVWV4DAW9NBN5DWHVNXT',
-  parsedItemId: '01xb6vZYNPK6CFmFbJov'
-}
-  inngest:01K31AVVYACFAN20C9RTA786Z3 checkpoint: {
-  type: 'steps-found',
-  steps: [
-    {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'check-auto-approval',
-      op: 'StepPlanned',
-      name: 'check-auto-approval',
-      displayName: 'check-auto-approval',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '264b57991efed85f2e14313161ab14957e9cb996',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'save-matches-and-auto-approve',
-      op: 'StepPlanned',
-      name: 'save-matches-and-auto-approve',
-      displayName: 'save-matches-and-auto-approve',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '687d47a29ee00581fe23db572f967bf594c82738',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  ]
-} +3ms
-  inngest:01K31AVVYACFAN20C9RTA786Z3 executing step "save-matches-and-auto-approve" +1ms
-💾 Saving 1 matches to database
-⏱️ Save matches step started at 2025-08-19T14:14:23.487Z
-✅ Validated 1 matches for Firestore update
-🔍 Sample match structure: {"productId":"00GAOMXjQNgFXhjef5NA","relevanceScore":0.85,"matchReason":"Strong name similarity (Savex Premium, 5.5kg) and matching brand, same category.","matchedAt":{"_seconds":1755612863,"_nanoseco...
-🚀 Auto-approved and applied to product: 00GAOMXjQNgFXhjef5NA
-📝 Status set to: applied_to_product
-📝 Updating parsed flyer item 01xb6vZYNPK6CFmFbJov
-🔍 Update data structure check: {"matchedProducts":[{"productId":"00GAOMXjQNgFXhjef5NA","relevanceScore":0.85,"matchReason":"Strong name similarity (Savex Premium, 5.5kg) and matching brand, same category.","matchedAt":{"_seconds":1...
-✅ Gemini API call completed at 2025-08-19T14:14:23.936Z
-📄 Received response of length: 725 characters
-🤖 Raw Gemini response length: 725
-✅ Found 2 valid matches after filtering
-🏁 Product matching completed with 2 matches
-Match #1: productId=00GAOMXjQNgFXhjef5NA, score=0.95, can_auto_merge=true
-Match #2: productId=00GAOMXjQNgFXhjef5NA, score=0.10, can_auto_merge=false
-🎯 AI scoring completed at 2025-08-19T14:14:23.937Z with 2 scored matches
-⏱️ Score matches step completed at 2025-08-19T14:14:23.937Z
-  inngest:01K31AVVY48R5M456VQHMPM5EV result: {
-  type: 'step-ran',
-  ctx: {
-    event: {
-      data: [Object],
-      id: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-      name: 'flyer/product-match',
-      ts: 1755612835744,
-      user: {}
-    },
-    events: [ [Object] ],
-    runId: '01K31AVVY48R5M456VQHMPM5EV',
-    attempt: 0,
-    step: {
-      sendEvent: [AsyncFunction (anonymous)],
-      waitForSignal: [AsyncFunction (anonymous)],
-      sendSignal: [AsyncFunction (anonymous)],
-      waitForEvent: [AsyncFunction (anonymous)],
-      run: [AsyncFunction (anonymous)],
-      ai: [Object],
-      sleep: [AsyncFunction (anonymous)],
-      sleepUntil: [AsyncFunction (anonymous)],
-      invoke: [AsyncFunction (anonymous)],
-      fetch: [AsyncFunction],
-      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
-    },
-    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
-  },
-  ops: {
-    'update-status-to-processing': {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'search-products': {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'score-matches': {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  },
-  step: {
-    id: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-    op: 'StepRun',
-    name: 'score-matches',
-    opts: {},
-    displayName: 'score-matches',
-    data: [ [Object], [Object] ]
-  }
-} +4s
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 4520ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV existing state keys: [
-  '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
-] +1ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV starting V1 execution +0ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-  parsedItemId: 'ppfi7h7S0wO4Sm0ixgNC'
-}
-  inngest:01K31AVVY48R5M456VQHMPM5EV checkpoint: {
-  type: 'steps-found',
-  steps: [
-    {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'check-auto-approval',
-      op: 'StepPlanned',
-      name: 'check-auto-approval',
-      displayName: 'check-auto-approval',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '264b57991efed85f2e14313161ab14957e9cb996',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  ]
-} +2ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV executing step "check-auto-approval" +1ms
-📊 Checking auto-approval for 1 potential matches
-🔍 Auto-approval workflow step started at 2025-08-19T14:14:24.085Z
-📋 Parsed item ID: ppfi7h7S0wO4Sm0ixgNC
-⏱️ Setting auto-approval timeout to 20 seconds
-Match #1: productId=00GAOMXjQNgFXhjef5NA, relevanceScore=0.95, reason=Strong name similarity, matching brand, size and category
-🚀 Auto-approval approved for product: 00GAOMXjQNgFXhjef5NA with confidence 0.95
-📝 Reason: Strong name similarity, matching brand, size and category
-✅ Auto-approval completed successfully at 2025-08-19T14:14:24.086Z
-⏱️ Auto-approval step completed at 2025-08-19T14:14:24.087Z
-  inngest:01K31AVVY48R5M456VQHMPM5EV result: {
-  type: 'step-ran',
-  ctx: {
-    event: {
-      data: [Object],
-      id: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-      name: 'flyer/product-match',
-      ts: 1755612835744,
-      user: {}
-    },
-    events: [ [Object] ],
-    runId: '01K31AVVY48R5M456VQHMPM5EV',
-    attempt: 0,
-    step: {
-      sendEvent: [AsyncFunction (anonymous)],
-      waitForSignal: [AsyncFunction (anonymous)],
-      sendSignal: [AsyncFunction (anonymous)],
-      waitForEvent: [AsyncFunction (anonymous)],
-      run: [AsyncFunction (anonymous)],
-      ai: [Object],
-      sleep: [AsyncFunction (anonymous)],
-      sleepUntil: [AsyncFunction (anonymous)],
-      invoke: [AsyncFunction (anonymous)],
-      fetch: [AsyncFunction],
-      [Symbol(inngest.step.gateway)]: [AsyncFunction (anonymous)]
-    },
-    logger: ProxyLogger { enabled: true, logger: DefaultLogger {} }
-  },
-  ops: {
-    'update-status-to-processing': {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'search-products': {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'score-matches': {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    'check-auto-approval': {
-      id: 'check-auto-approval',
-      op: 'StepPlanned',
-      name: 'check-auto-approval',
-      displayName: 'check-auto-approval',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '264b57991efed85f2e14313161ab14957e9cb996',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  },
-  step: {
-    id: '264b57991efed85f2e14313161ab14957e9cb996',
-    op: 'StepRun',
-    name: 'check-auto-approval',
-    opts: {},
-    displayName: 'check-auto-approval',
-    data: {
-      shouldAutoApprove: true,
-      productId: '00GAOMXjQNgFXhjef5NA',
-      reasoning: 'Auto-approved based on high relevance score of 0.95',
-      confidence: 0.95
-    }
-  }
-} +2ms
- POST /api/inngest?fnId=badiyala-flyer-parser-match-products&stepId=step 206 in 20ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV created new V1 execution for run; discovering steps +0ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV existing state keys: [
-  '264b57991efed85f2e14313161ab14957e9cb996',
-  '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-  '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-  'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d'
-] +1ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV starting V1 execution +0ms
-🔄 PRODUCT MATCHING WORKFLOW STARTED {
-  eventId: '01K31AVVX0ZH0NHGH3JHZN0E3V',
-  parsedItemId: 'ppfi7h7S0wO4Sm0ixgNC'
-}
-  inngest:01K31AVVY48R5M456VQHMPM5EV checkpoint: {
-  type: 'steps-found',
-  steps: [
-    {
-      id: 'update-status-to-processing',
-      op: 'StepPlanned',
-      name: 'update-status-to-processing',
-      displayName: 'update-status-to-processing',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: 'd00ed8ad3f033bcbd62b1f182ab7fd0abc152f5d',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'search-products',
-      op: 'StepPlanned',
-      name: 'search-products',
-      displayName: 'search-products',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '68c878c636e3b59bb8a58c6dfa4fe6c333d685d5',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'score-matches',
-      op: 'StepPlanned',
-      name: 'score-matches',
-      displayName: 'score-matches',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '59fbb86e379cc6e59609c356a33c3a8e50976aeb',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'check-auto-approval',
-      op: 'StepPlanned',
-      name: 'check-auto-approval',
-      displayName: 'check-auto-approval',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '264b57991efed85f2e14313161ab14957e9cb996',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: true,
-      hasStepState: true,
-      handled: true,
-      handle: [Function: handle]
-    },
-    {
-      id: 'save-matches-and-auto-approve',
-      op: 'StepPlanned',
-      name: 'save-matches-and-auto-approve',
-      displayName: 'save-matches-and-auto-approve',
-      opts: {},
-      rawArgs: [Array],
-      hashedId: '687d47a29ee00581fe23db572f967bf594c82738',
-      input: undefined,
-      fn: [Function (anonymous)],
-      promise: [Promise],
-      fulfilled: false,
-      hasStepState: false,
-      handled: false,
-      handle: [Function: handle]
-    }
-  ]
-} +2ms
-  inngest:01K31AVVY48R5M456VQHMPM5EV executing step "save-matches-and-auto-approve" +1ms
-💾 Saving 1 matches to database
-⏱️ Save matches step started at 2025-08-19T14:14:24.234Z
-✅ Validated 1 matches for Firestore update
-🔍 Sample match structure: {"productId":"00GAOMXjQNgFXhjef5NA","relevanceScore":0.95,"matchReason":"Strong name similarity, matching brand, size and category","matchedAt":{"_seconds":1755612864,"_nanoseconds":233000000},"produc...
-🚀 Auto-approved and applied to product: 00GAOMXjQNgFXhjef5NA
-📝 Status set to: applied_to_product
-📝 Updating parsed flyer item ppfi7h7S0wO4Sm0ixgNC
-✅ Successfully updated parsed flyer item 01xb6vZYNPK6CFmFbJov
-✅ Successfully saved matches and status for item 01xb6vZYNPK6CFmFbJov
-🏁 Auto-approval status set to: success
-📊 Auto-approval fields: {"status":"success","reason":"Auto-approved based on high relevance score of 0.85","confidence":0.85,"timestamp":"2025-08-19T14:14:23.488Z"}
-⏱️ Workflow step completed at 2025-08-19T14:14:24.281Z
-🔄 Total workflow duration: 28.542 seconds
-=================================================
-
-⚠️  We detected that you have nested `step.*` tooling in `auto-apply-discount`
-    at prettyError (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/helpers/errors.js:303:29)
-    at stepHandler (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/components/execution/v1.js:708:58)
-
-It's possible to see this warning if steps are separated by regular asynchronous calls, which is fine. Nesting `step.*` tooling is not supported.
-
-Make sure you're not using `step.*` tooling inside of other `step.*` tooling. If you need to compose steps together, you can create a new async function and call it from within your step function, or use promise chaining.
-
-Code: NESTING_STEPS
-
-=================================================
-🔍 Update data structure check: {"matchedProducts":[{"productId":"00GAOMXjQNgFXhjef5NA","relevanceScore":0.95,"matchReason":"Strong name similarity, matching brand, size and category","matchedAt":{"_seconds":1755612864,"_nanoseconds...
-✅ Successfully updated parsed flyer item ppfi7h7S0wO4Sm0ixgNC
-✅ Successfully saved matches and status for item ppfi7h7S0wO4Sm0ixgNC
-🏁 Auto-approval status set to: success
-📊 Auto-approval fields: {"status":"success","reason":"Auto-approved based on high relevance score of 0.95","confidence":0.95,"timestamp":"2025-08-19T14:14:24.235Z"}
-⏱️ Workflow step completed at 2025-08-19T14:14:25.252Z
-🔄 Total workflow duration: 29.508 seconds
-=================================================
-
-⚠️  We detected that you have nested `step.*` tooling in `auto-apply-discount`
-    at prettyError (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/helpers/errors.js:303:29)
-    at stepHandler (webpack-internal:///(rsc)/./node_modules/.pnpm/inngest@3.40.1_next@14.2.31_6e26cb770b1ca72b2f352972f192bf38/node_modules/inngest/components/execution/v1.js:708:58)
-
-It's possible to see this warning if steps are separated by regular asynchronous calls, which is fine. Nesting `step.*` tooling is not supported.
-
-Make sure you're not using `step.*` tooling inside of other `step.*` tooling. If you need to compose steps together, you can create a new async function and call it from within your step function, or use promise chaining.
-
-Code: NESTING_STEPS
-
-=================================================
-[Inngest] debug - registered inngest functions: 200 OK {
-  ok: true,
-  modified: false,
-  'sync_id.omitempty': '13c38902-0adf-4f95-b8f4-0b18cae1ef28',
+  'sync_id.omitempty': '85105d50-6c4b-49d7-afe0-cd19d3def787',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
  PUT /api/inngest 200 in 20ms
 [Inngest] debug - registered inngest functions: 200 OK {
   ok: true,
   modified: false,
-  'sync_id.omitempty': '6e0d05ed-767a-4892-a558-9dab73c72011',
+  'sync_id.omitempty': '0c5ca33f-5d97-4532-954d-76c09ef4d006',
   app_id: 'ed1dd999-5829-5a8a-b82a-e8258ddeb289'
 }
- PUT /api/inngest 200 in 25ms
-[Inngest]
+ PUT /api/inngest 200 in 20ms
+[Inngest] debug - registered inngest functions: 200 
