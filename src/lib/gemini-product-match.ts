@@ -242,12 +242,12 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
       // Sort by relevance score (highest first)
       const sortedMatches = validMatches.sort((a, b) => b.relevanceScore - a.relevanceScore)
       
-      // If no matches are auto-approvable but we have high relevance matches, mark the best one
-      const hasAutoApprovable = sortedMatches.some(match => match.can_auto_merge === true)
-      if (!hasAutoApprovable && sortedMatches.length > 0 && sortedMatches[0].relevanceScore >= 0.7) {
-        console.log(`🔄 No auto-approvable matches found, but top match has score ${sortedMatches[0].relevanceScore} >= 0.7. Marking as auto-approvable.`)
-        sortedMatches[0].can_auto_merge = true
-        sortedMatches[0].autoApprovalReason = `Auto-approved as best match with high confidence score (${sortedMatches[0].relevanceScore.toFixed(2)})`
+      // If no auto-approval rule is active, ensure no matches are marked for auto-approval.
+      if (!autoApprovalRule) {
+        sortedMatches.forEach(match => {
+          match.can_auto_merge = false;
+          match.autoApprovalReason = "No active auto-approval rule.";
+        });
       }
       
       // Log the final results

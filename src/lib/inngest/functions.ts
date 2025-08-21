@@ -677,30 +677,6 @@ export const matchProductsFunction = inngest.createFunction(
   },
   { event: 'flyer/product-match' },
   async ({ event, step }) => {
-    // Create a global watchdog timer for the entire function
-    const globalWatchdog = new WatchdogTimer();
-    // Set a 2m55s timeout (slightly less than the 3m Inngest timeout)
-    const GLOBAL_TIMEOUT_MS = 175000; // 2m55s
-    
-    // Create an abort controller for cancelling operations
-    const globalController = new AbortController();
-    const globalSignal = globalController.signal;
-    
-    // Start the watchdog timer
-    globalWatchdog.start(GLOBAL_TIMEOUT_MS, () => {
-      console.error(`⚠️ GLOBAL WATCHDOG TRIGGERED - Function running too long (${GLOBAL_TIMEOUT_MS}ms)`);
-      globalController.abort('Global watchdog timeout triggered');
-      
-      // Attempt to update the item status to prevent hanging
-      try {
-        updateParsedFlyerItem(event.data.parsedItemId, {
-          matchingStatus: 'failed',
-          matchingError: `Matching process timed out after ${GLOBAL_TIMEOUT_MS/1000} seconds`
-        }).catch(e => console.error('Failed to update status after watchdog timeout', e));
-      } catch (e) {
-        console.error('Failed to update status after watchdog timeout', e);
-      }
-    });
     console.log('🔄 PRODUCT MATCHING WORKFLOW STARTED', { eventId: event.id, parsedItemId: event.data.parsedItemId })
     
     const { parsedItemId, productName, productNameMk, additionalInfo, additionalInfoMk } = event.data;
@@ -1025,188 +1001,91 @@ export const matchProductsFunction = inngest.createFunction(
         }
       })
 
-      // Step 6: Save matches and handle auto-approval
-      await step.run('save-matches-and-auto-approve', async () => {
-        console.log(`💾 Saving ${matchedProducts.length} matches to database`)
-        console.log(`⏱️ Save matches step started at ${new Date().toISOString()}`)
-        
-        try {
-          // Final validation to ensure no invalid values in matchedProducts
-          const validatedMatches = matchedProducts.filter(match => {
-            if (!match || typeof match !== 'object') {
-              console.log(`⚠️ Skipping invalid match: ${JSON.stringify(match)}`)
-              return false;
-            }
+      // Step 6: Save matches and update status
+      await step.run('save-matches-and-update-status', async () => {
+        const validatedMatches = matchedProducts
+          .filter((match: { productId: any }) => isValidProductId(match.productId))
+          .map((match: any) => {
+            const originalProduct = productMap.get(match.productId.trim());
             
-            // Use our utility function for consistent validation
-            if (!isValidProductId(match.productId)) {
-              console.log(`⚠️ Skipping match with invalid productId: ${JSON.stringify(match)}`)
-              return false;
-            }
-            
-            // Verify the productId exists in the database
-            const productExists = potentialMatches.some((p: any) => p.id === match.productId);
-            if (!productExists) {
-              console.log(`⚠️ Skipping match with non-existent productId: ${match.productId}`)
-              return false;
-            }
-            
-            return true;
+            return {
+              productId: match.productId,
+              relevanceScore: match.relevanceScore,
+              matchReason: match.matchReason || 'AI matched based on product name and details',
+              can_auto_merge: match.can_auto_merge,
+              autoApprovalReason: match.autoApprovalReason,
+              matchedAt: Timestamp.now(),
+              productData: originalProduct ? {
+                albenianname: originalProduct.albenianname || '',
+                categoryId: originalProduct.categoryId || '',
+                discountPercentage: originalProduct.discountPercentage || 0,
+                iconUrl: originalProduct.iconUrl || '',
+                imageUrl: originalProduct.imageUrl || '',
+                macedonianname: originalProduct.macedonianname || '',
+                name: originalProduct.name || '',
+                newPrice: originalProduct.newPrice || '',
+                oldPrice: originalProduct.oldPrice || '',
+                productId: originalProduct.productId || '',
+                superMarketName: originalProduct.superMarketName || '',
+              } : undefined
+            };
           });
-          
-          console.log(`✅ Validated ${validatedMatches.length} matches for Firestore update`);
-          
-          // Log the structure of the first few matches for debugging
-          if (validatedMatches.length > 0) {
-            console.log(`🔍 Sample match structure: ${JSON.stringify(validatedMatches[0]).substring(0, 200)}...`)
-          }
-          
-          const updateData: any = {
-            matchedProducts: validatedMatches as any
-          }
 
-          // Handle auto-approval decision
-          if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
-            // Auto-approval approved - set status to applied_to_product
-            updateData.matchingStatus = 'applied_to_product'
-            updateData.selectedProductId = autoApprovalResult.productId
-            updateData.autoApproved = true
-            updateData.autoApprovalReason = autoApprovalResult.reasoning
-            updateData.autoApprovalConfidence = autoApprovalResult.confidence || 0 // Ensure we always have a number value
-            updateData.autoApprovedAt = Timestamp.now()
-            updateData.autoApprovalStatus = 'success'
-            
-            console.log(`🚀 Auto-approved and applied to product: ${autoApprovalResult.productId}`)
-            console.log(`📝 Status set to: applied_to_product`)
-          } else {
-            // Auto-approval failed - set status to waiting for manual approval
-            updateData.matchingStatus = 'waiting_for_approval'
-            updateData.autoApprovalStatus = 'failed'
-            updateData.autoApprovalFailedAt = Timestamp.now()
-            updateData.autoApprovalFailureReason = autoApprovalResult?.reasoning || 'Auto-approval evaluation failed'
-            
-            console.log(`⏳ Requires manual approval - status set to: waiting_for_approval`)
-            console.log(`📝 Reason: ${autoApprovalResult?.reasoning || 'Auto-approval evaluation failed'}`)
-          }
+        const updateData: any = {
+          matchedProducts: validatedMatches as any,
+          matchingStatus: 'completed',
+        };
 
-          try {
-            // Race the Firestore update against a timeout
-            await Promise.race([
-              updateParsedFlyerItem(parsedItemId, updateData),
-              new Promise<never>((_, reject) => {
-                setTimeout(() => {
-                  reject(new Error('Firestore update timed out after 20 seconds'))
-                }, 20000)
-              })
-            ])
-          } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            const errorType = error instanceof Error ? error.name : 'FirestoreUpdateError';
-            
-            console.error(`❌ Failed to update parsed flyer item [${errorType}]:`, {
-              message: errorMessage,
-              parsedItemId,
-              updateOperation: 'save-matches-and-auto-approve',
-              errorStack: error instanceof Error ? error.stack : undefined,
-              timestamp: new Date().toISOString()
-            });
-            
-            // Even if the update fails, we'll continue with the workflow
-            // This prevents the workflow from getting stuck due to Firestore errors
-          }
-          console.log(`✅ Successfully saved matches and status for item ${parsedItemId}`)
-          console.log(`🏁 Auto-approval status set to: ${updateData.autoApprovalStatus || 'not set'}`)
-          console.log(`📊 Auto-approval fields: ${JSON.stringify({
-            status: updateData.autoApprovalStatus,
-            reason: updateData.autoApprovalReason || updateData.autoApprovalFailureReason,
-            confidence: updateData.autoApprovalConfidence,
-          })}`)
-          
-              // If auto-approved, apply discount
-              if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
-                const autoApprovalRule = await getActiveAutoApprovalRuleAdmin();
-                if (autoApprovalRule) {
-                  console.log(`⏱️ Auto-discount application step started at ${new Date().toISOString()}`);
-                  
-                  try {
-                    // Create a logger for the discount application
-                    const logger: Logger = {
-                      log: (message, data) => console.log(`📝 ${message}`, data || ''),
-                      info: (message, data) => console.log(`ℹ️ ${message}`, data || ''),
-                      error: (message, data) => console.error(`❌ ${message}`, data || '')
-                    };
-                    
-                    // Use the imported helper function
-                    await helperApplyDiscountWithTimeout({
-                      productId: autoApprovalResult.productId,
-                      flyerId: parsedItemId,
-                      storeId: 'auto-approval',
-                      matchConfidence: autoApprovalResult.confidence || 0,
-                      logger
-                    });
-                    
-                    console.log(`✅ Auto-discount application completed at ${new Date().toISOString()}`);
-                  } catch (error: unknown) {
-                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                    const errorType = error instanceof Error ? error.name : 'DiscountApplicationError';
-                    
-                    console.error(`❌ Error in auto-discount application [${errorType}]:`, {
-                      message: errorMessage,
-                      parsedItemId,
-                      productId: autoApprovalResult.productId,
-                      confidence: autoApprovalResult.confidence || 0,
-                      errorStack: error instanceof Error ? error.stack : undefined,
-                      timestamp: new Date().toISOString()
-                    });
-                    
-                        // Continue workflow even if discount application fails
-                      }
-                } else {
-                  console.log('⚠️ No active auto-approval rule found, skipping auto-discount application.');
-                }
-              }
-        } catch (e: unknown) {
-          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-          const errorType = e instanceof Error ? e.name : 'SaveMatchesError';
-          
-          console.error(`❌ Error in save-matches-and-auto-approve step [${errorType}]:`, {
-            message: errorMessage,
-            parsedItemId,
-            matchCount: matchedProducts.length,
-            errorStack: e instanceof Error ? e.stack : undefined,
-            timestamp: new Date().toISOString()
-          });
+        if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult.productId) {
+          updateData.selectedProductId = autoApprovalResult.productId;
+          updateData.autoApproved = true;
+          updateData.autoApprovalReason = autoApprovalResult.reasoning;
+          updateData.autoApprovalConfidence = autoApprovalResult.confidence;
+          updateData.autoApprovedAt = Timestamp.now();
+          updateData.autoApprovalStatus = 'success';
+        } else {
+          updateData.autoApprovalStatus = 'failed';
+          updateData.autoApprovalFailedAt = Timestamp.now();
+          updateData.autoApprovalFailureReason = autoApprovalResult?.reasoning || 'Auto-approval evaluation failed';
         }
-      })
-      
-      // Stop the global watchdog timer since we completed successfully
-      globalWatchdog.stop();
-      
-      // Calculate and log the total execution time
-      const totalExecutionTime = globalWatchdog.getElapsed();
-      console.log(`✅ Total execution time: ${totalExecutionTime}ms`);
+
+        await updateParsedFlyerItem(parsedItemId, updateData);
+      });
+
+      // Step 7: Apply discount if auto-approved (as a separate, final step)
+      if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult.productId) {
+        await step.run('apply-auto-discount', async () => {
+          const logger: Logger = {
+            log: (message, data) => console.log(`📝 ${message}`, data || ''),
+            info: (message, data) => console.log(`ℹ️ ${message}`, data || ''),
+            error: (message, data) => console.error(`❌ ${message}`, data || '')
+          };
+
+          await helperApplyDiscountWithTimeout({
+            productId: autoApprovalResult.productId!,
+            flyerId: parsedItemId,
+            storeId: 'auto-approval',
+            matchConfidence: autoApprovalResult.confidence || 0,
+            logger
+          });
+        });
+      }
       
       return {
         success: true,
         parsedItemId,
         matchedProducts: matchedProducts.length,
         autoApproved: autoApprovalResult?.shouldAutoApprove || false,
-        executionTimeMs: totalExecutionTime
       };
     } catch (e: unknown) {
-      // Stop the watchdog timer on error
-      globalWatchdog.stop();
       
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
       const errorType = e instanceof Error ? e.name : 'MatchProductsError';
-      const isAbortError = errorMessage.includes('aborted') || (e instanceof Error && e.name === 'AbortError');
       
       console.error(`❌ Error in match-products function [${errorType}]:`, {
         message: errorMessage,
         parsedItemId,
         eventId: event.id,
-        isAbortError,
-        executionTimeMs: globalWatchdog.getElapsed(),
         errorStack: e instanceof Error ? e.stack : undefined,
         timestamp: new Date().toISOString()
       });
@@ -1224,18 +1103,7 @@ export const matchProductsFunction = inngest.createFunction(
       }
       
       // Re-throw the error for Inngest to handle (will trigger retries based on the retry configuration)
-      // Don't retry if it was an abort error (timeout)
-      if (isAbortError) {
-        console.log('⚠️ Not retrying aborted operation');
-        return {
-          success: false,
-          parsedItemId,
-          error: errorMessage,
-          executionTimeMs: globalWatchdog.getElapsed()
-        };
-      } else {
-        throw e;
-      }
+      throw e;
     }
   })
 
