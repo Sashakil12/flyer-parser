@@ -82,7 +82,8 @@ export async function POST(req: NextRequest) {
         parsedItemId,
         appliedAt: Timestamp.now(),
         appliedBy: 'admin', // Since we're using a simpler auth check
-        originalPrice: currentPrice
+        originalPrice: currentPrice,
+        confidence: 1 // Manual application has 100% confidence
       },
       hasActiveDiscount: true
     })
@@ -92,7 +93,8 @@ export async function POST(req: NextRequest) {
       selectedProductId: productId,
       discountApplied: true,
       discountAppliedAt: Timestamp.now(),
-      discountPercentage
+      discountPercentage,
+      autoDiscountApplied: false // Explicitly set to false for manual application
     })
     
     return NextResponse.json({
