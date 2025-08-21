@@ -1,32 +1,33 @@
 import admin from 'firebase-admin'
 import path from 'path'
 import fs from 'fs'
+import { appConfigServer } from '../config.server'
 
 // Initialize Firebase Admin SDK
 try {
   if (!admin.apps.length) {
-    const serviceAccountPath = process.env.FIREBASE_SERVICE_ACCOUNT_PATH || './firebase-service-account.json'
+    const { serviceAccountPath, clientEmail, privateKey, projectId, storageBucket } = appConfigServer.firebase;
     
     // Try to read service account file first
-    if (fs.existsSync(serviceAccountPath)) {
+    if (serviceAccountPath && fs.existsSync(serviceAccountPath)) {
       console.log('📋 Loading Firebase service account from:', serviceAccountPath)
       const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, 'utf8'))
       
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        storageBucket: storageBucket,
       })
       console.log('✅ Firebase Admin initialized with service account file')
-    } else if (process.env.FIREBASE_CLIENT_EMAIL && process.env.FIREBASE_PRIVATE_KEY) {
+    } else if (clientEmail && privateKey) {
       // Use environment variables as fallback
       console.log('📋 Loading Firebase service account from environment variables')
       admin.initializeApp({
         credential: admin.credential.cert({
-          projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          projectId: projectId,
+          clientEmail: clientEmail,
+          privateKey: privateKey.replace(/\\n/g, '\n'),
         }),
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        storageBucket: storageBucket,
       })
       console.log('✅ Firebase Admin initialized with environment variables')
     } else {

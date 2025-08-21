@@ -1,11 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { getActiveAutoApprovalRuleAdmin } from './firestore-admin'
+import { appConfigServer } from './config.server'
 
-if (!process.env.GOOGLE_AI_API_KEY) {
-  throw new Error('GOOGLE_AI_API_KEY environment variable is required')
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
+const genAI = new GoogleGenerativeAI(appConfigServer.google.apiKey)
 
 // Prompt template for scoring product relevance
 const PRODUCT_MATCH_PROMPT = `

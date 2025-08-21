@@ -1,11 +1,8 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { GeminiParseResult } from '@/types'
+import { appConfig } from '@/lib/config'
 
-if (!process.env.GOOGLE_AI_API_KEY) {
-  throw new Error('GOOGLE_AI_API_KEY environment variable is required')
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
+const genAI = new GoogleGenerativeAI(appConfig.google.apiKey!)
 
 // Prompt template for parsing flyer images
 const PARSE_PROMPT = `

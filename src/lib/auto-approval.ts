@@ -1,12 +1,9 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { AutoApprovalRule, AutoApprovalDecision } from '@/types'
 import { getActiveAutoApprovalRule } from './firestore'
+import { appConfigServer } from './config.server'
 
-if (!process.env.GOOGLE_AI_API_KEY) {
-  throw new Error('GOOGLE_AI_API_KEY environment variable is required')
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
+const genAI = new GoogleGenerativeAI(appConfigServer.google.apiKey)
 
 // Auto-approval prompt template
 const AUTO_APPROVAL_PROMPT = `You are an AI assistant that determines whether to automatically approve product matches based on specific criteria.
