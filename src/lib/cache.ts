@@ -1,100 +1,81 @@
-/**
- * Simple in-memory cache for search results
- * This helps reduce database queries for repeated searches
- */
+import redis from './redis'
 
-interface CacheEntry<T> {
-  data: T
-  timestamp: number
-}
+const DEFAULT_TTL_SECONDS = 30 * 60 // 30 minutes
 
-class SearchCache<T> {
-  private cache: Map<string, CacheEntry<T>> = new Map()
-  private readonly ttl: number // Time to live in milliseconds
-  private readonly maxSize: number // Maximum number of entries in cache
+class RedisSearchCache<T> {
+  private readonly ttl: number // Time to live in seconds
   
-  constructor(ttlMinutes: number = 30, maxSize: number = 100) {
-    this.ttl = ttlMinutes * 60 * 1000
-    this.maxSize = maxSize
+  constructor(ttlSeconds: number = DEFAULT_TTL_SECONDS) {
+    this.ttl = ttlSeconds
   }
   
   /**
    * Generate a cache key from search parameters
    */
   generateKey(params: Record<string, any>): string {
-    // Sort keys to ensure consistent key generation
     const sortedKeys = Object.keys(params).sort()
     
-    // Build key string
-    return sortedKeys
+    const keyParts = sortedKeys
       .filter(key => params[key] !== undefined && params[key] !== null)
       .map(key => {
         const value = params[key]
         if (Array.isArray(value)) {
           return `${key}:[${value.sort().join(',')}]`
         }
-        // Ensure value is converted to string
         return `${key}:${String(value)}`
       })
-      .join('|')
+      
+    return `search:${keyParts.join('|')}`
   }
   
   /**
-   * Get data from cache if it exists and is not expired
+   * Get data from cache if it exists
    */
-  get(key: string): T | null {
-    const entry = this.cache.get(key)
-    
-    if (!entry) {
+  async get(key: string): Promise<T | null> {
+    if (!redis) return null
+
+    try {
+      const data = await redis.get(key)
+      if (data) {
+        return JSON.parse(data) as T
+      }
+      return null
+    } catch (error) {
+      console.error('Redis GET error:', error)
       return null
     }
-    
-    const now = Date.now()
-    if (now - entry.timestamp > this.ttl) {
-      // Entry has expired
-      this.cache.delete(key)
-      return null
-    }
-    
-    return entry.data
   }
   
   /**
    * Store data in cache
    */
-  set(key: string, data: T): void {
-    // If cache is at max size, remove oldest entry
-    if (this.cache.size >= this.maxSize) {
-      const iterator = this.cache.keys()
-      const firstResult = iterator.next()
-      if (!firstResult.done && firstResult.value) {
-        this.cache.delete(firstResult.value)
-      }
+  async set(key: string, data: T): Promise<void> {
+    if (!redis) return
+
+    try {
+      const stringifiedData = JSON.stringify(data)
+      await redis.set(key, stringifiedData, 'EX', this.ttl)
+    } catch (error) {
+      console.error('Redis SET error:', error)
     }
-    
-    this.cache.set(key, {
-      data,
-      timestamp: Date.now()
-    })
   }
   
   /**
-   * Clear the entire cache
+   * Clear the entire cache (use with caution)
    */
-  clear(): void {
-    this.cache.clear()
-  }
-  
-  /**
-   * Get the current size of the cache
-   */
-  size(): number {
-    return this.cache.size
+  async clear(): Promise<void> {
+    if (!redis) return
+    try {
+      await redis.flushdb()
+    } catch (error) {
+      console.error('Redis FLUSHDB error:', error)
+    }
   }
 }
 
 // Create a singleton instance for product search results
-export const productSearchCache = new SearchCache<Array<{ id: string; [key: string]: any }>>(30, 100)
+export const productSearchCache = new RedisSearchCache<Array<{ id: string; [key: string]: any }>>()
 
 // Export the class for other cache instances if needed
-export default SearchCache
+export { RedisSearchCache }
+

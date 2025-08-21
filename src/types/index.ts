@@ -9,12 +9,29 @@ export interface MatchedProduct {
   matchReason?: string
   matchedAt: Timestamp
   productData?: {
-    name: string
-    macedonianname?: string
-    albenianname?: string
-    iconUrl?: string
-    superMarketName?: string
-    categoryId?: string
+    albenianname?: string;
+    albeniannameKeywords?: string[];
+    categoryId?: string;
+    created_at?: number | Timestamp;
+    discountPercentage?: number;
+    englishNameKeywords?: string[];
+    iconPath?: string;
+    iconUrl?: string;
+    imagePath?: string;
+    imageUrl?: string;
+    isDeleted?: boolean;
+    macedonianname?: string;
+    macedoniannameKeywords?: string[];
+    name?: string;
+    newPrice?: string | number;
+    oldPrice?: string | number;
+    productId?: string;
+    productType?: string;
+    superMarketId?: string;
+    superMarketImage?: string;
+    superMarketName?: string;
+    validFrom?: string;
+    validTo?: string;
   }
 }
 
@@ -67,6 +84,7 @@ export interface ParsedFlyerItem {
   additionalInfo?: string[]
   additionalInfoMk?: string[] // Macedonian additional info
   confidence: number // AI confidence score (0-1)
+  createdAt: Timestamp // When the item was first created
   parsedAt: Timestamp
   verified: boolean
   // Product matching fields

@@ -6,33 +6,9 @@ import { formatCurrency } from '@/lib/utils'
 interface ParsedItemDetailProps {
   item: ParsedFlyerItem
   onClose?: () => void
-  onApplyDiscount?: (parsedItemId: string, productId: string, discountPercentage: number) => Promise<void>
 }
 
-export default function ParsedItemDetail({ item, onClose, onApplyDiscount }: ParsedItemDetailProps) {
-  const [discountPercentage, setDiscountPercentage] = React.useState<number>(
-    // Calculate default discount percentage if both prices are available
-    item.discountPrice && item.oldPrice 
-      ? Math.round(((item.oldPrice - item.discountPrice) / item.oldPrice) * 100)
-      : 10
-  )
-  const [isApplying, setIsApplying] = React.useState(false)
-  
-  const handleApplyDiscount = async () => {
-    if (!item.selectedProductId) return
-    
-    try {
-      setIsApplying(true)
-      
-      if (onApplyDiscount) {
-        await onApplyDiscount(item.id, item.selectedProductId, discountPercentage)
-      }
-    } catch (error) {
-      console.error('Error applying discount:', error)
-    } finally {
-      setIsApplying(false)
-    }
-  }
+export default function ParsedItemDetail({ item, onClose }: ParsedItemDetailProps) {
   
   return (
     <div className="bg-white rounded-lg shadow p-6">
@@ -90,36 +66,6 @@ export default function ParsedItemDetail({ item, onClose, onApplyDiscount }: Par
       <ProductMatchesPanel 
         parsedItem={item}
       />
-      
-      {item.selectedProductId && (
-        <div className="mt-4 border rounded-md p-4 bg-blue-50">
-          <h3 className="font-medium mb-3">Apply Discount</h3>
-          <div className="flex items-center space-x-4">
-            <div>
-              <label htmlFor="discount" className="block text-sm font-medium text-gray-700">
-                Discount Percentage
-              </label>
-              <input
-                type="number"
-                id="discount"
-                min="1"
-                max="99"
-                value={discountPercentage}
-                onChange={(e) => setDiscountPercentage(Number(e.target.value))}
-                className="mt-1 block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              />
-            </div>
-            
-            <button
-              onClick={handleApplyDiscount}
-              disabled={isApplying || !item.selectedProductId}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            >
-              {isApplying ? 'Applying...' : 'Apply Discount'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

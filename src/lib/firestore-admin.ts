@@ -1,5 +1,6 @@
 import { adminDb } from './firebase/admin'
 import { FlyerImage, ParsedFlyerItem, AutoApprovalRule } from '@/types'
+import { Timestamp } from 'firebase-admin/firestore'
 
 const FLYER_IMAGES_COLLECTION = 'flyer-images'
 const PARSED_FLYER_ITEMS_COLLECTION = 'parsed-flyer-items'
@@ -38,7 +39,7 @@ export const updateFlyerImageStatus = async (
     
     const updateData: any = {
       processingStatus: status,
-      updatedAt: new Date()
+      updatedAt: Timestamp.now()
     }
     
     // Add failure reason if status is failed
@@ -63,24 +64,29 @@ export const updateFlyerImageStatus = async (
 export const addParsedFlyerItem = async (
   item: Omit<ParsedFlyerItem, 'id' | 'createdAt' | 'parsedAt'>
 ): Promise<string> => {
+  console.log(`📝 Attempting to add parsed item for flyer: ${item.flyerImageId}`);
   try {
-    console.log(`📝 Adding parsed item for flyer: ${item.flyerImageId}`)
-    
     const docData = {
       ...item,
-      createdAt: new Date(),
-      parsedAt: new Date(),
-    }
+      createdAt: Timestamp.now(),
+      parsedAt: Timestamp.now(),
+    };
     
-    const docRef = await adminDb.collection(PARSED_FLYER_ITEMS_COLLECTION).add(docData)
+    console.log('  - Document data to be added:', JSON.stringify(docData, null, 2));
+    const docRef = await adminDb.collection(PARSED_FLYER_ITEMS_COLLECTION).add(docData);
     
-    console.log(`✅ Successfully added parsed item with ID: ${docRef.id}`)
-    return docRef.id
+    console.log(`✅ Successfully added parsed item with ID: ${docRef.id}`);
+    return docRef.id;
   } catch (error: any) {
-    console.error('❌ Error adding parsed flyer item:', error)
-    throw new Error(`Failed to add parsed flyer item: ${error.message}`)
+    console.error('❌ CRITICAL: Error adding parsed flyer item to Firestore:', {
+        errorMessage: error.message,
+        errorCode: error.code,
+        itemPayload: JSON.stringify(item, null, 2), // Log the exact data that failed
+        errorStack: error.stack,
+    });
+    throw new Error(`Failed to add parsed flyer item: ${error.message}`);
   }
-}
+};
 
 // Get flyer image data (for verification)
 export const getFlyerImage = async (id: string): Promise<FlyerImage | null> => {
@@ -153,7 +159,7 @@ export const updateParsedFlyerItem = async (
     
     const updateData = {
       ...cleanData,
-      updatedAt: new Date()
+      updatedAt: Timestamp.now()
     }
     
     // Log the update data structure for debugging
@@ -237,7 +243,7 @@ export const searchProducts = async (
     })
     
     // Check cache first
-    const cachedResults = productSearchCache.get(cacheKey)
+    const cachedResults = await productSearchCache.get(cacheKey)
     if (cachedResults) {
       console.log(`📦 Returning cached search results (${cachedResults.length} items)`)
       console.log(`📊 SEARCH_CACHE_HIT - Using cached search results with ${cachedResults.length} items`)
@@ -341,43 +347,34 @@ export const searchProducts = async (
       
       snapshot.docs.forEach((doc: any) => {
         // First, ensure we have a valid document ID from Firestore
-        const docId = doc.id
-        if (!isValidProductId(docId)) {
-          console.log(`⚠️ ${stageName} - Skipping product with invalid document ID: ${docId}`)
-          return
+        const product = doc.data();
+        const productId = (product.productId || doc.id).trim();
+
+        if (!isValidProductId(productId)) {
+          console.log(`⚠️ ${stageName} - Skipping product with invalid ID: ${productId}`);
+          return;
         }
-        
-        const product = doc.data()
-        
-        // Ensure the product has the correct ID (should be the document ID)
-        // This fixes the issue where product.id might be 'undefined' string
-        product.id = docId
+
+        // Standardize the ID field for consistent lookups
+        const resultData = { ...product, id: productId, productId: productId };
         
         console.log(`🔍 ${stageName} - Product found: {
-  id: '${product.id}',
-  name: '${product.name || 'N/A'}',
-  macedonianname: '${product.macedonianname || 'N/A'}',
-  albenianname: '${product.albenianname || 'N/A'}',
-  keywords: ${product.keywords ? JSON.stringify(product.keywords) : '[]'},
-  tags: ${product.tags ? JSON.stringify(product.tags) : '[]'},
-  englishNameKeywords: ${JSON.stringify(product.englishNameKeywords || [])},
-  macedoniannameKeywords: ${JSON.stringify(product.macedoniannameKeywords || [])},
-  albeniannameKeywords: ${JSON.stringify(product.albeniannameKeywords || [])}
-}`)
+  id: '${resultData.id}',
+  name: '${resultData.name || 'N/A'}',
+  macedonianname: '${resultData.macedonianname || 'N/A'}',
+  albenianname: '${resultData.albenianname || 'N/A'}'
+}`);
         
         // Check product data consistency but don't skip
-        validateProductDataConsistency(product, productName)
+        validateProductDataConsistency(product, productName);
         
-        // Validate that the product has a valid ID before adding to results
-        if (isValidProductId(product.id) && !existingIds.has(product.id)) {
-          existingIds.add(product.id)
-          // Add metadata about which search stage found this product
-          results.push({ id: product.id, ...product, _matchedVia: stageName })
-          console.log(`✅ ${stageName} - Added unique product: ${product.name || product.id}`)
-        } else if (existingIds.has(product.id)) {
-          console.log(`🔄 ${stageName} - Skipped duplicate product: ${product.name || product.id}`)
+        // Add unique results using the standardized, trimmed ID
+        if (!existingIds.has(resultData.id)) {
+          existingIds.add(resultData.id);
+          results.push({ ...resultData, _matchedVia: stageName });
+          console.log(`✅ ${stageName} - Added unique product: ${resultData.name || resultData.id}`);
         } else {
-          console.log(`⚠️ ${stageName} - Skipped product with invalid ID: ${product.id}`)
+          console.log(`🔄 ${stageName} - Skipped duplicate product: ${resultData.name || resultData.id}`);
         }
       })
     }
@@ -534,7 +531,7 @@ export const searchProducts = async (
     }
     
     // Store in cache for future use
-    productSearchCache.set(cacheKey, results)
+    await productSearchCache.set(cacheKey, results)
     
     console.log(`✅ Found ${results.length} potential product matches`)
     

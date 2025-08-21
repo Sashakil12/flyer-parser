@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // Using direct auth check with Firebase Admin
 import { adminDb } from '@/lib/firebase/admin'
 import { applyDiscountPercentage } from '@/lib/utils'
+import { Timestamp } from 'firebase-admin/firestore'
 
 export async function POST(req: NextRequest) {
   try {
@@ -74,12 +75,12 @@ export async function POST(req: NextRequest) {
     
     // Update the product with the discount
     await productRef.update({
-      discountedPrice,
+      newPrice: discountedPrice,
       discountPercentage,
       discountSource: {
         type: 'flyer',
         parsedItemId,
-        appliedAt: new Date(),
+        appliedAt: Timestamp.now(),
         appliedBy: 'admin', // Since we're using a simpler auth check
         originalPrice: currentPrice
       },
@@ -90,7 +91,7 @@ export async function POST(req: NextRequest) {
     await parsedItemRef.update({
       selectedProductId: productId,
       discountApplied: true,
-      discountAppliedAt: new Date(),
+      discountAppliedAt: Timestamp.now(),
       discountPercentage
     })
     
@@ -100,7 +101,7 @@ export async function POST(req: NextRequest) {
       data: {
         productId,
         originalPrice: currentPrice,
-        discountedPrice,
+        newPrice: discountedPrice,
         discountPercentage
       }
     })

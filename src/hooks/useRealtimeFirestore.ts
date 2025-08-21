@@ -77,13 +77,13 @@ export const useRealtimeParsedItems = (flyerImageId?: string) => {
       q = query(
         collection(db, 'parsed-flyer-items'),
         where('flyerImageId', '==', flyerImageId),
-        orderBy('parsedAt', 'desc')
+        orderBy('createdAt', 'desc')
       )
     } else {
       // Get all items
       q = query(
         collection(db, 'parsed-flyer-items'),
-        orderBy('parsedAt', 'desc')
+        orderBy('createdAt', 'desc')
       )
     }
 
@@ -96,6 +96,7 @@ export const useRealtimeParsedItems = (flyerImageId?: string) => {
             return {
               id: doc.id,
               ...data,
+              createdAt: data.createdAt as Timestamp,
               parsedAt: data.parsedAt as Timestamp,
               // Explicitly map auto-approval fields to ensure they're included
               autoApprovalStatus: data.autoApprovalStatus,

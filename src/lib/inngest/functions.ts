@@ -167,10 +167,12 @@ export const parseFlyerFunction = inngest.createFunction(
       const results = parseResult.data
       const savedItemIds: string[] = []
       
+      console.log(`📝 Saving ${results.length} parsed items to Firestore...`);
+
       for (const item of results) {
         try {
-          // Build the item object, excluding undefined values for Firestore compatibility
-          const parsedFlyerItem: any = {
+          // Build the item object, conditionally adding optional fields
+          const parsedFlyerItem: Omit<ParsedFlyerItem, 'id' | 'parsedAt' | 'createdAt'> = {
             flyerImageId,
             productName: item.product_name,
             productNamePrefixes: item.product_name_prefixes,
@@ -178,24 +180,24 @@ export const parseFlyerFunction = inngest.createFunction(
             currency: item.currency,
             confidence: 0.85, // Default confidence score
             verified: false,
-            // Initialize product matching fields
             matchingStatus: 'pending',
             matchedProducts: [],
-          }
+          };
 
-          // Only add optional fields if they have values
-          if (item.product_name_mk) parsedFlyerItem.productNameMk = item.product_name_mk
-          if (item.product_name_prefixes_mk) parsedFlyerItem.productNamePrefixesMk = item.product_name_prefixes_mk
-          if (item.discount_price !== undefined) parsedFlyerItem.discountPrice = item.discount_price
-          if (item.discount_price_mk) parsedFlyerItem.discountPriceMk = item.discount_price_mk
-          if (item.discount_start_date) parsedFlyerItem.discountStartDate = item.discount_start_date
-          if (item.discount_end_date) parsedFlyerItem.discountEndDate = item.discount_end_date
-          if (item.old_price_mk) parsedFlyerItem.oldPriceMk = item.old_price_mk
-          if (item.additional_info) parsedFlyerItem.additionalInfo = item.additional_info
-          if (item.additional_info_mk) parsedFlyerItem.additionalInfoMk = item.additional_info_mk
+          if (item.product_name_mk) parsedFlyerItem.productNameMk = item.product_name_mk;
+          if (item.product_name_prefixes_mk) parsedFlyerItem.productNamePrefixesMk = item.product_name_prefixes_mk;
+          if (item.discount_price) parsedFlyerItem.discountPrice = item.discount_price;
+          if (item.discount_price_mk) parsedFlyerItem.discountPriceMk = item.discount_price_mk;
+          if (item.discount_start_date) parsedFlyerItem.discountStartDate = item.discount_start_date;
+          if (item.discount_end_date) parsedFlyerItem.discountEndDate = item.discount_end_date;
+          if (item.old_price_mk) parsedFlyerItem.oldPriceMk = item.old_price_mk;
+          if (item.additional_info) parsedFlyerItem.additionalInfo = item.additional_info;
+          if (item.additional_info_mk) parsedFlyerItem.additionalInfoMk = item.additional_info_mk;
 
+          console.log('  - Saving item:', JSON.stringify(parsedFlyerItem, null, 2));
           const itemId = await addParsedFlyerItem(parsedFlyerItem)
           savedItemIds.push(itemId)
+          console.log(`  - ✅ Successfully saved item with ID: ${itemId}`);
         } catch (error: any) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
           const errorType = error.name || 'FirestoreError';
@@ -204,6 +206,7 @@ export const parseFlyerFunction = inngest.createFunction(
             message: errorMessage,
             flyerImageId,
             itemIndex: results.indexOf(item),
+            itemData: JSON.stringify(item),
             errorStack: error instanceof Error ? error.stack : undefined,
             timestamp: new Date().toISOString()
           });
@@ -212,6 +215,7 @@ export const parseFlyerFunction = inngest.createFunction(
         }
       }
       
+      console.log(`✅ Finished saving parsed items. Total saved: ${savedItemIds.length}`);
       return savedItemIds
     })
 
@@ -833,6 +837,7 @@ export const matchProductsFunction = inngest.createFunction(
           id: p.id,
           name: p.name || '',
           nameMk: p.nameMk || p.macedonianname || '',
+          nameAl: p.albenianname || '',
           description: p.description || '',
           descriptionMk: p.descriptionMk || '',
           category: p.category || p.categoryId || ''
@@ -942,29 +947,35 @@ export const matchProductsFunction = inngest.createFunction(
       const filteredMatches = scoredMatches ? scoredMatches.filter((match: { relevanceScore: number }) => match.relevanceScore >= MIN_RELEVANCE_SCORE) : [];
 
       // Step 4: Format matches for database and check auto-approval
+      const productMap = new Map(potentialMatches.map((p: any) => [p.productId.trim(), p]));
+
       const matchedProducts = filteredMatches
-        // Enhanced filter for invalid productIds - strict validation
-        .filter((match: { productId: any }) => {
-          if (!isValidProductId(match.productId)) {
-            console.log(`⚠️ Filtering out match with invalid productId: ${JSON.stringify(match)}`)
-            return false;
-          }
-          return true;
-        })
-        .map((match: any) => ({
-          productId: match.productId,
-          relevanceScore: match.relevanceScore,
-          matchReason: match.matchReason || 'AI matched based on product name and details',
-          matchedAt: Timestamp.now(),
-          productData: {
-            name: match.name || '',
-            macedonianname: match.nameMk || match.macedonianname || '',
-            albenianname: match.nameAl || match.albenianname || '',
-            iconUrl: match.iconUrl || '',
-            superMarketName: match.superMarketName || '',
-            categoryId: match.categoryId || '',
-          }
-        }))
+        .filter((match: { productId: any }) => isValidProductId(match.productId))
+        .map((match: any) => {
+          const originalProduct = productMap.get(match.productId.trim());
+          
+          return {
+            productId: match.productId,
+            relevanceScore: match.relevanceScore,
+            matchReason: match.matchReason || 'AI matched based on product name and details',
+            matchedAt: Timestamp.now(),
+            productData: originalProduct ? {
+              albenianname: originalProduct.albenianname || '',
+              categoryId: originalProduct.categoryId || '',
+              discountPercentage: originalProduct.discountPercentage || 0,
+              iconUrl: originalProduct.iconUrl || '',
+              imageUrl: originalProduct.imageUrl || '',
+              macedonianname: originalProduct.macedonianname || '',
+              name: originalProduct.name || '',
+              newPrice: originalProduct.newPrice || '',
+              oldPrice: originalProduct.oldPrice || '',
+              productId: originalProduct.productId || '',
+              superMarketName: originalProduct.superMarketName || '',
+            } : undefined
+          };
+        });
+
+      console.log('Final Matched Products:', JSON.stringify(matchedProducts, null, 2));
 
       // Using the AutoApprovalResult interface defined at the top of the file
 
@@ -1135,17 +1146,6 @@ export const matchProductsFunction = inngest.createFunction(
         console.log(`💾 Saving ${matchedProducts.length} matches to database`)
         console.log(`⏱️ Save matches step started at ${new Date().toISOString()}`)
         
-        // Add timeout to prevent this step from hanging
-        const MAX_SAVE_TIME = 30000; // 30 seconds timeout
-        let saveTimeoutId: NodeJS.Timeout | null = null;
-        
-        const saveTimeoutPromise = new Promise<never>((_, reject) => {
-          saveTimeoutId = setTimeout(() => {
-            console.error(`⏱️ Save matches timed out after ${MAX_SAVE_TIME/1000} seconds`)
-            reject(new Error(`Save matches timed out after ${MAX_SAVE_TIME/1000} seconds`))
-          }, MAX_SAVE_TIME);
-        });
-        
         try {
           // Final validation to ensure no invalid values in matchedProducts
           const validatedMatches = matchedProducts.filter(match => {
@@ -1189,7 +1189,7 @@ export const matchProductsFunction = inngest.createFunction(
             updateData.autoApproved = true
             updateData.autoApprovalReason = autoApprovalResult.reasoning
             updateData.autoApprovalConfidence = autoApprovalResult.confidence || 0 // Ensure we always have a number value
-            updateData.autoApprovedAt = new Date()
+            updateData.autoApprovedAt = Timestamp.now()
             updateData.autoApprovalStatus = 'success'
             
             console.log(`🚀 Auto-approved and applied to product: ${autoApprovalResult.productId}`)
@@ -1198,7 +1198,7 @@ export const matchProductsFunction = inngest.createFunction(
             // Auto-approval failed - set status to waiting for manual approval
             updateData.matchingStatus = 'waiting_for_approval'
             updateData.autoApprovalStatus = 'failed'
-            updateData.autoApprovalFailedAt = new Date()
+            updateData.autoApprovalFailedAt = Timestamp.now()
             updateData.autoApprovalFailureReason = autoApprovalResult?.reasoning || 'Auto-approval evaluation failed'
             
             console.log(`⏳ Requires manual approval - status set to: waiting_for_approval`)

@@ -1,4 +1,6 @@
 import { adminDb } from '../firebase/admin';
+import { applyDiscountPercentage } from '../utils';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // Define Logger type for type safety
 export type Logger = {
@@ -8,7 +10,7 @@ export type Logger = {
 };
 
 /**
- * Apply discount to a product based on parsed flyer item data
+ * Apply discount to a product using a Firebase Transaction for atomicity and performance.
  */
 export async function applyDiscount({
   productId,
@@ -24,198 +26,87 @@ export async function applyDiscount({
   logger: Logger;
 }) {
   try {
-    // Get the parsed flyer item to extract price information
-    try {
-      const parsedItemRef = adminDb.collection('parsed-flyer-items').doc(flyerId);
-      const parsedItemDoc = await parsedItemRef.get();
-      const parsedItem = parsedItemDoc.data();
-      
-      if (!parsedItem) {
-        const errorCode = 'PARSED_ITEM_NOT_FOUND';
-        logger.error(`Parsed flyer item ${flyerId} not found [${errorCode}]`, { 
-          productId,
-          errorCode,
-          timestamp: new Date().toISOString() 
-        });
-        return { 
-          success: false, 
-          error: 'Parsed flyer item not found', 
-          errorCode,
-          timestamp: new Date().toISOString() 
-        };
+    const parsedItemRef = adminDb.collection('parsed-flyer-items').doc(flyerId);
+    const productRef = adminDb.collection('products').doc(productId);
+
+    const result = await adminDb.runTransaction(async (transaction) => {
+      // 1. Read documents within the transaction
+      const parsedItemDoc = await transaction.get(parsedItemRef);
+      const productDoc = await transaction.get(productRef);
+
+      if (!parsedItemDoc.exists) {
+        throw new Error(`Parsed flyer item ${flyerId} not found`);
       }
-      
-      // Get the product to update
-      const productRef = adminDb.collection('products').doc(productId);
-      const productDoc = await productRef.get();
-      
       if (!productDoc.exists) {
-        const errorCode = 'PRODUCT_NOT_FOUND';
-        logger.error(`Product ${productId} not found for auto-discount application [${errorCode}]`, {
-          flyerId,
-          errorCode,
-          timestamp: new Date().toISOString()
-        });
-        return { 
-          success: false, 
-          error: 'Product not found', 
-          errorCode,
-          timestamp: new Date().toISOString() 
-        };
+        throw new Error(`Product ${productId} not found`);
       }
-      
-      const product = productDoc.data();
-      if (!product) {
-        const errorCode = 'EMPTY_PRODUCT_DATA';
-        logger.error(`Product ${productId} data is empty [${errorCode}]`, {
-          flyerId,
-          errorCode,
-          timestamp: new Date().toISOString()
-        });
-        return { 
-          success: false, 
-          error: 'Product data is empty', 
-          errorCode,
-          timestamp: new Date().toISOString() 
-        };
+
+      const parsedItem = parsedItemDoc.data()!;
+      const product = productDoc.data()!;
+
+      // 2. Perform calculations
+      const regularPrice = parsedItem.oldPrice;
+      const discountPrice = parsedItem.discountPrice;
+
+      if (typeof regularPrice !== 'number' || typeof discountPrice !== 'number') {
+        throw new Error('Missing or invalid price information on flyer item');
       }
-      
-      // Extract price information from parsed item
-      const { price, regularPrice, salePrice, discountPercentage } = parsedItem;
-      
-      // Apply discount logic
-      // If the parsed item already has a discount percentage, use it
-      // Otherwise, calculate it based on the price difference
-      let discountToApply = discountPercentage;
-      let discountSource = 'explicit';
-      
-      if (!discountToApply && regularPrice && salePrice) {
-        // Calculate discount percentage
-        discountToApply = Math.round(((regularPrice - salePrice) / regularPrice) * 100);
-        discountSource = 'calculated';
+
+      const discountPercentage = Math.round(((regularPrice - discountPrice) / regularPrice) * 100);
+      if (discountPercentage <= 0 || discountPercentage >= 100) {
+        throw new Error(`Invalid calculated discount percentage: ${discountPercentage}%`);
       }
-      
-      if (!discountToApply && price) {
-        // If we only have a single price, use a default discount (e.g., 10%)
-        discountToApply = 10;
-        discountSource = 'default';
-        logger.info(`Using default discount percentage of ${discountToApply}% [DEFAULT_DISCOUNT]`, { 
-          productId, 
-          flyerId,
-          timestamp: new Date().toISOString() 
-        });
-      }
-      
-      if (!discountToApply) {
-        const errorCode = 'MISSING_DISCOUNT_DATA';
-        logger.error(`Cannot determine discount percentage for product ${productId} [${errorCode}]`, {
-          flyerId,
-          availablePriceFields: { price, regularPrice, salePrice, discountPercentage },
-          errorCode,
-          timestamp: new Date().toISOString()
-        });
-        return { 
-          success: false, 
-          error: 'Cannot determine discount percentage', 
-          errorCode,
-          timestamp: new Date().toISOString() 
-        };
-      }
-      
-      // Update the product with the discount
-      try {
-        await productRef.update({
-          discountPercentage: discountToApply,
-          discountAppliedAt: new Date(),
-          discountAppliedBy: 'auto-approval',
-          discountSource: `flyer-item-${flyerId}`,
-          discountMatchConfidence: matchConfidence,
-          discountCalculationMethod: discountSource
-        });
-      } catch (updateError: unknown) {
-        const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
-        const errorType = updateError instanceof Error ? updateError.name : 'ProductUpdateError';
-        const errorCode = 'PRODUCT_UPDATE_FAILED';
-        
-        logger.error(`Failed to update product with discount [${errorType}:${errorCode}]`, {
-          message: errorMessage,
-          productId,
-          flyerId,
-          discountPercentage: discountToApply,
-          errorStack: updateError instanceof Error ? updateError.stack : undefined,
-          timestamp: new Date().toISOString()
-        });
-        
-        throw updateError; // Re-throw to be caught by outer catch block
-      }
-      
-      // Update the parsed flyer item to mark that discount was applied
-      try {
-        await parsedItemRef.update({
-          discountApplied: true,
-          discountAppliedAt: new Date(),
-          discountAppliedToProductId: productId,
-          discountPercentage: discountToApply
-        });
-      } catch (updateError: unknown) {
-        const errorMessage = updateError instanceof Error ? updateError.message : 'Unknown error';
-        const errorType = updateError instanceof Error ? updateError.name : 'ParsedItemUpdateError';
-        const errorCode = 'PARSED_ITEM_UPDATE_FAILED';
-        
-        logger.error(`Failed to update parsed item with discount status [${errorType}:${errorCode}]`, {
-          message: errorMessage,
-          productId,
-          flyerId,
-          discountPercentage: discountToApply,
-          errorStack: updateError instanceof Error ? updateError.stack : undefined,
-          timestamp: new Date().toISOString()
-        });
-        
-        // Don't throw here since the discount was already applied to the product
-        // Just log the error and continue
-      }
-      
-      logger.info(`Applied ${discountToApply}% discount to product ${productId} [SUCCESS]`, { 
-        flyerId, 
-        storeId, 
-        discountPercentage: discountToApply,
-        discountSource,
-        timestamp: new Date().toISOString()
+
+      const currentPrice = product.newPrice ? parseFloat(String(product.newPrice)) : parseFloat(String(product.oldPrice));
+      const finalPrice = applyDiscountPercentage(currentPrice, discountPercentage);
+
+      // 3. Queue up writes
+      transaction.update(productRef, {
+        newPrice: finalPrice,
+        discountPercentage: discountPercentage,
+        hasActiveDiscount: true,
+        discountSource: {
+          type: 'flyer',
+          parsedItemId: flyerId,
+          appliedAt: Timestamp.now(),
+          appliedBy: 'auto-approval',
+          originalPrice: currentPrice,
+          confidence: matchConfidence
+        }
       });
-      
-      return { 
-        success: true, 
-        discountPercentage: discountToApply,
-        discountSource,
-        timestamp: new Date().toISOString()
-      };
-    } catch (dbError: unknown) {
-      const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown error';
-      const errorType = dbError instanceof Error ? dbError.name : 'DatabaseOperationError';
-      const errorCode = 'DB_OPERATION_FAILED';
-      
-      logger.error(`Database operation failed during discount application [${errorType}:${errorCode}]`, {
-        message: errorMessage,
+
+      transaction.update(parsedItemRef, {
+        selectedProductId: productId,
+        discountApplied: true,
+        discountAppliedAt: Timestamp.now(),
+        discountPercentage: discountPercentage,
+        autoDiscountApplied: true
+      });
+
+      return {
+        success: true,
         productId,
-        flyerId,
-        errorStack: dbError instanceof Error ? dbError.stack : undefined,
-        timestamp: new Date().toISOString()
-      });
-      
-      return { 
-        success: false, 
-        error: errorMessage, 
-        errorType,
-        errorCode,
-        timestamp: new Date().toISOString()
+        originalPrice: currentPrice,
+        newPrice: finalPrice,
+        discountPercentage
       };
-    }
+    });
+
+    logger.info(`Applied ${result.discountPercentage}% discount to product ${productId} [SUCCESS]`, { 
+      flyerId, 
+      storeId, 
+      newPrice: result.newPrice,
+      timestamp: new Date().toISOString() 
+    });
+
+    return result;
+
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorType = error instanceof Error ? error.name : 'DiscountApplicationError';
-    const errorCode = 'DISCOUNT_APPLICATION_FAILED';
+    const errorCode = 'DISCOUNT_TRANSACTION_FAILED';
     
-    logger.error(`Auto-discount application failed [${errorType}:${errorCode}]`, {
+    logger.error(`Auto-discount transaction failed [${errorType}:${errorCode}]`, {
       message: errorMessage,
       productId,
       flyerId,
@@ -251,41 +142,21 @@ export async function applyDiscountWithTimeout({
   matchConfidence: number;
   logger: Logger;
 }) {
-  const MAX_DISCOUNT_APPLICATION_TIME = 30000; // 30 seconds timeout
   const startTime = Date.now();
   const startTimeIso = new Date().toISOString();
   
   try {
     // Log the start of the discount application process
-    logger.info(`Starting discount application with timeout [DISCOUNT_START]`, {
+    logger.info(`Starting discount application [DISCOUNT_START]`, {
       productId,
       flyerId,
       storeId,
       matchConfidence,
-      timeoutMs: MAX_DISCOUNT_APPLICATION_TIME,
       startTime: startTimeIso
     });
     
-    // Create a promise that will be rejected after the timeout
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => {
-        const timeoutError = new Error(`Auto-discount application timed out after ${MAX_DISCOUNT_APPLICATION_TIME/1000} seconds`);
-        timeoutError.name = 'DiscountTimeoutError';
-        
-        logger.error(`Auto-discount application timed out [DISCOUNT_TIMEOUT]`, {
-          productId,
-          flyerId,
-          timeoutMs: MAX_DISCOUNT_APPLICATION_TIME,
-          elapsedMs: Date.now() - startTime,
-          timestamp: new Date().toISOString()
-        });
-        
-        reject(timeoutError);
-      }, MAX_DISCOUNT_APPLICATION_TIME);
-    });
-    
     // Create the actual discount application promise
-    const discountPromise = applyDiscount({
+    const result = await applyDiscount({
       productId,
       flyerId,
       storeId,
@@ -293,8 +164,6 @@ export async function applyDiscountWithTimeout({
       logger,
     });
     
-    // Wait for the first promise to resolve or reject
-    const result = await Promise.race([discountPromise, timeoutPromise]);
     const elapsedMs = Date.now() - startTime;
     
     logger.info(`Auto-applied discount completed [DISCOUNT_SUCCESS]`, {
@@ -313,7 +182,7 @@ export async function applyDiscountWithTimeout({
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorType = error instanceof Error ? error.name : 'DiscountApplicationError';
-    const errorCode = errorMessage.includes('timed out') ? 'DISCOUNT_TIMEOUT' : 'DISCOUNT_APPLICATION_FAILED';
+    const errorCode = 'DISCOUNT_APPLICATION_FAILED';
     const elapsedMs = Date.now() - startTime;
     
     logger.error(`Auto-discount application failed [${errorType}:${errorCode}]`, {
@@ -346,3 +215,4 @@ export async function applyDiscountWithTimeout({
     });
   }
 }
+

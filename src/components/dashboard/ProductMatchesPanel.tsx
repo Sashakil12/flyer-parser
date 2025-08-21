@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { MatchedProduct, ParsedFlyerItem } from '@/types'
 import { updateDoc, doc } from 'firebase/firestore'
 import { db } from '@/lib/firebase/config'
-import { CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, StarIcon } from '@heroicons/react/24/solid'
+import { CheckCircleIcon, ChevronDownIcon, ChevronUpIcon, StarIcon, SparklesIcon } from '@heroicons/react/24/solid'
 import { StarIcon as StarOutlineIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
+import Image from 'next/image'
 
 interface ProductMatchesPanelProps {
   parsedItem: ParsedFlyerItem
@@ -12,154 +13,210 @@ interface ProductMatchesPanelProps {
 }
 
 export default function ProductMatchesPanel({ parsedItem, onProductSelected }: ProductMatchesPanelProps) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [isSelecting, setIsSelecting] = useState(false)
-  
+  useEffect(() => {
+    console.log("Matched Products in Panel:", JSON.stringify(parsedItem.matchedProducts, null, 2));
+  }, [parsedItem.matchedProducts]);
+
+  const [isOpen, setIsOpen] = useState(true)
+  const [isApplying, setIsApplying] = useState<string | null>(null)
+
   const hasMatches = parsedItem.matchedProducts && parsedItem.matchedProducts.length > 0
   const matchCount = parsedItem.matchedProducts?.length || 0
-  
-  const togglePanel = () => {
-    setIsOpen(!isOpen)
-  }
-  
-  const selectProduct = async (productId: string) => {
-    try {
-      setIsSelecting(true)
-      
-      // Update in Firestore
-      const docRef = doc(db, 'parsed-flyer-items', parsedItem.id)
-      await updateDoc(docRef, {
-        selectedProductId: productId
-      })
-      
-      // Notify parent component
-      if (onProductSelected) {
-        onProductSelected(productId)
-      }
-      
-      toast.success('Product selected for discount application')
-    } catch (error: any) {
-      console.error('Error selecting product:', error)
-      toast.error(`Failed to select product: ${error.message}`)
-    } finally {
-      setIsSelecting(false)
+
+  const togglePanel = () => setIsOpen(!isOpen)
+
+  const handleApplyDiscount = async (productId: string) => {
+    if (!parsedItem.discountPrice || !parsedItem.oldPrice) {
+      toast.error('Flyer item is missing price information to calculate a discount.');
+      return;
     }
-  }
+
+    setIsApplying(productId);
+
+    try {
+      const discountPercentage = Math.round(((parsedItem.oldPrice - parsedItem.discountPrice) / parsedItem.oldPrice) * 100);
+
+      if (discountPercentage <= 0 || discountPercentage >= 100) {
+        toast.error(`Invalid calculated discount: ${discountPercentage}%`);
+        return;
+      }
+
+      const response = await fetch('/api/discounts/apply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer dummy-token' },
+        body: JSON.stringify({
+          parsedItemId: parsedItem.id,
+          productId,
+          discountPercentage,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to apply discount');
+      }
+
+      toast.success('Discount applied successfully!');
+      if (onProductSelected) {
+        onProductSelected(productId);
+      }
+    } catch (error: any) {
+      console.error('Error applying discount:', error);
+      toast.error(`Failed to apply discount: ${error.message}`);
+    } finally {
+      setIsApplying(null);
+    }
+  };
+
+  const formatRelevance = (score: number) => `${Math.round(score * 100)}%`
   
-  // Format relevance score as percentage
-  const formatRelevance = (score: number) => {
-    return `${Math.round(score * 100)}%`
-  }
-  
-  // Get status badge
   const getStatusBadge = () => {
+    if (parsedItem.discountApplied) {
+      return <span className="px-2 py-1 text-xs bg-teal-200 text-teal-800 rounded-full font-semibold">Discount Applied</span>
+    }
     if (!parsedItem.matchingStatus || parsedItem.matchingStatus === 'pending') {
       return <span className="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded-full">Pending</span>
     }
-    
     if (parsedItem.matchingStatus === 'processing') {
       return <span className="px-2 py-1 text-xs bg-blue-200 text-blue-700 rounded-full">Processing</span>
     }
-    
     if (parsedItem.matchingStatus === 'failed') {
       return <span className="px-2 py-1 text-xs bg-red-200 text-red-700 rounded-full">Failed</span>
     }
-    
     if (hasMatches) {
       return <span className="px-2 py-1 text-xs bg-green-200 text-green-700 rounded-full">{matchCount} Matches</span>
     }
-    
     return <span className="px-2 py-1 text-xs bg-yellow-200 text-yellow-700 rounded-full">No Matches</span>
   }
   
   return (
-    <div className="border rounded-md overflow-hidden mb-4">
+    <div className="border rounded-md overflow-hidden mb-4 bg-white shadow-sm">
       <div 
-        className="flex items-center justify-between p-3 bg-gray-50 cursor-pointer"
+        className="flex items-center justify-between p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
         onClick={togglePanel}
       >
-        <div className="flex items-center space-x-2">
-          <h3 className="font-medium">Product Matches</h3>
+        <div className="flex items-center space-x-3">
+          <h3 className="font-semibold text-gray-800">Product Matches</h3>
           {getStatusBadge()}
         </div>
-        <div className="flex items-center">
-          {isOpen ? (
-            <ChevronUpIcon className="h-5 w-5 text-gray-500" />
-          ) : (
-            <ChevronDownIcon className="h-5 w-5 text-gray-500" />
-          )}
-        </div>
+        {isOpen ? <ChevronUpIcon className="h-5 w-5 text-gray-500" /> : <ChevronDownIcon className="h-5 w-5 text-gray-500" />}
       </div>
       
       {isOpen && (
-        <div className="p-3">
+        <div className="p-4">
           {parsedItem.matchingError && (
-            <div className="mb-3 p-2 bg-red-50 text-red-700 text-sm rounded">
-              Error: {parsedItem.matchingError}
+            <div className="mb-3 p-3 bg-red-50 text-red-800 text-sm rounded-md border border-red-200">
+              <strong>Error:</strong> {parsedItem.matchingError}
             </div>
           )}
           
           {parsedItem.matchingStatus === 'processing' && (
-            <div className="flex items-center justify-center p-4">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-              <span className="ml-2 text-sm text-gray-600">Matching products...</span>
+            <div className="flex items-center justify-center p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span className="ml-3 text-gray-600">Finding best product matches...</span>
             </div>
           )}
           
           {parsedItem.matchingStatus === 'completed' && !hasMatches && (
-            <div className="p-4 text-center text-gray-500">
-              No product matches found
+            <div className="p-6 text-center text-gray-500">
+              No product matches found in the database.
             </div>
           )}
           
           {hasMatches && (
-            <div className="space-y-3">
-              {parsedItem.matchedProducts!.sort((a, b) => b.relevanceScore - a.relevanceScore).map((match) => (
-                <div 
-                  key={match.productId} 
-                  className={`border rounded p-3 ${parsedItem.selectedProductId === match.productId ? 'border-green-500 bg-green-50' : 'border-gray-200'}`}
-                >
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-medium">{match.productData?.name}</div>
-                      {match.productData?.macedonianname && (
-                        <div className="text-sm text-gray-600">{match.productData.macedonianname}</div>
-                      )}
-                      <div className="mt-1 flex items-center">
-                        <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                          Relevance: {formatRelevance(match.relevanceScore)}
-                        </span>
-                        {match.productData?.superMarketName && (
-                          <span className="ml-2 text-xs text-gray-500">
-                            {match.productData.superMarketName}
-                          </span>
+            <div className="space-y-4">
+              {parsedItem.matchedProducts!.sort((a, b) => b.relevanceScore - a.relevanceScore).map((match) => {
+                const product = match.productData;
+                const imageUrl = product?.imageUrl || product?.iconUrl;
+                const productName = product?.name || product?.macedonianname || product?.albenianname || 'Unknown Product';
+
+                return (
+                  <div 
+                    key={match.productId} 
+                    className={`border-2 rounded-lg p-4 transition-all ${parsedItem.selectedProductId === match.productId ? 'border-green-500 bg-green-50 shadow-lg' : 'border-gray-200'}`}
+                  >
+                    <div className="flex items-start space-x-4">
+                      {/* Product Image */}
+                      <div className="flex-shrink-0">
+                        {imageUrl ? (
+                          <Image 
+                            src={imageUrl} 
+                            alt={productName}
+                            width={80}
+                            height={80}
+                            className="rounded-md object-cover bg-gray-100"
+                          />
+                        ) : (
+                          <div className="w-20 h-20 bg-gray-100 rounded-md flex items-center justify-center text-gray-400">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
                         )}
                       </div>
+
+                      {/* Product Details */}
+                      <div className="flex-1">
+                        <div>
+                          <h4 className="font-semibold text-gray-800">{productName}</h4>
+                          {product?.macedonianname && <p className="text-sm text-gray-600">🇲🇰 {product.macedonianname}</p>}
+                          {product?.albenianname && <p className="text-sm text-gray-500">🇦🇱 {product.albenianname}</p>}
+                        </div>
+
+                        {/* Supermarket */}
+                        <div className="mt-2">
+                          {product?.superMarketName && (
+                            <span className="px-2 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded-full">{product.superMarketName}</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        selectProduct(match.productId)
-                      }}
-                      disabled={isSelecting || parsedItem.selectedProductId === match.productId}
-                      className="flex items-center"
-                    >
-                      {parsedItem.selectedProductId === match.productId ? (
-                        <CheckCircleIcon className="h-6 w-6 text-green-500" />
-                      ) : (
-                        <StarOutlineIcon className="h-6 w-6 text-gray-400 hover:text-yellow-500" />
-                      )}
-                    </button>
+
+                    {/* Relevance and Actions */}
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <div className="flex items-center space-x-1 text-xs">
+                          <StarIcon className="h-4 w-4 text-blue-500" />
+                          <span className="font-semibold text-blue-600">Relevance: {formatRelevance(match.relevanceScore)}</span>
+                        </div>
+                        <div>
+                          {parsedItem.discountApplied && parsedItem.selectedProductId === match.productId ? (
+                            <div className="flex items-center space-x-2 text-green-600 font-semibold">
+                              <CheckCircleIcon className="h-5 w-5" />
+                              <span>Discount Applied</span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleApplyDiscount(match.productId)}
+                              disabled={isApplying !== null || parsedItem.discountApplied}
+                              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                              {isApplying === match.productId ? (
+                                <>
+                                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  Applying...
+                                </>
+                              ) : (
+                                <>
+                                  <SparklesIcon className="h-4 w-4 mr-2" />
+                                  Apply Discount
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500">
+                        <strong>Match Reason:</strong> {match.matchReason || 'N/A'}
+                      </p>
+                    </div>
                   </div>
-                  
-                  {match.matchReason && (
-                    <div className="mt-2 text-xs text-gray-500">
-                      <span className="font-medium">Match reason:</span> {match.matchReason}
-                    </div>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

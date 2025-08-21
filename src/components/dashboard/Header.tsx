@@ -11,7 +11,8 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   HomeIcon,
-  ArrowLeftIcon
+  ArrowLeftIcon,
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 
 interface HeaderProps {
@@ -125,6 +126,13 @@ export default function Header({ user }: HeaderProps) {
               </svg>
               View Flyers
             </Link>
+            <Link 
+              href="/parsed-items"
+              className="flex items-center px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg backdrop-blur-sm border border-white/10 transition-all duration-200 group"
+            >
+              <DocumentTextIcon className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
+              Parsed Products
+            </Link>
           </div>
 
           {/* User Menu */}
@@ -194,6 +202,13 @@ export default function Header({ user }: HeaderProps) {
                   
                   {/* Menu Items */}
                   <div className="py-1">
+                    <Link
+                      href="/auto-approval"
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                    >
+                      <Cog6ToothIcon className="mr-3 h-4 w-4 text-gray-400" />
+                      Settings
+                    </Link>
                     <button
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleSignOut}

@@ -37,7 +37,7 @@ MATCHING FACTORS (in order of importance):
 5. Flavor/variant match
 
 MULTILINGUAL MATCHING:
-- Consider both English and Macedonian text when available
+- Consider English, Macedonian, and Albanian text when available
 - Match across languages (e.g., "Apple" in English matches "Јаболко" in Macedonian)
 - Give higher weight to matches in the same language
 
@@ -92,16 +92,17 @@ export async function scoreProductMatches(
     additionalInfo?: string[]
     additionalInfoMk?: string[]
   },
-  databaseProducts: Array<{
+  databaseProducts: Array < {
     id: string
     name: string
     nameMk?: string
+    nameAl?: string
     description?: string
     descriptionMk?: string
     category?: string
     [key: string]: any
-  }>,
-  timeoutMs: number = 25000 // Default 25 second timeout
+  } >,
+  timeoutMs: number = 90000 // Default 90 second timeout
 ): Promise<Array<{ productId: string; relevanceScore: number; matchReason: string; can_auto_merge: boolean; autoApprovalReason: string }>> {
   try {
     // Get active auto-approval rule using admin SDK to avoid permission issues
@@ -124,10 +125,10 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
     const flyerProductName = flyerProduct.productName || ''
     const flyerProductNameMk = flyerProduct.productNameMk || ''
     const flyerAdditionalInfo = Array.isArray(flyerProduct.additionalInfo) 
-      ? flyerProduct.additionalInfo.join(', ') 
+      ? flyerProduct.additionalInfo.join(', ')
       : ''
     const flyerAdditionalInfoMk = Array.isArray(flyerProduct.additionalInfoMk) 
-      ? flyerProduct.additionalInfoMk.join(', ') 
+      ? flyerProduct.additionalInfoMk.join(', ')
       : ''
 
     // Format the database products for the prompt
@@ -136,6 +137,7 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
 - ID: ${product.id}
 - Name: ${product.name || ''}
 - Name (Macedonian): ${product.nameMk || ''}
+- Name (Albanian): ${product.nameAl || ''}
 - Description: ${product.description || ''}
 - Description (Macedonian): ${product.descriptionMk || ''}
 - Category: ${product.category || ''}
@@ -185,10 +187,10 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
       let cleanedText = text
         .replace(/```json\n?/g, '')
         .replace(/```\n?/g, '')
-        .replace(/^[^\[\{]*/, '')
-        .replace(/[^\]\}]*$/, '')
+        .replace(/^[^[\{]*/, '')
+        .replace(/[^\\\]\}]*$/, '')
         .replace(/[\x00-\x1F\x7F]/g, '')
-        .replace(/,(\s*[\]\}])/g, '$1')
+        .replace(/,(\s*[\\\]\}])/g, '$1')
         .trim()
       
       // Parse the cleaned JSON
