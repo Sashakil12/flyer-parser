@@ -262,7 +262,7 @@ export default function AutoApprovalPage() {
                   id="ruleName"
                   value={ruleName}
                   onChange={(e) => setRuleName(e.target.value)}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="input-field mt-1"
                   placeholder="e.g., Exact Name Match Rule"
                 />
               </div>
@@ -302,7 +302,7 @@ export default function AutoApprovalPage() {
                   onChange={handleTextareaChange}
                   onClick={handleTextareaClick}
                   onKeyUp={handleTextareaKeyUp}
-                  className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-mono"
+                  className="input-field font-mono"
                   placeholder="Auto update products when the &#123;name&#125; field is 100% match, &#123;albenianname&#125; and &#123;description&#125; field is 90% match. Ignore all other fields."
                 />
               </div>

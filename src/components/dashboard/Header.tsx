@@ -45,7 +45,7 @@ export default function Header({ user }: HeaderProps) {
   }
 
   return (
-    <header className="relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-xl border-b border-slate-700/50">
+    <header className="sticky top-0 z-50 relative bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 shadow-xl border-b border-slate-700/50">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-indigo-600/10 to-purple-600/10"></div>
       <div className="absolute inset-0" style={{

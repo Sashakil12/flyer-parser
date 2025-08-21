@@ -23,7 +23,11 @@ export default function ParsedItemsPage() {
   const paginatedItems = allItems.slice(startIndex, endIndex)
 
   if (loading || isLoading) {
-    return <LoadingSpinner size="large" />
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="large" />
+      </div>
+    );
   }
 
   if (!user) {
