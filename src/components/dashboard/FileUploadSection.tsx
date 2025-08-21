@@ -191,14 +191,14 @@ export default function FileUploadSection({ onUploadComplete, user }: FileUpload
                 </button>
               </div>
               
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
                 {files.map((file, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-gray-200">
+                  <div key={index} className="relative group transition-all duration-300 ease-in-out">
+                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border-2 border-gray-200 group-hover:shadow-lg group-hover:border-indigo-500 transition-all duration-300 ease-in-out">
                       <img
                         src={file.preview}
                         alt={file.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                       
                       {/* Remove Button */}
@@ -206,34 +206,37 @@ export default function FileUploadSection({ onUploadComplete, user }: FileUpload
                         type="button"
                         onClick={() => removeFile(index)}
                         disabled={isUploading}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                        className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 ease-in-out hover:bg-red-700 hover:scale-110 disabled:opacity-50"
                       >
                         <XMarkIcon className="h-4 w-4" />
                       </button>
                       
                       {/* Progress Overlay */}
                       {isUploading && uploadProgress[file.name] !== undefined && (
-                        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+                        <div className="absolute inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center transition-opacity duration-300">
                           <div className="text-center text-white">
-                            <div className="text-sm font-medium">
+                            <div className="text-lg font-bold">
                               {Math.round(uploadProgress[file.name] || 0)}%
                             </div>
-                            <div className="w-16 bg-gray-200 rounded-full h-1 mt-2">
+                            <div className="w-20 bg-white/30 rounded-full h-1.5 mt-2">
                               <div
-                                className="bg-primary-500 h-1 rounded-full transition-all duration-300"
+                                className="bg-indigo-500 h-1.5 rounded-full transition-all duration-300"
                                 style={{ width: `${uploadProgress[file.name] || 0}%` }}
                               />
                             </div>
                           </div>
                         </div>
                       )}
-                    </div>
-                    
-                    <div className="mt-2 text-xs text-gray-500 truncate">
-                      {file.name}
-                    </div>
-                    <div className="text-xs text-gray-400">
-                      {filesize(file.size)}
+                      
+                      {/* File Info Overlay */}
+                      <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent">
+                        <div className="text-xs text-white font-semibold truncate">
+                          {file.name}
+                        </div>
+                        <div className="text-xs text-gray-300">
+                          {filesize(file.size)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
