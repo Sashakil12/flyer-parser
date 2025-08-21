@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
     const product = productDoc.data()
     
     // Calculate the discounted price
-    const currentPrice = product?.price || 0
+    const currentPrice = parseFloat(product?.oldPrice as string) || 0
     const discountedPrice = applyDiscountPercentage(currentPrice, discountPercentage)
     
     // Update the product with the discount

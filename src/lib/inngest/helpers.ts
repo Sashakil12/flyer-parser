@@ -1,6 +1,7 @@
 import { adminDb } from '../firebase/admin';
-import { applyDiscountPercentage } from '../utils';
 import { Timestamp } from 'firebase-admin/firestore';
+import { calculateDiscountedPrice } from '../gemini-discount';
+import { applyDiscountPercentage } from '../utils';
 
 // Define Logger type for type safety
 export type Logger = {
@@ -45,51 +46,85 @@ export async function applyDiscount({
       const product = productDoc.data()!;
 
       // 2. Perform calculations
-      const regularPrice = parsedItem.oldPrice;
-      const discountPrice = parsedItem.discountPrice;
+      const originalPrice = parseFloat(product.oldPrice) || parseFloat(product.price) || 0;
+      
+      const hasDiscountText = !!parsedItem.discountText;
+      const hasStructuredDiscount = typeof parsedItem.oldPrice === 'number' && typeof parsedItem.discountPrice === 'number' && parsedItem.discountPrice < parsedItem.oldPrice;
 
-      if (typeof regularPrice !== 'number' || typeof discountPrice !== 'number') {
-        throw new Error('Missing or invalid price information on flyer item');
-      }
+      if (hasDiscountText || hasStructuredDiscount) {
+        let newPrice;
+        let calculationDetails;
 
-      const discountPercentage = Math.round(((regularPrice - discountPrice) / regularPrice) * 100);
-      if (discountPercentage <= 0 || discountPercentage >= 100) {
-        throw new Error(`Invalid calculated discount percentage: ${discountPercentage}%`);
-      }
-
-      const currentPrice = product.newPrice ? parseFloat(String(product.newPrice)) : parseFloat(String(product.oldPrice));
-      const finalPrice = applyDiscountPercentage(currentPrice, discountPercentage);
-
-      // 3. Queue up writes
-      transaction.update(productRef, {
-        newPrice: finalPrice,
-        discountPercentage: discountPercentage,
-        hasActiveDiscount: true,
-        discountSource: {
-          type: 'flyer',
-          parsedItemId: flyerId,
-          appliedAt: Timestamp.now(),
-          appliedBy: 'auto-approval',
-          originalPrice: currentPrice,
-          confidence: matchConfidence
+        if (hasDiscountText) {
+          // Primary method: Use AI to calculate from unstructured text
+          logger.info('Calculating discount using AI from discount text.', { flyerId, productId });
+          const result = await calculateDiscountedPrice(originalPrice, parsedItem.discountText);
+          newPrice = result.newPrice;
+          calculationDetails = result.calculationDetails;
+        } else { // hasStructuredDiscount must be true
+          // Fallback method: Calculate from structured price fields
+          logger.info('Calculating discount from structured oldPrice and discountPrice fields.', { flyerId, productId });
+          const percentage = ((parsedItem.oldPrice - parsedItem.discountPrice) / parsedItem.oldPrice) * 100;
+          newPrice = applyDiscountPercentage(originalPrice, percentage);
+          calculationDetails = `Calculated from flyer's old price (${parsedItem.oldPrice}) and discount price (${parsedItem.discountPrice}).`;
         }
-      });
+        
+        const discountPercentage = originalPrice > 0 
+          ? Math.round(((originalPrice - newPrice) / originalPrice) * 100)
+          : 0;
 
-      transaction.update(parsedItemRef, {
-        selectedProductId: productId,
-        discountApplied: true,
-        discountAppliedAt: Timestamp.now(),
-        discountPercentage: discountPercentage,
-        autoDiscountApplied: true
-      });
+        // 3. Queue up writes for a product WITH a discount
+        transaction.update(productRef, {
+          newPrice: newPrice,
+          discountPercentage: discountPercentage,
+          hasActiveDiscount: true,
+          discountSource: {
+            type: 'flyer',
+            parsedItemId: flyerId,
+            appliedAt: Timestamp.now(),
+            appliedBy: 'auto-approval',
+            originalPrice: originalPrice,
+            confidence: matchConfidence,
+            calculationDetails: calculationDetails
+          }
+        });
 
-      return {
-        success: true,
-        productId,
-        originalPrice: currentPrice,
-        newPrice: finalPrice,
-        discountPercentage
-      };
+        transaction.update(parsedItemRef, {
+          selectedProductId: productId,
+          discountApplied: true,
+          discountAppliedAt: Timestamp.now(),
+          discountPercentage: discountPercentage,
+          autoDiscountApplied: true
+        });
+
+        return {
+          success: true,
+          productId,
+          originalPrice: originalPrice,
+          newPrice: newPrice,
+          discountPercentage
+        };
+      } else {
+        // NO DISCOUNT LOGIC
+        logger.info('No discount information found. Linking product without applying discount.', { flyerId, productId });
+
+        // Update parsed item to link it, but mark as not discounted.
+        transaction.update(parsedItemRef, {
+          selectedProductId: productId,
+          discountApplied: false,
+          discountPercentage: 0,
+          autoDiscountApplied: false,
+          autoApprovalReason: "Product auto-matched but no discount was found on the flyer."
+        });
+
+        return {
+          success: true,
+          productId,
+          originalPrice: originalPrice,
+          newPrice: originalPrice,
+          discountPercentage: 0
+        };
+      }
     });
 
     logger.info(`Applied ${result.discountPercentage}% discount to product ${productId} [SUCCESS]`, { 

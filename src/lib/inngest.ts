@@ -37,6 +37,7 @@ export type Events = {
       productNamePrefixesMk?: string[]
       additionalInfo?: string[]
       additionalInfoMk?: string[]
+      discountText?: string
       batchId?: string // For batch processing to avoid overload
     }
   }

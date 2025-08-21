@@ -187,6 +187,7 @@ export const parseFlyerFunction = inngest.createFunction(
           if (item.product_name_mk) parsedFlyerItem.productNameMk = item.product_name_mk;
           if (item.product_name_prefixes_mk) parsedFlyerItem.productNamePrefixesMk = item.product_name_prefixes_mk;
           if (item.discount_price) parsedFlyerItem.discountPrice = item.discount_price;
+          if (item.discount_text) parsedFlyerItem.discountText = item.discount_text;
           if (item.discount_price_mk) parsedFlyerItem.discountPriceMk = item.discount_price_mk;
           if (item.discount_start_date) parsedFlyerItem.discountStartDate = item.discount_start_date;
           if (item.discount_end_date) parsedFlyerItem.discountEndDate = item.discount_end_date;
@@ -268,6 +269,7 @@ export const parseFlyerFunction = inngest.createFunction(
                 productNamePrefixesMk: item.productNamePrefixesMk,
                 additionalInfo: item.additionalInfo,
                 additionalInfoMk: item.additionalInfoMk,
+                discountText: matchingItem.discount_text,
                 batchId
               }
             });

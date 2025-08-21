@@ -64,6 +64,7 @@ Schema requirements:
 - product_name_prefixes: string[] (required) - Growing character prefixes of product_name, starting from first character and building up one character at a time until complete name
 - product_name_prefixes_mk: string[] (optional) - Growing character prefixes of product_name_mk in Cyrillic, only if product_name_mk is present
 - discount_price: number (optional) - Sale price if different from regular price
+- discount_text: string (optional) - Raw discount text from flyer (e.g., "20% OFF", "SAVE $5")
 - discount_price_mk: string (optional) - GENERATE Macedonian price text from numeric value (e.g., "12,99 ден")
 - discount_start_date: string (optional) - ISO date string when discount starts (YYYY-MM-DD format)
 - discount_end_date: string (optional) - ISO date string when discount ends (YYYY-MM-DD format)
