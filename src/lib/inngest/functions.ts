@@ -1,7 +1,7 @@
 import { inngest } from '../inngest'
 import { parseImageWithGemini } from '../gemini'
 import { scoreProductMatches } from '@/lib/gemini-product-match'
-import { updateFlyerImageStatus, addParsedFlyerItem, updateParsedFlyerItem, searchProducts } from '../firestore-admin'
+import { updateFlyerImageStatus, addParsedFlyerItem, updateParsedFlyerItem, searchProducts, getActiveAutoApprovalRuleAdmin } from '../firestore-admin'
 import { getImageDataUrl } from '@/lib/storage-admin'
 import { evaluateAutoApproval } from '@/lib/auto-approval'
 import { applyDiscountPercentage } from '@/lib/utils'
@@ -958,6 +958,8 @@ export const matchProductsFunction = inngest.createFunction(
             productId: match.productId,
             relevanceScore: match.relevanceScore,
             matchReason: match.matchReason || 'AI matched based on product name and details',
+            can_auto_merge: match.can_auto_merge,
+            autoApprovalReason: match.autoApprovalReason,
             matchedAt: Timestamp.now(),
             productData: originalProduct ? {
               albenianname: originalProduct.albenianname || '',
@@ -981,163 +983,43 @@ export const matchProductsFunction = inngest.createFunction(
 
       // Step 5: Check for auto-approval from Gemini results
       const autoApprovalResult: AutoApprovalResult | null = await step.run('check-auto-approval', async () => {
-        console.log(`📊 Checking auto-approval for ${matchedProducts.length} potential matches`)
+        console.log(`📊 Checking auto-approval for ${filteredMatches.length} potential matches`)
         console.log(`🔍 Auto-approval workflow step started at ${new Date().toISOString()}`)
         console.log(`📋 Parsed item ID: ${parsedItemId}`)
-        
-        if (matchedProducts.length === 0) {
+
+        if (filteredMatches.length === 0) {
           console.log('⚠️ No matches to check for auto-approval')
           return null
         }
 
-        // Add timeout to prevent this step from hanging - increased to 30 seconds
-        const MAX_AUTO_APPROVAL_TIME = 30000; // 30 seconds timeout
-        console.log(`⏱️ Setting auto-approval timeout to ${MAX_AUTO_APPROVAL_TIME/1000} seconds`)
-        
-        // Create a controller to abort the operation if needed
-        const controller = new AbortController();
-        const signal = controller.signal;
-        
-        // Set up the timeout to abort the operation
-        const timeoutId = setTimeout(() => {
-          console.log(`⏱️ Aborting auto-approval after ${MAX_AUTO_APPROVAL_TIME/1000} seconds`)
-          controller.abort(`Auto-approval timed out after ${MAX_AUTO_APPROVAL_TIME/1000} seconds`);
-        }, MAX_AUTO_APPROVAL_TIME);
-        
-        const processAutoApproval = async () => {
-          try {
-            // Check if already aborted
-            if (signal.aborted) {
-              throw new Error(`Operation aborted: ${signal.reason}`);
-            }
-            
-            // Log all matches with their auto-approval status
-            matchedProducts.forEach((match: any, index: number) => {
-              console.log(`Match #${index + 1}: productId=${match.productId}, relevanceScore=${match.relevanceScore.toFixed(2)}, reason=${match.matchReason || 'N/A'}`)
-            })
+        // Use filteredMatches which contains can_auto_merge from Gemini
+        const autoApprovableMatches = filteredMatches.filter(
+          (match: any) => match.can_auto_merge === true && isValidProductId(match.productId)
+        );
 
-            // Find matches that can be auto-merged based on relevance score
-            // Since we've already filtered for valid product IDs, we can use a high confidence threshold
-            const autoApprovableMatches = matchedProducts.filter((match: any) => {
-              // Only consider matches with valid product IDs and high relevance score
-              return isValidProductId(match.productId) && match.relevanceScore >= 0.85;
-            })
-            
-            if (autoApprovableMatches.length > 0) {
-              // Sort by relevance score to get the best auto-approvable match
-              const bestMatch = autoApprovableMatches.sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)[0]
-              console.log(`🚀 Auto-approval approved for product: ${bestMatch.productId} with confidence ${bestMatch.relevanceScore.toFixed(2)}`)
-              console.log(`📝 Reason: ${bestMatch.matchReason || 'High confidence match'}`)
-              
-              // Return a properly formatted AutoApprovalResult object
-              return {
-                shouldAutoApprove: true,
-                productId: bestMatch.productId,
-                reasoning: `Auto-approved based on high relevance score of ${bestMatch.relevanceScore.toFixed(2)}`,
-                confidence: bestMatch.relevanceScore
-              } as AutoApprovalResult
-            } else {
-              // Fallback: If no auto-approvable matches but we have high confidence matches
-              const highConfidenceMatches = matchedProducts.filter((match: any) => match.relevanceScore >= 0.7)
-              
-              if (highConfidenceMatches.length > 0) {
-                // Use the highest confidence match as fallback
-                const bestMatch = highConfidenceMatches.sort((a: any, b: any) => b.relevanceScore - a.relevanceScore)[0]
-                console.log(`🔄 No explicit auto-approvable matches, but found high confidence match: ${bestMatch.productId} with score ${bestMatch.relevanceScore.toFixed(2)}`)
-                console.log(`📝 Using high confidence match for auto-approval`)
-                
-                return {
-                  shouldAutoApprove: true,
-                  productId: bestMatch.productId,
-                  reasoning: `Auto-approved based on high confidence score (${bestMatch.relevanceScore.toFixed(2)})`,
-                  confidence: bestMatch.relevanceScore
-                } as AutoApprovalResult
-              } else {
-                console.log('⚠️ No matches meet auto-approval criteria - requires manual review')
-                return {
-                  shouldAutoApprove: false,
-                  reasoning: 'No matches meet the configured auto-approval criteria',
-                  confidence: 0,
-                  productId: null
-                } as AutoApprovalResult
-              }
-            }
-          } catch (error: unknown) {
-            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            const errorType = error instanceof Error ? error.name : 'AutoApprovalError';
-            
-            console.error(`❌ Error in processAutoApproval [${errorType}]:`, {
-              message: errorMessage,
-              parsedItemId,
-              matchCount: matchedProducts.length,
-              errorStack: error instanceof Error ? error.stack : undefined,
-              timestamp: new Date().toISOString()
-            });
-            
-            // Re-throw to be handled by the outer catch block
-            throw error;
-          }
-        }
-        
-        try {
-          // Execute the auto-approval process with timeout handling
-          const result = await Promise.race([
-            processAutoApproval(),
-            new Promise<never>((_, reject) => {
-              setTimeout(() => {
-                // Instead of rejecting, return a fallback result
-                console.log(`⏱️ Auto-approval timed out after ${MAX_AUTO_APPROVAL_TIME/1000} seconds, using fallback result`)
-                reject(new Error(`Auto-approval timed out after ${MAX_AUTO_APPROVAL_TIME/1000} seconds`))
-              }, MAX_AUTO_APPROVAL_TIME)
-            })
-          ])
-          
-          // Clear the timeout since we completed successfully
-          clearTimeout(timeoutId);
-          console.log(`✅ Auto-approval completed successfully at ${new Date().toISOString()}`)
-          return result;
-        } catch (error: unknown) {
-          // Clear the timeout to prevent memory leaks
-          clearTimeout(timeoutId);
-          
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-          const errorType = error instanceof Error ? error.name : 'AutoApprovalTimeoutError';
-          
-          console.error(`❌ Auto-approval error [${errorType}]:`, {
-            message: errorMessage,
-            parsedItemId,
-            matchCount: matchedProducts.length,
-            errorStack: error instanceof Error ? error.stack : undefined,
-            timestamp: new Date().toISOString()
-          });
-          
-          // If we have any matches at all, use the best one as a fallback
-          if (matchedProducts.length > 0 && matchedProducts.some(match => isValidProductId(match.productId))) {
-            // Sort by relevance score
-            const sortedMatches = [...matchedProducts].sort((a: any, b: any) => b.relevanceScore - a.relevanceScore);
-            const bestMatch = sortedMatches[0];
-            
-            // Only auto-approve if it has high confidence
-            if (bestMatch.relevanceScore >= 0.8) {
-              console.log(`🔄 Auto-approval failed but using best match as fallback: ${bestMatch.productId} with score ${bestMatch.relevanceScore.toFixed(2)}`)
-              return {
-                shouldAutoApprove: true,
-                productId: bestMatch.productId,
-                reasoning: `Auto-approved as fallback after error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                confidence: bestMatch.relevanceScore
-              } as AutoApprovalResult
-            }
-          }
-          
-          // Return fallback result on timeout or error
+        if (autoApprovableMatches.length > 0) {
+          // Sort by relevance score to get the best auto-approvable match
+          const bestMatch = autoApprovableMatches.sort(
+            (a: any, b: any) => b.relevanceScore - a.relevanceScore
+          )[0];
+
+          console.log(`🚀 Auto-approval suggested by AI for product: ${bestMatch.productId} with confidence ${bestMatch.relevanceScore.toFixed(2)}`);
+          console.log(`📝 Reason: ${bestMatch.autoApprovalReason || 'AI suggested auto-approval'}`);
+
+          return {
+            shouldAutoApprove: true,
+            productId: bestMatch.productId,
+            reasoning: bestMatch.autoApprovalReason || `Auto-approved based on AI evaluation with relevance score of ${bestMatch.relevanceScore.toFixed(2)}`,
+            confidence: bestMatch.relevanceScore,
+          } as AutoApprovalResult;
+        } else {
+          console.log('⚠️ No matches were marked for auto-approval by AI - requires manual review');
           return {
             shouldAutoApprove: false,
-            reasoning: `Auto-approval failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            reasoning: 'No matches met the auto-approval criteria according to AI evaluation.',
             confidence: 0,
-            productId: null
-          } as AutoApprovalResult
-        } finally {
-          console.log(`⏱️ Auto-approval step completed at ${new Date().toISOString()}`)
+            productId: null,
+          } as AutoApprovalResult;
         }
       })
 
@@ -1240,40 +1122,45 @@ export const matchProductsFunction = inngest.createFunction(
           
               // If auto-approved, apply discount
               if (autoApprovalResult?.shouldAutoApprove && autoApprovalResult?.productId) {
-            console.log(`⏱️ Auto-discount application step started at ${new Date().toISOString()}`);
-            
-            try {
-              // Create a logger for the discount application
-              const logger: Logger = {
-                log: (message, data) => console.log(`📝 ${message}`, data || ''),
-                info: (message, data) => console.log(`ℹ️ ${message}`, data || ''),
-                error: (message, data) => console.error(`❌ ${message}`, data || '')
-              };
-              
-              // Use the imported helper function
-              await helperApplyDiscountWithTimeout({
-                productId: autoApprovalResult.productId,
-                flyerId: parsedItemId,
-                storeId: 'auto-approval',
-                matchConfidence: autoApprovalResult.confidence || 0,
-                logger
-              });
-              
-              console.log(`✅ Auto-discount application completed at ${new Date().toISOString()}`);
-            } catch (error: unknown) {
-              const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-              const errorType = error instanceof Error ? error.name : 'DiscountApplicationError';
-              
-              console.error(`❌ Error in auto-discount application [${errorType}]:`, {
-                message: errorMessage,
-                parsedItemId,
-                productId: autoApprovalResult.productId,
-                confidence: autoApprovalResult.confidence || 0,
-                errorStack: error instanceof Error ? error.stack : undefined,
-                timestamp: new Date().toISOString()
-              });
-              
-                  // Continue workflow even if discount application fails
+                const autoApprovalRule = await getActiveAutoApprovalRuleAdmin();
+                if (autoApprovalRule) {
+                  console.log(`⏱️ Auto-discount application step started at ${new Date().toISOString()}`);
+                  
+                  try {
+                    // Create a logger for the discount application
+                    const logger: Logger = {
+                      log: (message, data) => console.log(`📝 ${message}`, data || ''),
+                      info: (message, data) => console.log(`ℹ️ ${message}`, data || ''),
+                      error: (message, data) => console.error(`❌ ${message}`, data || '')
+                    };
+                    
+                    // Use the imported helper function
+                    await helperApplyDiscountWithTimeout({
+                      productId: autoApprovalResult.productId,
+                      flyerId: parsedItemId,
+                      storeId: 'auto-approval',
+                      matchConfidence: autoApprovalResult.confidence || 0,
+                      logger
+                    });
+                    
+                    console.log(`✅ Auto-discount application completed at ${new Date().toISOString()}`);
+                  } catch (error: unknown) {
+                    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                    const errorType = error instanceof Error ? error.name : 'DiscountApplicationError';
+                    
+                    console.error(`❌ Error in auto-discount application [${errorType}]:`, {
+                      message: errorMessage,
+                      parsedItemId,
+                      productId: autoApprovalResult.productId,
+                      confidence: autoApprovalResult.confidence || 0,
+                      errorStack: error instanceof Error ? error.stack : undefined,
+                      timestamp: new Date().toISOString()
+                    });
+                    
+                        // Continue workflow even if discount application fails
+                      }
+                } else {
+                  console.log('⚠️ No active auto-approval rule found, skipping auto-discount application.');
                 }
               }
         } catch (e: unknown) {

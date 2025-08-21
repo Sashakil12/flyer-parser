@@ -107,7 +107,7 @@ export async function scoreProductMatches(
   try {
     // Get active auto-approval rule using admin SDK to avoid permission issues
     const autoApprovalRule = await getActiveAutoApprovalRuleAdmin()
-    let autoApprovalCriteria = 'No auto-approval rule configured - set can_auto_merge to true for products with relevanceScore >= 0.8'
+    let autoApprovalCriteria = ''
     
     if (autoApprovalRule) {
       autoApprovalCriteria = `Auto-approval rule: "${autoApprovalRule.name}"
@@ -116,6 +116,8 @@ Custom instructions: ${autoApprovalRule.prompt}
 Apply these instructions to determine if each product match should have can_auto_merge set to true.
 
 IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably matches the criteria above, set can_auto_merge to true. Be generous with auto-approval for high-confidence matches.`
+    } else {
+      autoApprovalCriteria = 'No auto-approval rule is active. Do not suggest auto-approval for any match. Set "can_auto_merge" to false for all products.'
     }
 
     // Get Gemini model
@@ -224,17 +226,14 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
         const score = Math.max(0, Math.min(1, match.relevanceScore))
         
         // Add valid match to our array with auto-approval logic
-        // If score is high enough (0.8+), force can_auto_merge to true regardless of AI decision
-        const shouldForceAutoMerge = score >= 0.8
+        const canAutoMerge = autoApprovalRule ? (match.can_auto_merge === true) : false;
         
         validMatches.push({
           productId: match.productId,
           relevanceScore: score,
           matchReason: match.matchReason || 'No reason provided',
-          can_auto_merge: shouldForceAutoMerge ? true : (match.can_auto_merge === true),
-          autoApprovalReason: shouldForceAutoMerge && !match.can_auto_merge ? 
-            'Auto-approved due to high confidence score (≥0.8)' : 
-            (match.autoApprovalReason || 'No auto-approval evaluation provided')
+          can_auto_merge: canAutoMerge,
+          autoApprovalReason: canAutoMerge ? (match.autoApprovalReason || 'AI suggested auto-approval') : 'No active auto-approval rule.'
         });
       }
       
