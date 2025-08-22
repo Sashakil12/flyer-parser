@@ -1,23 +1,39 @@
 # Flyer Parser App
 
-An AI-powered application that automatically parses and extracts product information from retail store flyers using Google Gemini Pro 2.5, Firebase, and Inngest workflows.
+An AI-powered application that automatically parses and extracts product information from retail store flyers using Google Gemini Pro, Firebase, and Inngest workflows.
 
 ## 🚀 Features
 
-- **AI-Powered Parsing**: Uses Google Gemini Pro 2.5 for accurate text and price extraction
-- **Asynchronous Processing**: Inngest workflows for scalable background processing
-- **Real-time Updates**: Live status tracking of parsing jobs
-- **Multi-file Upload**: Batch upload capability with drag-and-drop interface
-- **Admin Authentication**: Secure email/password authentication via Firebase
-- **Cloud Storage**: Firebase Storage for secure file management
-- **Modern UI**: Beautiful, responsive interface built with Next.js and Tailwind CSS
+- **AI-Powered Parsing**: Uses Google Gemini Pro for accurate text and price extraction.
+- **AI-Powered Discount Calculation**: Intelligently calculates discounts from unstructured text (e.g., "30% OFF", "Save $5").
+- **Configurable Auto-Approval**: Define custom, AI-driven rules to automatically approve product matches.
+- **Asynchronous Processing**: Inngest workflows for scalable background processing.
+- **Real-time Updates**: Live status tracking of parsing jobs.
+- **Server-Side Filtering**: Efficiently filter parsed items on the backend.
+- **Multi-file Upload**: Batch upload capability with a beautified drag-and-drop interface.
+- **Admin Authentication**: Secure email/password authentication via Firebase.
+- **Cloud Storage**: Firebase Storage for secure file management.
+- **Modern UI**: Beautiful, responsive interface built with Next.js and Tailwind CSS, featuring loading skeletons and a sticky header.
 
 ## 🛠 Tech Stack
 
 - **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
 - **Backend**: Firebase (Auth, Firestore, Storage), Inngest
-- **AI**: Google Gemini Pro 2.5
+- **AI**: Google Gemini Pro
+- **Caching**: Redis
 - **UI Components**: Heroicons, React Hot Toast, React Dropzone
+
+## Key Workflows
+
+1.  **Flyer Upload**: An admin uploads one or more flyer images.
+2.  **AI Parsing**: An Inngest workflow is triggered. It uses Gemini to parse each image, extracting product details and any unstructured discount text (e.g., "2 for 1").
+3.  **Product Matching**: For each parsed item, a search is performed against the existing product database to find potential matches.
+4.  **AI Scoring**: The potential matches are sent to Gemini, which scores their relevance and determines if they meet the active auto-approval rule.
+5.  **Auto-Approval & Discounting**:
+    *   If a single, high-confidence match is found and it meets the auto-approval criteria, the system links the parsed item to the product.
+    *   If a discount was parsed, a second AI call is made to calculate the final price, which is then updated in the database.
+    *   If multiple high-confidence matches are found, the item is flagged for manual review to prevent errors.
+6.  **Manual Review**: Admins can use the dashboard to review items that were not auto-approved, see the potential matches, and manually apply discounts.
 
 ## 📋 Prerequisites
 
@@ -26,94 +42,45 @@ Before you begin, ensure you have:
 - Node.js 18+ installed
 - pnpm package manager
 - Firebase project with Auth, Firestore, and Storage enabled
-- Google AI API key (for Gemini Pro 2.5)
-- Inngest account (for workflow processing)
+- Google AI API key
+- Inngest account
 
 ## 🔧 Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd badiyala-flyer-parser
-   ```
+1.  **Clone the repository**
+    ```bash
+    git clone <repository-url>
+    cd badiyala-flyer-parser
+    ```
 
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
+2.  **Install dependencies**
+    ```bash
+    pnpm install
+    ```
 
-3. **Set up environment variables**
-   
-   Copy `.env.example` to `.env.local` and fill in your credentials:
+3.  **Set up environment variables**
+    
+    Copy `.env.example` to `.env.local` and fill in your credentials.
 
-   ```bash
-   # Firebase Configuration
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-
-   # Firebase Admin SDK
-   FIREBASE_CLIENT_EMAIL=your_service_account_email
-   FIREBASE_PRIVATE_KEY="your_private_key_with_newlines"
-
-   # Google AI (Gemini Pro 2.5)
-   GOOGLE_AI_API_KEY=your_google_ai_api_key
-
-   # Inngest
-   INNGEST_EVENT_KEY=your_inngest_event_key
-   INNGEST_SIGNING_KEY=your_inngest_signing_key
-
-   # App Settings
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-   ```
-
-4. **Firebase Setup**
-
-   a. Create a Firebase project at https://console.firebase.google.com
-   
-   b. Enable Authentication with Email/Password provider
-   
-   c. Create Firestore database with the following collections:
-      - `flyer-images`
-      - `parsed-flyer-items`
-   
-   d. Enable Firebase Storage
-   
-   e. Download service account key and add credentials to environment variables
-
-5. **Google AI Setup**
-   
-   a. Get API key from https://makersuite.google.com/app/apikey
-   
-   b. Add the API key to your environment variables
-
-6. **Inngest Setup**
-   
-   a. Sign up at https://www.inngest.com
-   
-   b. Create a new app and get your event and signing keys
-   
-   c. Add keys to environment variables
+4.  **Firebase, Google AI, and Inngest Setup**
+    
+    Follow the setup instructions in the official documentation for each service.
 
 ## 🚀 Development
 
-1. **Start the development server**
-   ```bash
-   pnpm dev
-   ```
+1.  **Start the development server**
+    ```bash
+    pnpm dev
+    ```
 
-2. **Access the application**
-   - Open http://localhost:3000 in your browser
-   - Use Firebase Auth to create admin accounts
+2.  **Access the application**
+    - Open http://localhost:3000 in your browser
 
-3. **Inngest Development**
-   ```bash
-   # In a separate terminal, run Inngest dev server
-   npx inngest-cli@latest dev
-   ```
+3.  **Inngest Development**
+    ```bash
+    # In a separate terminal, run Inngest dev server
+    npx inngest-cli@latest dev
+    ```
 
 ## 📁 Project Structure
 
@@ -121,34 +88,15 @@ Before you begin, ensure you have:
 src/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
-│   │   └── inngest/       # Inngest endpoints
-│   ├── globals.css        # Global styles
-│   ├── layout.tsx         # Root layout
-│   └── page.tsx          # Home page
+│   ├── auto-approval/     # Page for managing approval rules
+│   └── parsed-items/      # Page for viewing parsed items
 ├── components/            # React components
-│   ├── auth/             # Authentication components
-│   ├── dashboard/        # Dashboard components
-│   └── ui/               # Reusable UI components
 ├── lib/                   # Utility libraries
-│   ├── firebase/         # Firebase configuration
-│   ├── inngest/          # Inngest functions
-│   ├── auth.ts           # Authentication service
-│   ├── firestore.ts      # Firestore operations
-│   ├── gemini.ts         # Gemini AI service
-│   ├── inngest.ts        # Inngest client
-│   └── storage.ts        # Firebase Storage operations
+│   ├── config.ts          # Client-side environment variables
+│   ├── config.server.ts   # Server-side environment variables
+│   ├── gemini-discount.ts # AI-powered discount calculation
 └── types/                # TypeScript type definitions
-    └── index.ts
 ```
-
-## 🔄 How It Works
-
-1. **Upload**: Admin uploads flyer images via drag-and-drop interface
-2. **Store**: Files are saved to Firebase Storage with metadata in Firestore
-3. **Queue**: Inngest workflow is triggered with image data URL
-4. **Parse**: Gemini Pro 2.5 analyzes the image and extracts product data
-5. **Save**: Parsed data is structured and saved to Firestore
-6. **Update**: Processing status is updated in real-time
 
 ## 📊 Database Schema
 
@@ -157,12 +105,9 @@ src/
 interface FlyerImage {
   id: string
   filename: string
-  uploadedAt: Timestamp
-  fileSize: number
-  fileType: string
   storageUrl: string
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed'
-  uploadedBy: string
+  // ... and other fields
 }
 ```
 
@@ -173,86 +118,14 @@ interface ParsedFlyerItem {
   flyerImageId: string
   productName: string
   discountPrice?: number
+  discountText?: string // e.g., "30% OFF"
   oldPrice: number
-  additionalInfo?: string[]
-  confidence: number
-  parsedAt: Timestamp
-  verified: boolean
+  autoApproved?: boolean
+  autoApprovalStatus?: 'success' | 'failed'
+  autoApprovalReason?: string
+  // ... and other fields
 }
 ```
-
-## 🚀 Deployment
-
-1. **Build the application**
-   ```bash
-   pnpm build
-   ```
-
-2. **Deploy to Vercel** (recommended)
-   ```bash
-   npx vercel
-   ```
-
-3. **Configure environment variables** in your deployment platform
-
-4. **Set up Inngest** production endpoints in your Inngest dashboard
-
-## 🧪 Testing
-
-- **Type checking**: `pnpm type-check`
-- **Linting**: `pnpm lint`
-- **Testing**: Add your preferred testing framework
-
-## 📝 API Endpoints
-
-- `POST /api/inngest/trigger-parse` - Trigger AI parsing workflow
-- `GET/POST /api/inngest` - Inngest webhook endpoints
-
-## 🔒 Security Features
-
-- Firebase Authentication with admin-only access
-- Secure file upload with validation
-- Private Firebase Storage rules
-- Environment variable protection
-- CORS and API security
-
-## 🐛 Troubleshooting
-
-**Common Issues:**
-
-1. **Firebase connection issues**
-   - Check your Firebase configuration
-   - Ensure all required services are enabled
-   - Verify API keys and permissions
-
-2. **Gemini AI parsing errors**
-   - Check your Google AI API key
-   - Verify API quotas and limits
-   - Ensure image quality is sufficient
-
-3. **Inngest workflow issues**
-   - Check Inngest configuration and keys
-   - Verify webhook endpoints
-   - Monitor function logs in Inngest dashboard
-
-## 📄 License
-
-This project is licensed under the ISC License.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 📞 Support
-
-For support and questions:
-- Check the documentation
-- Review Firebase and Inngest logs
-- Monitor application console for errors
 
 ---
 
