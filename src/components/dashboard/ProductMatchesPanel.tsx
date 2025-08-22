@@ -129,6 +129,7 @@ export default function ProductMatchesPanel({ parsedItem, onProductSelected }: P
               {parsedItem.matchedProducts!.sort((a, b) => b.relevanceScore - a.relevanceScore).map((match) => {
                 const product = match.productData;
                 const imageUrl = product?.imageUrl || product?.iconUrl;
+                console.log(`Product: ${product?.name}, Image URL: ${imageUrl}`);
                 const productName = product?.name || product?.macedonianname || product?.albenianname || 'Unknown Product';
 
                 return (

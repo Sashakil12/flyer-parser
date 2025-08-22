@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from '@/lib/firebase/config'
 import { useRealtimeParsedItems } from '@/hooks/useRealtimeFirestore'
@@ -10,19 +10,33 @@ import { ChevronLeftIcon, ChevronRightIcon, DocumentTextIcon } from '@heroicons/
 
 const ITEMS_PER_PAGE = 10
 
+type FilterStatus = 'all' | 'success' | 'failed';
+
 export default function ParsedItemsPage() {
   const [user, loading] = useAuthState(auth)
-  const { parsedItems: allItems, isLoading } = useRealtimeParsedItems()
   const [currentPage, setCurrentPage] = useState(1)
+  const [filter, setFilter] = useState<FilterStatus>('all')
+
+  const autoApprovalStatusFilter = useMemo(() => {
+    if (filter === 'success' || filter === 'failed') return filter;
+    return undefined;
+  }, [filter]);
+
+  const { parsedItems: filteredItems, isLoading } = useRealtimeParsedItems(undefined, autoApprovalStatusFilter)
 
   // Pagination logic
-  const totalItems = allItems.length
+  const totalItems = filteredItems.length
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE)
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
   const endIndex = startIndex + ITEMS_PER_PAGE
-  const paginatedItems = allItems.slice(startIndex, endIndex)
+  const paginatedItems = filteredItems.slice(startIndex, endIndex)
 
-  if (loading || isLoading) {
+  const handleFilterChange = (newFilter: FilterStatus) => {
+    setFilter(newFilter);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="large" />
@@ -39,6 +53,12 @@ export default function ParsedItemsPage() {
     )
   }
 
+  const filterButtons: { label: string; value: FilterStatus }[] = [
+    { label: 'All', value: 'all' },
+    { label: 'Auto-Approved', value: 'success' },
+    { label: 'Manual Review', value: 'failed' },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
@@ -48,11 +68,39 @@ export default function ParsedItemsPage() {
         </p>
       </div>
 
-      {paginatedItems.length === 0 ? (
+      {/* Filter Buttons */}
+      <div className="mb-6">
+        <div className="flex items-center space-x-2 border-b border-gray-200 pb-2">
+          <span className="text-sm font-medium text-gray-600">Filter by:</span>
+          {filterButtons.map(({ label, value }) => (
+            <button
+              key={value}
+              onClick={() => handleFilterChange(value)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                filter === value
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'text-gray-600 bg-white hover:bg-gray-100'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-12">
+          <LoadingSpinner size="large" />
+        </div>
+      ) : paginatedItems.length === 0 ? (
         <div className="text-center py-12">
           <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-sm font-semibold text-gray-900">No Parsed Products</h3>
-          <p className="mt-1 text-sm text-gray-500">Upload a flyer to get started.</p>
+          <h3 className="mt-2 text-sm font-semibold text-gray-900">
+            {filter === 'all' ? 'No Parsed Products' : 'No items match this filter'}
+          </h3>
+          <p className="mt-1 text-sm text-gray-500">
+            {filter === 'all' ? 'Upload a flyer to get started.' : 'Try selecting another filter.'}
+          </p>
         </div>
       ) : (
         <div className="space-y-6">

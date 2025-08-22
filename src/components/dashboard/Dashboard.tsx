@@ -1,5 +1,5 @@
 'use client'
-
+import {useState} from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from '@/lib/firebase/config'
 import { useRealtimeStats } from '@/hooks/useRealtimeFirestore'
@@ -11,7 +11,8 @@ import { EyeIcon, DocumentTextIcon, ArrowRightIcon, CogIcon } from '@heroicons/r
 
 export default function Dashboard() {
   const [user, loading] = useAuthState(auth)
-  const stats = useRealtimeStats()
+  const [autoApproved, setAutoApproved] = useState<boolean | undefined>(undefined);
+  const stats = useRealtimeStats(autoApproved)
 
   if (loading) {
     return (

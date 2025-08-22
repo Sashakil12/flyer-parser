@@ -64,28 +64,27 @@ export const useRealtimeFlyerImages = () => {
 }
 
 // Real-time parsed items hook
-export const useRealtimeParsedItems = (flyerImageId?: string) => {
+export const useRealtimeParsedItems = (flyerImageId?: string, autoApprovalStatus?: 'success' | 'failed') => {
   const [parsedItems, setParsedItems] = useState<ParsedFlyerItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    let q
+    setIsLoading(true); // Reset loading state on filter change
+    let q;
+    const collectionRef = collection(db, 'parsed-flyer-items');
+    
+    const constraints = [orderBy('createdAt', 'desc')];
 
     if (flyerImageId) {
-      // Get items for specific flyer
-      q = query(
-        collection(db, 'parsed-flyer-items'),
-        where('flyerImageId', '==', flyerImageId),
-        orderBy('createdAt', 'desc')
-      )
-    } else {
-      // Get all items
-      q = query(
-        collection(db, 'parsed-flyer-items'),
-        orderBy('createdAt', 'desc')
-      )
+      constraints.push(where('flyerImageId', '==', flyerImageId));
     }
+
+    if (autoApprovalStatus) {
+      constraints.push(where('autoApprovalStatus', '==', autoApprovalStatus));
+    }
+
+    q = query(collectionRef, ...constraints);
 
     const unsubscribe = onSnapshot(
       q,
@@ -125,15 +124,15 @@ export const useRealtimeParsedItems = (flyerImageId?: string) => {
     )
 
     return () => unsubscribe()
-  }, [flyerImageId])
+  }, [flyerImageId, autoApprovalStatus])
 
   return { parsedItems, isLoading, error }
 }
 
 // Real-time stats hook
-export const useRealtimeStats = () => {
+export const useRealtimeStats = (autoApproved?: boolean) => {
   const { flyerImages } = useRealtimeFlyerImages()
-  const { parsedItems } = useRealtimeParsedItems()
+  const { parsedItems } = useRealtimeParsedItems(undefined, autoApproved)
 
   const stats = {
     totalFlyers: flyerImages.length,

@@ -799,13 +799,21 @@ export const matchProductsFunction = inngest.createFunction(
         // Step 2a: Remove duplicates and invalid product IDs
         const uniqueProducts = potentialMatches.filter((product: any, index: number, array: any[]) => {
           // Skip products with invalid IDs
-          if (!product.id || product.id === 'undefined' || product.id === 'null' || typeof product.id !== 'string') {
-            console.log(`⚠️ Filtering out product with invalid ID: ${JSON.stringify(product)}`)
-            return false
+          if (!isValidProductId(product.id)) {
+            console.log(`🔍 Deduplication: Skipping product with invalid ID: ${JSON.stringify(product)}`);
+            return false;
           }
           
+          const firstIndex = array.findIndex((p: any) => p.id === product.id);
+          
           // Check for duplicates
-          return array.findIndex((p: any) => p.id === product.id) === index
+          if (index !== firstIndex) {
+            console.log(`🔍 Deduplication: Skipping duplicate product ID: ${product.id} (Name: ${product.name})`);
+            return false;
+          }
+          
+          console.log(`🔍 Deduplication: Keeping unique product ID: ${product.id} (Name: ${product.name})`);
+          return true;
         })
         
         console.log(`🔄 Deduplicated from ${potentialMatches.length} to ${uniqueProducts.length} unique products`)
@@ -961,6 +969,18 @@ export const matchProductsFunction = inngest.createFunction(
 
       // Step 5: Check for auto-approval from Gemini results
       const autoApprovalResult: AutoApprovalResult | null = await step.run('check-auto-approval', async () => {
+        const highConfidenceMatches = filteredMatches.filter((match: any) => match.relevanceScore >= 0.9);
+
+        if (highConfidenceMatches.length > 1) {
+          console.log(`⚠️ Multiple high-confidence matches found (${highConfidenceMatches.length}). Skipping auto-approval.`);
+          return {
+            shouldAutoApprove: false,
+            reasoning: `Multiple high-confidence matches found (${highConfidenceMatches.length}). Requires manual review.`,
+            confidence: 0,
+            productId: null,
+          } as AutoApprovalResult;
+        }
+        
         console.log(`📊 Checking auto-approval for ${filteredMatches.length} potential matches`)
         console.log(`🔍 Auto-approval workflow step started at ${new Date().toISOString()}`)
         console.log(`📋 Parsed item ID: ${parsedItemId}`)
