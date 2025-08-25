@@ -89,8 +89,7 @@ export default function AutoApprovalPage() {
       const ruleData = {
         name: ruleName.trim(),
         prompt: promptText.trim(),
-        isActive: true,
-        fieldCriteria: {}
+        isActive: true
       }
 
       if (editingRule) {

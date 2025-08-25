@@ -43,13 +43,6 @@ export interface AutoApprovalRule {
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
-  fieldCriteria: {
-    [key: string]: {
-      ignore: boolean
-      isRequired: boolean
-      matchPercentage: number
-    }
-  }
 }
 
 export interface AutoApprovalDecision {

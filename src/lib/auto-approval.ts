@@ -76,8 +76,8 @@ export async function evaluateAutoApproval(
 
     console.log(`📋 Using auto-approval rule: "${autoApprovalRule.name}"`)
 
-    // Generate criteria text from rule
-    const criteriaText = generateCriteriaText(autoApprovalRule)
+    // Use the custom prompt directly as criteria
+    const criteriaText = autoApprovalRule.prompt
     
     // Format the prompt
     const prompt = AUTO_APPROVAL_PROMPT
@@ -165,18 +165,7 @@ export async function evaluateAutoApproval(
   }
 }
 
-function generateCriteriaText(rule: AutoApprovalRule): string {
-  const criteria: string[] = []
-  
-  Object.entries(rule.fieldCriteria).forEach(([fieldName, fieldCriteria]) => {
-    if (!fieldCriteria.ignore) {
-      const requiredText = fieldCriteria.isRequired ? ' (REQUIRED)' : ''
-      criteria.push(`- ${fieldName}: ${fieldCriteria.matchPercentage}% similarity${requiredText}`)
-    }
-  })
-
-  return criteria.length > 0 ? criteria.join('\n') : 'No specific field criteria defined'
-}
+// Removed generateCriteriaText function as field criteria are no longer used
 
 export async function shouldAutoApproveMatch(
   flyerProduct: any,
