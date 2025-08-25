@@ -117,6 +117,36 @@ export interface ParsedFlyerItem {
     failureCount?: number
     [key: string]: any
   }
+  // Enhanced image extraction fields
+  extractedImages?: {
+    // Clean, professional product images
+    clean: {
+      original: string          // High-quality clean image
+      optimized: string         // WebP optimized for Flutter
+      thumbnail: string         // Small thumbnail
+      transparent?: string      // Version with transparent background
+    }
+    // Multi-resolution for Flutter
+    resolutions: {
+      '1x': string             // 400x400 baseline
+      '2x': string             // 800x800 high DPI
+      '3x': string             // 1200x1200 extra high DPI
+      'custom': string         // 828x440 custom resolution
+    }
+    // Metadata
+    extractionMetadata: {
+      confidence: number        // AI confidence in extraction quality
+      backgroundRemoved: boolean
+      textRemoved: boolean
+      qualityScore: number      // Overall quality score (0-1)
+      processingMethod: 'imagen4' | 'vision-api' | 'fallback'
+      manualReviewRequired: boolean
+    }
+  }
+  imageExtractionStatus?: 'pending' | 'processing' | 'completed' | 'failed' | 'manual-review'
+  imageExtractionError?: string
+  imageExtractedAt?: Timestamp
+  imageQualityScore?: number
 }
 
 // API Response Types
@@ -245,6 +275,74 @@ export interface ProductMatchStatusUpdateEvent {
   }
 }
 
+export interface FlyerImageExtractionEvent {
+  name: 'flyer/extract-images'
+  data: {
+    flyerImageId: string
+    storageUrl: string
+    originalImageDimensions: {
+      width: number
+      height: number
+    }
+    parsedItems: Array<{
+      id: string
+      productName: string
+      productNameMk?: string
+      discountPrice?: number
+      oldPrice: number
+      additionalInfo?: string[]
+      // AI-suggested region coordinates (if available from parsing)
+      suggestedRegion?: {
+        x: number
+        y: number
+        width: number
+        height: number
+        confidence: number
+      }
+    }>
+  }
+}
+
+// Image extraction types
+export interface ProductExtractionConfig {
+  removeText: boolean
+  removePromotionalElements: boolean
+  backgroundStyle: 'white' | 'transparent' | 'gradient'
+  productCentering: boolean
+  shadowGeneration: boolean
+  qualityEnhancement: boolean
+}
+
+export interface CleanProductImage {
+  itemId: string
+  originalRegion: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  extractedImageData: string
+  confidence: number
+  qualityScore: number
+  processingMethod: 'imagen4' | 'vision-api' | 'fallback'
+  backgroundRemoved: boolean
+  textRemoved: boolean
+  manualReviewRequired: boolean
+}
+
+export interface ImageOptimizationResult {
+  original: string
+  optimized: string
+  thumbnail: string
+  transparent?: string
+  resolutions: {
+    '1x': string
+    '2x': string
+    '3x': string
+    'custom': string         // 828x440 custom resolution
+  }
+}
+
 // Error Types
 export class AppError extends Error {
   constructor(
@@ -260,4 +358,4 @@ export class AppError extends Error {
 // Utility Types
 export type ProcessingStatus = FlyerImage['processingStatus']
 export type UserRole = User['role']
-export type InngestEventName = FlyerParseEvent['name'] | ParseStatusUpdateEvent['name'] | ProductMatchEvent['name'] | ProductMatchStatusUpdateEvent['name']
+export type InngestEventName = FlyerParseEvent['name'] | ParseStatusUpdateEvent['name'] | ProductMatchEvent['name'] | ProductMatchStatusUpdateEvent['name'] | FlyerImageExtractionEvent['name']

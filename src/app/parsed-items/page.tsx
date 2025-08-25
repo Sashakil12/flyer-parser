@@ -5,8 +5,11 @@ import { useAuthState } from 'react-firebase-hooks/auth'
 import { auth } from '@/lib/firebase/config'
 import { useRealtimeParsedItems } from '@/hooks/useRealtimeFirestore'
 import ParsedItemCard from '@/components/parsed-items/ParsedItemCard'
+import AddProductModal from '@/components/products/AddProductModal'
 import LoadingSpinner from '@/components/ui/LoadingSpinner'
 import { ChevronLeftIcon, ChevronRightIcon, DocumentTextIcon } from '@heroicons/react/24/outline'
+import { ParsedFlyerItem } from '@/types'
+import { toast } from 'react-hot-toast'
 
 const ITEMS_PER_PAGE = 10
 
@@ -16,6 +19,8 @@ export default function ParsedItemsPage() {
   const [user, loading] = useAuthState(auth)
   const [currentPage, setCurrentPage] = useState(1)
   const [filter, setFilter] = useState<FilterStatus>('all')
+  const [selectedItemForProduct, setSelectedItemForProduct] = useState<ParsedFlyerItem | null>(null)
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false)
 
   const autoApprovalStatusFilter = useMemo(() => {
     if (filter === 'success' || filter === 'failed') return filter;
@@ -35,6 +40,26 @@ export default function ParsedItemsPage() {
     setFilter(newFilter);
     setCurrentPage(1); // Reset to first page when filter changes
   };
+
+  const handleAddProduct = (item: ParsedFlyerItem) => {
+    setSelectedItemForProduct(item)
+    setIsAddProductModalOpen(true)
+  }
+
+  const handleCloseAddProductModal = () => {
+    setIsAddProductModalOpen(false)
+    setSelectedItemForProduct(null)
+  }
+
+  const handleProductCreated = (productId: string) => {
+    toast.success(`Product created successfully! ID: ${productId}`)
+    // Optionally refresh the data or update the item status
+  }
+
+  const handleViewDetails = (item: ParsedFlyerItem) => {
+    // Navigate to item details or open a detail modal
+    console.log('View details for item:', item.id)
+  }
 
   if (loading) {
     return (
@@ -105,7 +130,12 @@ export default function ParsedItemsPage() {
       ) : (
         <div className="space-y-6">
           {paginatedItems.map(item => (
-            <ParsedItemCard key={item.id} item={item} />
+            <ParsedItemCard 
+              key={item.id} 
+              item={item} 
+              onAddProduct={handleAddProduct}
+              onViewDetails={handleViewDetails}
+            />
           ))}
         </div>
       )}
@@ -151,6 +181,16 @@ export default function ParsedItemsPage() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Add Product Modal */}
+      {selectedItemForProduct && (
+        <AddProductModal
+          isOpen={isAddProductModalOpen}
+          onClose={handleCloseAddProductModal}
+          parsedItem={selectedItemForProduct}
+          onSuccess={handleProductCreated}
+        />
       )}
     </div>
   )

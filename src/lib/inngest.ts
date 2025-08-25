@@ -48,4 +48,29 @@ export type Events = {
       error?: string
     }
   }
+  'flyer/extract-images': {
+    data: {
+      flyerImageId: string
+      storageUrl: string
+      originalImageDimensions: {
+        width: number
+        height: number
+      }
+      parsedItems: Array<{
+        id: string
+        productName: string
+        productNameMk?: string
+        discountPrice?: number
+        oldPrice: number
+        additionalInfo?: string[]
+        suggestedRegion?: {
+          x: number
+          y: number
+          width: number
+          height: number
+          confidence: number
+        }
+      }>
+    }
+  }
 }
