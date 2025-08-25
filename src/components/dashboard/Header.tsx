@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
-import { signOutUser } from '@/lib/auth'
+import { signOut } from '@/lib/auth'
 import { User } from '@/types'
 import { toast } from 'react-hot-toast'
 import { 
@@ -34,7 +34,7 @@ export default function Header({ user }: HeaderProps) {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true)
-      await signOutUser()
+      await signOut()
       toast.success('Successfully signed out')
     } catch (error: any) {
       toast.error('Failed to sign out')

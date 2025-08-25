@@ -43,6 +43,13 @@ export interface AutoApprovalRule {
   createdAt: Timestamp
   updatedAt: Timestamp
   createdBy: string
+  fieldCriteria: {
+    [key: string]: {
+      ignore: boolean
+      isRequired: boolean
+      matchPercentage: number
+    }
+  }
 }
 
 export interface AutoApprovalDecision {
@@ -75,6 +82,7 @@ export interface ParsedFlyerItem {
   productNamePrefixes: string[] // Growing prefixes for product name
   productNamePrefixesMk?: string[] // Growing prefixes for Macedonian product name
   discountPrice?: number
+  discountText?: string
   discountPriceMk?: string // Macedonian discount price text
   discountStartDate?: string // ISO date string when discount starts
   discountEndDate?: string // ISO date string when discount ends
@@ -100,6 +108,9 @@ export interface ParsedFlyerItem {
   autoApprovalConfidence?: number // AI confidence score for auto-approval (0-1)
   autoApprovedAt?: Timestamp // When auto-approval occurred
   autoApprovalFailedAt?: Timestamp // When auto-approval failed
+  discountApplied?: boolean
+  discountAppliedAt?: Timestamp
+  discountPercentage?: number
   // Diagnostic fields for debugging matching issues
   matchingDiagnostics?: {
     searchAttempted?: boolean
@@ -135,6 +146,7 @@ export interface GeminiParseResult {
   product_name_prefixes: string[] // Growing prefixes for product name
   product_name_prefixes_mk?: string[] // Growing prefixes for Macedonian product name
   discount_price?: number
+  discount_text?: string
   discount_price_mk?: string // Macedonian discount price text
   discount_start_date?: string // ISO date string when discount starts
   discount_end_date?: string // ISO date string when discount ends

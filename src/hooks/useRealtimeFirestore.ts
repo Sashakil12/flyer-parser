@@ -74,7 +74,7 @@ export const useRealtimeParsedItems = (flyerImageId?: string, autoApprovalStatus
     let q;
     const collectionRef = collection(db, 'parsed-flyer-items');
     
-    const constraints = [orderBy('createdAt', 'desc')];
+    const constraints = [];
 
     if (flyerImageId) {
       constraints.push(where('flyerImageId', '==', flyerImageId));
@@ -83,6 +83,8 @@ export const useRealtimeParsedItems = (flyerImageId?: string, autoApprovalStatus
     if (autoApprovalStatus) {
       constraints.push(where('autoApprovalStatus', '==', autoApprovalStatus));
     }
+
+    constraints.push(orderBy('createdAt', 'desc'));
 
     q = query(collectionRef, ...constraints);
 
@@ -132,7 +134,7 @@ export const useRealtimeParsedItems = (flyerImageId?: string, autoApprovalStatus
 // Real-time stats hook
 export const useRealtimeStats = (autoApproved?: boolean) => {
   const { flyerImages } = useRealtimeFlyerImages()
-  const { parsedItems } = useRealtimeParsedItems(undefined, autoApproved)
+  const { parsedItems } = useRealtimeParsedItems(undefined, autoApproved === true ? 'success' : autoApproved === false ? 'failed' : undefined)
 
   const stats = {
     totalFlyers: flyerImages.length,

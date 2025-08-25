@@ -32,9 +32,9 @@ export const signIn = async (email: string, password: string): Promise<User> => 
 /**
  * Signs out the current user
  */
-export const signOutUser = async (): Promise<void> => {
+export const signOut = async (): Promise<void> => {
   try {
-    await signOut(auth)
+    await firebaseSignOut(auth)
   } catch (error: any) {
     console.error('Sign out error:', error)
     throw new Error('Failed to sign out')
@@ -57,18 +57,6 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
       callback(null)
     }
   })
-}
-
-/**
- * Signs out the current user
- */
-export const signOut = async (): Promise<void> => {
-  try {
-    await firebaseSignOut(auth)
-  } catch (error: any) {
-    console.error('Sign out error:', error)
-    throw new Error('Failed to sign out')
-  }
 }
 
 /**
