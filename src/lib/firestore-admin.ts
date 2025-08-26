@@ -29,13 +29,36 @@ function validateProductDataConsistency(product: any, searchTerm: string): boole
 // Server-side Firestore operations using Firebase Admin SDK
 export const updateFlyerImageStatus = async (
   id: string,
-  status: FlyerImage['processingStatus'],
-  failureReason?: string
+  status: 'pending' | 'processing' | 'completed' | 'failed',
+  failureReason?: string,
+  storageUrl?: string
 ): Promise<void> => {
   try {
-    console.log(`📝 Updating flyer image ${id} status to: ${status}`)
+    let docRef = adminDb.collection('flyer-images').doc(id)
+    let docSnapshot = await docRef.get()
     
-    const docRef = adminDb.collection(FLYER_IMAGES_COLLECTION).doc(id)
+    // If document doesn't exist with the provided ID, try to find it by storage URL
+    if (!docSnapshot.exists && storageUrl) {
+      console.warn(`⚠️ Document ${id} not found, searching by storage URL...`)
+      
+      const querySnapshot = await adminDb.collection('flyer-images')
+        .where('storageUrl', '==', storageUrl)
+        .limit(1)
+        .get()
+      
+      if (!querySnapshot.empty) {
+        const foundDoc = querySnapshot.docs[0]
+        docRef = foundDoc.ref
+        docSnapshot = foundDoc
+        console.log(`✅ Found document by storage URL: ${foundDoc.id} (original ID: ${id})`)
+      }
+    }
+    
+    if (!docSnapshot.exists) {
+      console.warn(`⚠️ Flyer image document ${id} does not exist, skipping status update`)
+      console.log(`📊 This can happen if the document was deleted or never created properly`)
+      return // Skip update instead of throwing error
+    }
     
     const updateData: any = {
       processingStatus: status,
@@ -54,9 +77,16 @@ export const updateFlyerImageStatus = async (
     
     await docRef.update(updateData)
     
-    console.log(`✅ Successfully updated flyer image ${id} status to: ${status}`)
+    console.log(`✅ Successfully updated flyer image ${docRef.id} status to: ${status}`)
   } catch (error: any) {
     console.error('❌ Error updating flyer image status:', error)
+    
+    // Don't throw error for missing documents - just log and continue
+    if (error.message.includes('NOT_FOUND') || error.message.includes('No document to update')) {
+      console.warn(`⚠️ Skipping update for missing flyer image document ${id}`)
+      return
+    }
+    
     throw new Error(`Failed to update processing status: ${error.message}`)
   }
 }

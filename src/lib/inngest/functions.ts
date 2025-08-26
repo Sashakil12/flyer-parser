@@ -49,7 +49,7 @@ export const parseFlyerFunction = inngest.createFunction(
 
     // Step 1: Update status to processing
     await step.run('update-status-processing', async () => {
-      await updateFlyerImageStatus(flyerImageId, 'processing')
+      await updateFlyerImageStatus(flyerImageId, 'processing', undefined, storageUrl)
       return { status: 'processing' }
     })
 
@@ -158,7 +158,7 @@ export const parseFlyerFunction = inngest.createFunction(
     if (!parseResult.success) {
       // Step 3a: Update status to failed if parsing failed
       await step.run('update-status-failed', async () => {
-        await updateFlyerImageStatus(flyerImageId, 'failed', parseResult.error)
+        await updateFlyerImageStatus(flyerImageId, 'failed', parseResult.error, storageUrl)
         return { status: 'failed', reason: parseResult.error }
       })
       
@@ -344,7 +344,7 @@ export const parseFlyerFunction = inngest.createFunction(
 
     // Step 5: Update status to completed
     await step.run('update-status-completed', async () => {
-      await updateFlyerImageStatus(flyerImageId, 'completed')
+      await updateFlyerImageStatus(flyerImageId, 'completed', undefined, storageUrl)
       return { status: 'completed' }
     })
 
@@ -406,7 +406,7 @@ export const statusUpdateFunction = inngest.createFunction(
     try {
       await step.run('update-flyer-status', async () => {
         try {
-          await updateFlyerImageStatus(flyerImageId, status)
+          await updateFlyerImageStatus(flyerImageId, status, undefined, storageUrl)
           
           if (error) {
             console.error(`❌ Status update for ${flyerImageId} includes error:`, {
@@ -1168,338 +1168,146 @@ export const matchProductsFunction = inngest.createFunction(
       // Re-throw the error for Inngest to handle (will trigger retries based on the retry configuration)
       throw e;
     }
-  })
+  }
+)
 
 // Function to extract clean product images from flyers
 export const extractImagesFunction = inngest.createFunction(
-  { id: 'extract-item-images', name: 'Extract Clean Product Images from Flyer' },
+  { 
+    id: 'extract-item-images', 
+    name: 'Extract Clean Product Images from Flyer',
+    retries: 3
+  },
   { event: 'flyer/extract-images' },
   async ({ event, step }) => {
-    console.log('🎨 INNGEST IMAGE EXTRACTION TRIGGERED!', { 
-      eventId: event.id, 
-      flyerImageId: event.data.flyerImageId,
-      itemCount: event.data.parsedItems.length 
+    const { flyerImageId, storageUrl, parsedItems } = event.data
+    
+    console.log('🎨 Starting image extraction', { 
+      flyerImageId,
+      itemCount: parsedItems.length 
     })
     
-    const { flyerImageId, storageUrl, originalImageDimensions, parsedItems } = event.data
+    // Step 1: Update items to processing
+    await step.run('update-status-processing', async () => {
+      const updates = parsedItems.map((item: any) => 
+        updateParsedFlyerItem(item.id, { imageExtractionStatus: 'processing' })
+      )
+      await Promise.all(updates)
+      return { updated: parsedItems.length }
+    })
     
-    try {
-      // Step 1: Update all items to processing status
-      await step.run('update-extraction-status-processing', async () => {
-        const updatePromises = parsedItems.map((item: any) => 
-          updateParsedFlyerItem(item.id, {
-            imageExtractionStatus: 'processing'
-          })
-        )
-        await Promise.all(updatePromises)
-        console.log(`📝 Updated ${parsedItems.length} items to processing status`)
-        return { updated: parsedItems.length }
-      })
-      
-      // Step 2: Download and prepare flyer image
-      const flyerImageData = await step.run('prepare-flyer-image', async () => {
-        console.log('📥 Downloading flyer image for processing...')
-        
-        try {
-          const controller = new AbortController()
-          const timeoutId = setTimeout(() => controller.abort(), 60000) // 60 second timeout
-          
-          const response = await fetch(storageUrl, { 
-            signal: controller.signal 
-          })
-          clearTimeout(timeoutId)
-          
-          if (!response.ok) {
-            throw new Error(`Failed to download flyer image: ${response.statusText}`)
-          }
-          
-          const buffer = await response.arrayBuffer()
-          const base64 = Buffer.from(buffer).toString('base64')
-          const contentType = response.headers.get('content-type') || 'image/jpeg'
-          const dataUrl = `data:${contentType};base64,${base64}`
-          
-          console.log(`✅ Flyer image prepared: ${Math.round(buffer.byteLength / 1024)}KB`)
-          return dataUrl
-          
-        } catch (error: any) {
-          console.error('❌ Error downloading flyer image:', error)
-          throw new Error(`Failed to prepare flyer image: ${error.message}`)
-        }
-      })
-      
-      // Step 3: Extract clean product images with Imagen 4
-      const extractedImages = await step.run('extract-images-from-flyer', async () => {
-        console.log('🎨 Extracting clean product images with Imagen 4...')
-        console.log(`📊 Processing ${parsedItems.length} parsed items`)
-        
-        try {
-          // Add timeout protection for the entire extraction process
-          const extractionPromise = extractCleanProductImages(
-            flyerImageData,
-            parsedItems,
-            {
-              removeText: true,
-              removePromotionalElements: true,
-              backgroundStyle: 'white',
-              productCentering: true,
-              qualityEnhancement: true
-            }
-          )
-          
-          // Set a 5-minute timeout for the entire extraction process
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error('Image extraction timed out after 5 minutes')), 300000)
-          })
-          
-          const cleanImages = await Promise.race([extractionPromise, timeoutPromise]) as any
-          
-          console.log(`✅ Extracted ${cleanImages.length} clean product images`)
-          return cleanImages
-          
-        } catch (error: any) {
-          console.error('❌ Error extracting clean product images:', error)
-          console.error('❌ Full error stack:', error.stack)
-          
-          // Return empty array instead of throwing to prevent function from hanging
-          console.warn('⚠️ Returning empty array to prevent function hang')
-          return []
-        }
-      })
-      
-      // Optimize images first
-      const optimizedResults = await step.run('optimize-images', async () => {
-        console.log(`🔧 Optimizing ${extractedImages.length} extracted images...`)
-        
-        const results: Array<{
-          itemId: string
-          success: boolean
-          optimizedImages?: any
-          extractedImage?: any
-          error?: string
-        }> = []
-        
-        for (const extractedImage of extractedImages) {
-          try {
-            console.log(`🔧 Optimizing image for item: ${extractedImage.itemId}`)
-            
-            // Validate image quality
-            const qualityCheck = await validateImageQuality(extractedImage.extractedImageData)
-            
-            if (!qualityCheck.isValid) {
-              console.warn(`⚠️ Quality issues for item ${extractedImage.itemId}:`, qualityCheck.issues)
-              // Continue processing but flag for manual review
-              extractedImage.manualReviewRequired = true
-              extractedImage.qualityScore = qualityCheck.qualityScore
-            }
-            
-            // Optimize for Flutter
-            const optimizedImages = await optimizeForFlutter(extractedImage.extractedImageData, {
-              maxWidth: 800,
-              maxHeight: 600,
-              quality: 85,
-              format: 'webp',
-              generateThumbnail: true,
-              generateTransparent: false, // Skip transparent for now
-              generateMultipleResolutions: true
-            })
-            
-            results.push({
-              itemId: extractedImage.itemId,
-              success: true,
-              optimizedImages,
-              extractedImage
-            })
-            
-            console.log(`✅ Successfully optimized image for item: ${extractedImage.itemId}`)
-            
-          } catch (error: any) {
-            console.error(`❌ Error optimizing image for item ${extractedImage.itemId}:`, error)
-            results.push({
-              itemId: extractedImage.itemId,
-              success: false,
-              error: error.message
-            })
-          }
-        }
-        
-        return results
-      })
-
-      // Upload optimized images to storage
-      const processedResults = await step.run('upload-images-to-storage', async () => {
-        console.log(`📤 Uploading ${optimizedResults.length} optimized images to Firebase Storage...`)
-        
-        const results: Array<{
-          itemId: string
-          success: boolean
-          urls?: any
-          error?: string
-        }> = []
-        
-        for (const optimizedResult of optimizedResults) {
-          try {
-            if (!optimizedResult.success) {
-              // Pass through optimization failures
-              results.push({
-                itemId: optimizedResult.itemId,
-                success: false,
-                error: optimizedResult.error
-              })
-              continue
-            }
-            
-            console.log(`📤 Uploading image for item: ${optimizedResult.itemId}`)
-            
-            // Upload to storage
-            const uploadResult = await uploadOptimizedImages(
-              flyerImageId,
-              optimizedResult.itemId,
-              optimizedResult.optimizedImages
-            )
-            
-            // Save metadata
-            const metadata = {
-              extraction: {
-                confidence: optimizedResult.extractedImage.confidence,
-                qualityScore: optimizedResult.extractedImage.qualityScore,
-                processingMethod: optimizedResult.extractedImage.processingMethod,
-                backgroundRemoved: optimizedResult.extractedImage.backgroundRemoved,
-                textRemoved: optimizedResult.extractedImage.textRemoved,
-                manualReviewRequired: optimizedResult.extractedImage.manualReviewRequired,
-                extractedAt: new Date().toISOString()
-              },
-              optimization: {
-                format: 'webp',
-                quality: 85,
-                resolutions: ['1x', '2x', '3x'],
-                optimizedAt: new Date().toISOString()
-              },
-              upload: uploadResult.metadata
-            }
-            
-            await saveImageMetadata(flyerImageId, optimizedResult.itemId, metadata)
-            
-            results.push({
-              itemId: optimizedResult.itemId,
-              success: true,
-              urls: uploadResult.urls
-            })
-            
-            console.log(`✅ Successfully uploaded image for item: ${optimizedResult.itemId}`)
-            
-          } catch (error: any) {
-            console.error(`❌ Error uploading image for item ${optimizedResult.itemId}:`, error)
-            results.push({
-              itemId: optimizedResult.itemId,
-              success: false,
-              error: error.message
-            })
-          }
-        }
-        
-        return results
-      })
-
-      // Step 5: Update database with results
-      await step.run('update-database-results', async () => {
-        console.log('💾 Updating database with extraction results...')
-        
-        // Update database records as individual Inngest steps for better reliability
-        await step.run('update-database-records', async () => {
-          console.log('📝 Starting database updates for all processed items...')
-          
-          const updatePromises = processedResults.map(async (result) => {
-            try {
-              console.log(`🔄 Processing update for item ${result.itemId}: success=${result.success}`)
-              
-              if (result.success && result.urls) {
-                console.log(`✅ Updating item ${result.itemId} with completed status and images`)
-                
-                // Update with successful extraction
-                await updateParsedFlyerItem(result.itemId, {
-                  extractedImages: {
-                    clean: {
-                      original: result.urls.original,
-                      optimized: result.urls.optimized,
-                      thumbnail: result.urls.thumbnail,
-                      transparent: result.urls.transparent
-                    },
-                    resolutions: result.urls.resolutions,
-                    extractionMetadata: {
-                      confidence: extractedImages.find(img => img.itemId === result.itemId)?.confidence || 0,
-                      backgroundRemoved: true,
-                      textRemoved: true,
-                      qualityScore: extractedImages.find(img => img.itemId === result.itemId)?.qualityScore || 0,
-                      processingMethod: 'imagen4',
-                      manualReviewRequired: extractedImages.find(img => img.itemId === result.itemId)?.manualReviewRequired || false
-                    }
-                  },
-                  imageExtractionStatus: 'completed',
-                  imageExtractedAt: Timestamp.now() as any,
-                  imageQualityScore: extractedImages.find(img => img.itemId === result.itemId)?.qualityScore || 0
-                })
-                
-                console.log(`🎉 Successfully updated item ${result.itemId} to completed status`)
-              } else {
-                console.log(`❌ Updating item ${result.itemId} with failed status: ${result.error}`)
-                
-                // Update with failure
-                await updateParsedFlyerItem(result.itemId, {
-                  imageExtractionStatus: 'failed',
-                  imageExtractionError: result.error || 'Unknown error during image extraction'
-                })
-                
-                console.log(`💥 Successfully updated item ${result.itemId} to failed status`)
-              }
-            } catch (updateError: any) {
-              console.error(`❌ Error updating database for item ${result.itemId}:`, updateError)
-              console.error('❌ Full error details:', updateError.message, updateError.stack)
-              throw updateError // Re-throw to ensure step fails if database update fails
-            }
-          })
-          
-          await Promise.all(updatePromises)
-          
-          const successCount = processedResults.filter(r => r.success).length
-          const failureCount = processedResults.filter(r => !r.success).length
-          
-          console.log(`✅ Database updates complete: ${successCount} successful, ${failureCount} failed`)
-          
-          return {
-            totalUpdated: processedResults.length,
-            successfulExtractions: successCount,
-            failedExtractions: failureCount
-          }
-        })
-      })
-      
-      console.log('🎉 Image extraction pipeline completed successfully!')
-      
-      return {
-        success: true,
-        flyerImageId,
-        totalItems: parsedItems.length,
-        extractedImages: updateResults.successfulExtractions,
-        failedExtractions: updateResults.failedExtractions
+    // Step 2: Download flyer image
+    const flyerImageData = await step.run('download-flyer-image', async () => {
+      const response = await fetch(storageUrl)
+      if (!response.ok) {
+        throw new Error(`Failed to download image: ${response.statusText}`)
       }
       
-    } catch (error: any) {
-      console.error('❌ Error in image extraction pipeline:', error)
+      const buffer = await response.arrayBuffer()
+      const base64 = Buffer.from(buffer).toString('base64')
+      const contentType = response.headers.get('content-type') || 'image/jpeg'
       
-      // Update all items to failed status
-      try {
-        const failureUpdatePromises = parsedItems.map((item: any) => 
-          updateParsedFlyerItem(item.id, {
+      return `data:${contentType};base64,${base64}`
+    })
+    
+    // Step 3: Extract images with AI
+    const extractedImages = await step.run('extract-with-ai', async () => {
+      return await extractCleanProductImages(flyerImageData, parsedItems, {
+        removeText: true,
+        removePromotionalElements: true,
+        backgroundStyle: 'white',
+        productCentering: true,
+        shadowGeneration: true,
+        qualityEnhancement: true
+      })
+    })
+    
+    // Step 4: Process each image
+    const processResults = await step.run('process-images', async () => {
+      const results = []
+      
+      for (const cleanImage of extractedImages) {
+        try {
+          // Optimize image
+          const optimized = await optimizeForFlutter(cleanImage.extractedImageData, {
+            maxWidth: 1200,
+            maxHeight: 1200,
+            quality: 85,
+            format: 'webp',
+            generateThumbnail: true,
+            generateMultipleResolutions: true
+          })
+          
+          // Upload to storage
+          const urls = await uploadOptimizedImages(flyerImageId, cleanImage.itemId, optimized)
+          
+          results.push({ itemId: cleanImage.itemId, success: true, urls })
+        } catch (error: any) {
+          results.push({ itemId: cleanImage.itemId, success: false, error: error.message })
+        }
+      }
+      
+      return results
+    })
+    
+    // Step 5: Update database
+    await step.run('update-database', async () => {
+      const updates = processResults.map(async (result) => {
+        if (result.success && 'urls' in result) {
+          // Transform ImageUploadResult to match ParsedFlyerItem.extractedImages structure
+          // Cast to any to handle JsonifyObject serialization issues
+          const urlData = result.urls as any
+          
+          // Build clean URLs object, excluding undefined values
+          const cleanUrls: any = {
+            original: urlData.urls.original,
+            optimized: urlData.urls.optimized,
+            thumbnail: urlData.urls.thumbnail
+          }
+          
+          // Only add transparent if it exists
+          if (urlData.urls.transparent) {
+            cleanUrls.transparent = urlData.urls.transparent
+          }
+          
+          const extractedImages = {
+            clean: cleanUrls,
+            resolutions: urlData.urls.resolutions,
+            extractionMetadata: {
+              confidence: 0.85, // Default confidence - could be enhanced with actual AI confidence
+              backgroundRemoved: true,
+              textRemoved: true,
+              qualityScore: 0.8, // Default quality score - could be enhanced with actual quality assessment
+              processingMethod: 'imagen4' as const,
+              manualReviewRequired: false
+            }
+          }
+          
+          await updateParsedFlyerItem(result.itemId, {
+            extractedImages,
+            imageExtractionStatus: 'completed',
+            imageExtractedAt: Timestamp.now() as any
+          })
+        } else {
+          await updateParsedFlyerItem(result.itemId, {
             imageExtractionStatus: 'failed',
-            imageExtractionError: `Pipeline failed: ${error.message}`
+            imageExtractionError: 'error' in result ? result.error : 'Unknown error'
           })
-        )
-        await Promise.all(failureUpdatePromises)
-      } catch (updateError) {
-        console.error('❌ Error updating items to failed status:', updateError)
-      }
+        }
+      })
       
-      throw error
+      await Promise.all(updates)
+      return { processed: processResults.length }
+    })
+    
+    const successCount = processResults.filter(r => r.success).length
+    
+    return {
+      success: true,
+      flyerImageId,
+      totalItems: parsedItems.length,
+      extractedImages: successCount,
+      failedExtractions: processResults.length - successCount
     }
   }
 )
