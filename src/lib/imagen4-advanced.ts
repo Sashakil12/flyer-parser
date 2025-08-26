@@ -1,9 +1,10 @@
 import { GoogleAuth } from 'google-auth-library'
 import { ProductExtractionConfig, CleanProductImage } from '@/types'
+import { appConfigServer } from '@/lib/config.server'
 
 // Google Cloud AI Platform endpoints
 const IMAGEN_ENDPOINT = 'https://us-central1-aiplatform.googleapis.com'
-const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+const PROJECT_ID = appConfigServer.firebase.projectId
 
 interface ParsedItemWithRegion {
   id: string
@@ -35,32 +36,36 @@ interface DetectedRegion {
 
 // Specialized prompts for different stages
 const PRODUCT_DETECTION_PROMPT = `
-CRITICAL TASK: Analyze this flyer image and identify the exact locations of individual product images (not text or prices).
+CRITICAL TASK: Analyze this flyer image and identify the locations of individual product images that can be extracted and converted into clean e-commerce product photos.
 
 WHAT TO DETECT:
-- Actual product photos/images (food items, consumer goods, etc.)
-- Physical products visible in the flyer
-- Product packaging or containers
+- Actual product photos/images (food items, beverages, consumer goods, etc.)
+- Physical products with clear visual details
+- Product packaging, containers, or items with distinct shapes
+- Products that would make good standalone e-commerce images
 
 WHAT TO IGNORE:
 - Price tags, discount percentages, promotional text
 - Store logos, decorative elements, backgrounds
 - Product names or descriptions (text only)
-- Promotional badges or stickers
+- Promotional badges, stickers, or sale banners
+- Products that are too small, blurry, or partially obscured
 
-INSTRUCTIONS:
-1. Scan the entire flyer systematically
-2. Identify each distinct product image/photo
-3. Provide precise bounding box coordinates as percentages (0-1) of total image dimensions
-4. Ensure coordinates tightly bound the actual product image (not surrounding text)
-5. Rate confidence level (0-1) based on clarity and certainty of product detection
-6. Extract or infer the product name from context if possible
+DETECTION STRATEGY:
+1. Scan the flyer systematically from top-left to bottom-right
+2. Identify each distinct product that has sufficient visual detail
+3. Focus on products that can be cleanly separated from the background
+4. Provide approximate bounding box coordinates as percentages (0-1)
+5. Prioritize products with clear, unobstructed views
+6. Rate confidence based on product visibility and extraction potential
 
 COORDINATE SYSTEM:
 - x: horizontal position from left edge (0 = left, 1 = right)
 - y: vertical position from top edge (0 = top, 1 = bottom)  
 - width: horizontal span as percentage of total width
 - height: vertical span as percentage of total height
+
+IMPORTANT: Focus on products that Imagen4 can successfully extract and convert into professional product images.
 
 RETURN EXACTLY THIS JSON FORMAT:
 {
@@ -75,6 +80,10 @@ RETURN EXACTLY THIS JSON FORMAT:
 }
 
 CRITICAL: Only detect actual product images/photos, not text or promotional elements. Each bounding box should contain a visible product.
+`
+
+const PROFESSIONAL_PRODUCT_PROMPT = `
+A studio photo of PRODUCT_NAME, 100mm macro lens, natural lighting, 4K, HDR, high-quality, beautiful, professional product photography, white background, centered composition, soft shadows, commercial photography
 `
 
 const CLEAN_EXTRACTION_PROMPT = `
@@ -127,10 +136,32 @@ class Imagen4Service {
   private tokenExpiry: number = 0
 
   constructor() {
-    this.auth = new GoogleAuth({
+    // Use centralized server configuration
+    const serviceAccountPath = appConfigServer.firebase.serviceAccountPath || './firebase-service-account.json'
+    
+    // Configure authentication with multiple fallback options
+    const authConfig: any = {
       scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-      keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS
-    })
+      projectId: PROJECT_ID
+    }
+    
+    // Use service account file if available
+    if (serviceAccountPath) {
+      authConfig.keyFilename = serviceAccountPath
+    }
+    
+    // Fallback to client credentials if available
+    if (appConfigServer.firebase.clientEmail && appConfigServer.firebase.privateKey) {
+      authConfig.credentials = {
+        client_email: appConfigServer.firebase.clientEmail,
+        private_key: appConfigServer.firebase.privateKey.replace(/\\n/g, '\n')
+      }
+    }
+    
+    this.auth = new GoogleAuth(authConfig)
+    
+    console.log(`🔐 Imagen4Service initialized with project: ${PROJECT_ID}`)
+    console.log(`🔐 Using service account: ${serviceAccountPath || 'environment credentials'}`)
   }
 
   private async getAccessToken(): Promise<string> {
@@ -139,58 +170,144 @@ class Imagen4Service {
       return this.accessToken
     }
 
-    const client = await this.auth.getClient()
-    const tokenResponse = await client.getAccessToken()
-    
-    if (!tokenResponse.token) {
-      throw new Error('Failed to obtain access token')
-    }
+    try {
+      console.log('🔐 Attempting to get Google Cloud access token...')
+      const client = await this.auth.getClient()
+      const tokenResponse = await client.getAccessToken()
+      
+      if (!tokenResponse.token) {
+        throw new Error('Failed to obtain access token')
+      }
 
-    this.accessToken = tokenResponse.token
-    this.tokenExpiry = now + (55 * 60 * 1000) // 55 minutes (tokens expire in 1 hour)
-    
-    return this.accessToken
+      this.accessToken = tokenResponse.token
+      this.tokenExpiry = now + (55 * 60 * 1000) // 55 minutes (tokens expire in 1 hour)
+      
+      console.log('✅ Successfully obtained Google Cloud access token')
+      return this.accessToken
+    } catch (error) {
+      console.error('❌ Failed to get Google Cloud access token:', error)
+      console.error('💡 Make sure GOOGLE_APPLICATION_CREDENTIALS is set or firebase-service-account.json exists')
+      console.error('💡 Project ID:', PROJECT_ID)
+      throw error
+    }
   }
 
   private async callImagenAPI(prompt: string, imageData: string, operation: string): Promise<any> {
-    const accessToken = await this.getAccessToken()
+    const maxRetries = 3
+    const baseDelay = 1000 // 1 second
     
-    console.log(`🔄 Calling Imagen API for operation: ${operation}`)
-    
-    const requestBody = {
-      instances: [{
-        prompt: prompt,
-        image: {
-          bytesBase64Encoded: imageData.replace(/^data:image\/[a-z]+;base64,/, '')
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        const accessToken = await this.getAccessToken()
+        
+        console.log(`🔄 Calling Imagen API for operation: ${operation} (attempt ${attempt}/${maxRetries})`)
+        console.log(`🔄 Prompt: "${prompt.substring(0, 100)}..."`)
+        
+        // Validate input data
+        if (!prompt || prompt.trim().length === 0) {
+          throw new Error('Prompt is empty or invalid')
         }
-      }],
-      parameters: {
-        sampleCount: 1,
-        aspectRatio: "1:1",
-        safetyFilterLevel: "block_some",
-        personGeneration: "dont_allow"
+        
+        if (!imageData || !imageData.includes('base64')) {
+          throw new Error('Image data is missing or invalid format')
+        }
+        
+        const cleanBase64 = imageData.replace(/^data:image\/[a-z]+;base64,/, '')
+        if (cleanBase64.length < 100) {
+          throw new Error('Base64 image data is too short, likely invalid')
+        }
+        
+        console.log(`🔄 Base64 data length: ${cleanBase64.length}`)
+        
+        const requestBody = {
+          instances: [{
+            prompt: prompt,
+            image: {
+              bytesBase64Encoded: cleanBase64
+            }
+          }],
+          parameters: {
+            sampleCount: 1,
+            aspectRatio: "1:1",
+            safetyFilterLevel: "block_some",
+            personGeneration: "dont_allow"
+          }
+        }
+        
+        console.log(`🔄 Request body structure:`, {
+          instancesCount: requestBody.instances.length,
+          promptLength: requestBody.instances[0].prompt.length,
+          hasImageData: !!requestBody.instances[0].image.bytesBase64Encoded,
+          imageDataLength: requestBody.instances[0].image.bytesBase64Encoded.length
+        })
+
+        const response = await fetch(
+          `${IMAGEN_ENDPOINT}/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-generate-002:predict`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody)
+          }
+        )
+
+        if (response.ok) {
+          console.log(`✅ Imagen API call successful for ${operation}`)
+          return await response.json()
+        }
+
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { error: { message: errorText } }
+        }
+
+        console.error(`Imagen API error for ${operation} (attempt ${attempt}):`, errorData)
+
+        // Handle specific error types
+        if (response.status === 429) {
+          // Quota exceeded - implement exponential backoff
+          const delay = baseDelay * Math.pow(2, attempt - 1) + Math.random() * 1000
+          console.warn(`⏳ Quota exceeded for ${operation}. Retrying in ${Math.round(delay)}ms...`)
+          
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, delay))
+            continue
+          } else {
+            throw new Error(`Quota exceeded for ${operation}. Please check your Google Cloud quotas and try again later.`)
+          }
+        } else if (response.status >= 500) {
+          // Server error - retry with backoff
+          const delay = baseDelay * Math.pow(2, attempt - 1)
+          console.warn(`🔄 Server error for ${operation}. Retrying in ${Math.round(delay)}ms...`)
+          
+          if (attempt < maxRetries) {
+            await new Promise(resolve => setTimeout(resolve, delay))
+            continue
+          }
+        }
+
+        // For other errors or final attempt, throw immediately
+        throw new Error(`Imagen API failed for ${operation}: ${response.status} ${response.statusText}`)
+
+      } catch (error) {
+        if (attempt === maxRetries) {
+          console.error(`❌ Final attempt failed for ${operation}:`, error)
+          throw error
+        }
+        
+        // For network errors, retry with backoff
+        const delay = baseDelay * Math.pow(2, attempt - 1)
+        console.warn(`🔄 Network error for ${operation}. Retrying in ${Math.round(delay)}ms...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
       }
     }
 
-    const response = await fetch(
-      `${IMAGEN_ENDPOINT}/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody)
-      }
-    )
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`Imagen API error for ${operation}:`, errorText)
-      throw new Error(`Imagen API failed for ${operation}: ${response.statusText}`)
-    }
-
-    return await response.json()
+    throw new Error(`All retry attempts failed for ${operation}`)
   }
 
   async detectProductRegions(
@@ -199,6 +316,12 @@ class Imagen4Service {
   ): Promise<DetectedRegion[]> {
     console.log('🔍 Using AI to detect actual product locations in flyer...')
     console.log(`📊 Looking for ${parsedItems.length} products in flyer`)
+    
+    // Debug logging for input validation
+    if (parsedItems.length === 0) {
+      console.warn('⚠️ No parsed items provided for detection')
+      return []
+    }
     
     try {
       // Create a detection prompt that includes known product names for context
@@ -280,12 +403,16 @@ Analyze the image and detect the exact locations where these products appear as 
       }
       
       console.warn('⚠️ AI detection failed, falling back to heuristic detection')
-      return this.fallbackHeuristicDetection(parsedItems)
-      
+      const fallbackRegions = this.fallbackHeuristicDetection(parsedItems)
+      console.log(`🔄 Fallback detection created ${fallbackRegions.length} regions`)
+      return fallbackRegions
+    
     } catch (error) {
       console.error('❌ Error in AI product detection:', error)
-      return this.fallbackHeuristicDetection(parsedItems)
-    }
+      const fallbackRegions = this.fallbackHeuristicDetection(parsedItems)
+      console.log(`🔄 Error fallback detection created ${fallbackRegions.length} regions`)
+      return fallbackRegions
+    }  
   }
 
   private findBestMatchingItem(detectedName: string, parsedItems: ParsedItemWithRegion[]): ParsedItemWithRegion | null {
@@ -326,12 +453,20 @@ Analyze the image and detect the exact locations where these products appear as 
 
   private fallbackHeuristicDetection(parsedItems: ParsedItemWithRegion[]): DetectedRegion[] {
     console.log('🔄 Using heuristic product region detection as fallback')
+    console.log(`📊 Heuristic input: ${parsedItems.length} items`)
+    
+    if (parsedItems.length === 0) {
+      console.warn('⚠️ No items provided to heuristic detection')
+      return []
+    }
     
     // Create a grid-based layout for products
     const itemsPerRow = Math.min(3, Math.ceil(Math.sqrt(parsedItems.length)))
     const rows = Math.ceil(parsedItems.length / itemsPerRow)
     
-    return parsedItems.map((item, index) => {
+    console.log(`📐 Grid layout: ${itemsPerRow} items per row, ${rows} rows`)
+    
+    const regions = parsedItems.map((item, index) => {
       const row = Math.floor(index / itemsPerRow)
       const col = index % itemsPerRow
       
@@ -355,90 +490,132 @@ Analyze the image and detect the exact locations where these products appear as 
         productName: item.productName
       }
     })
+    
+    console.log(`✅ Heuristic detection created ${regions.length} regions`)
+    return regions
   }
 
-  async extractCleanProductImage(
+  async generateCleanProductImageDirect(
     flyerImageData: string,
-    region: DetectedRegion,
+    item: ParsedItemWithRegion,
     config: ProductExtractionConfig
   ): Promise<CleanProductImage> {
-    console.log(`🎨 Extracting clean image for product: ${region.productName}`)
-    
+    console.log(`🎨 Direct creative generation for: ${item.productName}`)
+    console.log(`🎨 Item details:`, {
+      id: item.id,
+      productName: item.productName,
+      productNameMk: item.productNameMk
+    })
+
     try {
-      // Step 1: Extract the product region
-      const extractedRegion = await this.extractRegion(flyerImageData, region.boundingBox)
+      // Build enhanced prompt with product details
+      const prompt = this.buildDirectCreativePrompt(item, config)
+      console.log(`🎨 Generated prompt:`, prompt)
+      console.log(`🎨 Flyer image data length:`, flyerImageData?.length || 'undefined')
       
-      // Step 2: Remove promotional elements and text
-      const cleanedImage = await this.removePromotionalElements(
-        extractedRegion, 
-        [region.productName]
-      )
+      const response = await this.generateImage(prompt, flyerImageData)
+      console.log(`🎨 API response:`, {
+        success: response.success,
+        hasImageUrl: !!response.imageUrl,
+        error: response.error
+      })
       
-      // Step 3: Generate professional background
-      const finalImage = await this.generateProfessionalBackground(
-        cleanedImage,
-        config.backgroundStyle
-      )
+      if (!response.success || !response.imageUrl) {
+        const errorMsg = `Failed to generate clean product image: ${response.error}`
+        console.error(`❌ ${errorMsg}`)
+        throw new Error(errorMsg)
+      }
+
+      console.log(`✅ Successfully generated professional product image using direct creative mode`)
       
-      // Calculate quality score based on processing success
-      const qualityScore = this.calculateQualityScore(finalImage, config)
-      
-      return {
-        itemId: region.itemId,
-        originalRegion: region.boundingBox,
-        extractedImageData: finalImage,
-        confidence: region.confidence,
-        qualityScore,
-        processingMethod: 'imagen4',
-        backgroundRemoved: true,
-        textRemoved: true,
-        manualReviewRequired: qualityScore < 0.7
+      const cleanImage = {
+        itemId: item.id,
+        productName: item.productName,
+        imageUrl: response.imageUrl,
+        confidence: 0.9, // High confidence for direct generation
+        extractionMethod: 'imagen4-direct-creative' as const,
+        metadata: {
+          productDetails: {
+            productName: item.productName,
+            productNameMk: item.productNameMk,
+            discountPrice: item.discountPrice,
+            oldPrice: item.oldPrice
+          },
+          generatedAt: new Date().toISOString(),
+          config: config
+        }
       }
       
+      console.log(`✅ Created clean image object:`, {
+        itemId: cleanImage.itemId,
+        productName: cleanImage.productName,
+        hasImageUrl: !!cleanImage.imageUrl,
+        confidence: cleanImage.confidence
+      })
+      
+      return cleanImage
     } catch (error) {
-      console.error(`❌ Error extracting clean image for ${region.productName}:`, error)
+      console.error(`❌ Error in direct creative generation for ${item.productName}:`, error)
+      console.error(`❌ Error stack:`, error instanceof Error ? error.stack : 'No stack trace')
       throw error
     }
   }
 
   private async extractRegion(imageData: string, boundingBox: any): Promise<string> {
-    console.log(`✂️ Cropping product region:`, boundingBox)
+    console.log(`🎨 Using Imagen4 in full creative mode to generate product from region:`, boundingBox)
     
     try {
-      // Create a detailed prompt for Imagen4 to extract only the specific product region
-      const cropPrompt = `
-Extract and isolate ONLY the product located in this specific region of the flyer image:
-- Region coordinates: x=${boundingBox.x}, y=${boundingBox.y}, width=${boundingBox.width}, height=${boundingBox.height}
-- Focus ONLY on the actual product within these boundaries
-- Ignore all surrounding text, prices, promotional elements, and other products
-- Extract the product cleanly without any background elements
-- Crop tightly around the product itself
-- Remove any overlapping text or promotional graphics
-- Output only the isolated product on a transparent or white background
+      // Use Imagen4's full generative power to create a professional product image
+      const creativeExtractionPrompt = `
+CREATIVE PRODUCT GENERATION TASK:
 
-Requirements:
-- Extract ONLY the product from the specified region
-- No text, prices, or promotional elements
-- Clean crop with no surrounding flyer content
-- Product should be the only visible element
+You are looking at a grocery flyer/advertisement. I want you to focus on the product located in this approximate area:
+- Horizontal position: ${Math.round(boundingBox.x * 100)}% from the left edge
+- Vertical position: ${Math.round(boundingBox.y * 100)}% from the top edge  
+- Area size: ${Math.round(boundingBox.width * 100)}% wide by ${Math.round(boundingBox.height * 100)}% tall
+
+YOUR MISSION:
+1. IDENTIFY what product is in that region (food item, beverage, household product, etc.)
+2. RECREATE that exact product as a clean, professional e-commerce photo
+3. IGNORE everything else in the flyer - prices, text, other products, backgrounds, promotional elements
+
+CREATIVE GENERATION REQUIREMENTS:
+✨ Generate a brand new, professional product photo of the identified item
+✨ Pure white background (#FFFFFF) - no flyer elements whatsoever  
+✨ Perfect studio lighting with soft shadows
+✨ Product centered and properly sized in frame
+✨ High-quality, crisp details and accurate colors
+✨ Professional e-commerce photography style
+✨ No text, prices, logos, or promotional elements anywhere
+✨ Single product only - no other items visible
+
+QUALITY STANDARDS:
+- Looks like it was shot in a professional photography studio
+- Suitable for Amazon, grocery store websites, or premium catalogs
+- Clean, minimalist, and focused entirely on the product
+- Proper proportions and realistic appearance
+- Commercial photography quality
+
+Think of this as: "Take the product concept from this flyer region and create a perfect studio photo of it"
 `
 
-      const result = await this.callImagenAPI(cropPrompt, imageData, 'region-extraction')
+      const result = await this.callImagenAPI(creativeExtractionPrompt, imageData, 'creative-product-generation')
       
       if (result.predictions && result.predictions[0] && result.predictions[0].bytesBase64Encoded) {
-        const extractedImage = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`
-        console.log(`✅ Successfully extracted product region`)
-        return extractedImage
+        const generatedImage = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`
+        console.log(`✅ Successfully generated professional product image using Imagen4 creative mode`)
+        return generatedImage
       }
       
-      console.warn(`⚠️ No extracted region returned, using original image`)
-      return imageData
+      throw new Error('Imagen4 creative generation failed - no valid image returned')
       
     } catch (error) {
-      console.error('❌ Error extracting region:', error)
-      return imageData
+      console.error('❌ Error in Imagen4 creative product generation:', error)
+      throw error
     }
   }
+
+
 
   async removePromotionalElements(
     imageData: string,
@@ -543,6 +720,65 @@ The final image should show ONLY the clean product on a white background with no
     }
   }
 
+  // Policy-compliant creative prompt for direct generation
+private buildDirectCreativePrompt(item: ParsedItemWithRegion, config: ProductExtractionConfig): string {
+  // Use Google's proven approach: simple, specific photography terms
+  // Build the final prompt using proven Google techniques
+  let finalPrompt = `A studio photo of ${item.productName}, 100mm macro lens, natural lighting, 4K, HDR, high-quality, professional product photography, white background, centered composition, soft shadows, commercial photography`
+  
+  // Add alternative product name if available for better recognition
+  if (item.productNameMk && item.productNameMk !== item.productName) {
+    finalPrompt += `, also known as ${item.productNameMk}`
+  }
+  
+  console.log(`🎨 Built prompt for ${item.productName}:`, finalPrompt)
+  return finalPrompt
+}
+
+  // Simplified generate image method using existing API
+  private async generateImage(prompt: string, imageData: string): Promise<{ success: boolean; imageUrl?: string; error?: string }> {
+    try {
+      console.log('🎨 Calling Imagen4 API for direct creative generation...')
+      console.log('🎨 Prompt length:', prompt.length)
+      console.log('🎨 Image data type:', imageData.startsWith('data:') ? 'base64' : 'unknown')
+      
+      const result = await this.callImagenAPI(prompt, imageData, 'direct-creative-generation')
+      
+      console.log('🎨 API result structure:', {
+        hasPredictions: !!result.predictions,
+        predictionsLength: result.predictions?.length || 0,
+        firstPredictionKeys: result.predictions?.[0] ? Object.keys(result.predictions[0]) : 'none'
+      })
+      
+      if (result.predictions && result.predictions[0] && result.predictions[0].bytesBase64Encoded) {
+        const base64Data = result.predictions[0].bytesBase64Encoded
+        console.log('🎨 Received base64 image data, length:', base64Data.length)
+        
+        // Validate base64 data
+        if (base64Data.length < 100) {
+          console.warn('⚠️ Base64 data seems too short, might be invalid')
+          return { success: false, error: 'Invalid base64 image data received' }
+        }
+        
+        const imageUrl = `data:image/png;base64,${base64Data}`
+        console.log('✅ Successfully created image URL')
+        return { success: true, imageUrl }
+      }
+      
+      console.error('❌ No valid image data in API response:', result)
+      return { success: false, error: 'No image data returned from API' }
+      
+    } catch (error) {
+      console.error('❌ Imagen4 API call failed:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      console.error('❌ Error details:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack?.substring(0, 500) : 'No stack'
+      })
+      return { success: false, error: errorMessage }
+    }
+  }
+
   private calculateQualityScore(imageData: string, config: ProductExtractionConfig): number {
     // Simple quality scoring based on processing steps completed
     let score = 0.5 // Base score
@@ -561,40 +797,117 @@ The final image should show ONLY the clean product on a white background with no
 // Export singleton instance
 export const imagen4Service = new Imagen4Service()
 
-// Main extraction function
+// Simplified main extraction function - Direct creative generation
 export async function extractCleanProductImages(
   flyerImageData: string,
   parsedItems: ParsedItemWithRegion[],
   config: ProductExtractionConfig
 ): Promise<CleanProductImage[]> {
-  console.log(`🚀 Starting clean product image extraction for ${parsedItems.length} items`)
+  console.log(`🚀 Starting SIMPLIFIED clean product image extraction for ${parsedItems.length} items`)
+  console.log(`🚀 Config:`, config)
+  console.log(`🚀 Flyer image data length:`, flyerImageData?.length || 'undefined')
+  console.log(`🚀 Parsed items:`, parsedItems.map(item => ({
+    id: item.id,
+    productName: item.productName,
+    productNameMk: item.productNameMk
+  })))
   
-  try {
-    // Step 1: Detect product regions
-    const detectedRegions = await imagen4Service.detectProductRegions(flyerImageData, parsedItems)
-    
-    // Step 2: Extract clean images for each region
-    const cleanImages: CleanProductImage[] = []
-    
-    for (const region of detectedRegions) {
-      try {
-        const cleanImage = await imagen4Service.extractCleanProductImage(
-          flyerImageData,
-          region,
-          config
-        )
-        cleanImages.push(cleanImage)
-      } catch (error) {
-        console.error(`❌ Failed to extract image for ${region.productName}:`, error)
-        // Continue with other products
-      }
-    }
-    
-    console.log(`✅ Successfully extracted ${cleanImages.length} clean product images`)
-    return cleanImages
-    
-  } catch (error) {
-    console.error('❌ Error in clean product image extraction:', error)
-    throw error
+  if (parsedItems.length === 0) {
+    console.warn('⚠️ No items provided for extraction')
+    return []
   }
+  
+  const cleanImages: CleanProductImage[] = []
+  
+  // Direct creative generation for each product - no region detection needed!
+  for (let i = 0; i < parsedItems.length; i++) {
+    const item = parsedItems[i]
+    try {
+      console.log(`🎨 Processing item ${i + 1}/${parsedItems.length}: ${item.productName}`)
+      console.log(`🎨 Item ID: ${item.id}`)
+      
+      const cleanImage = await imagen4Service.generateCleanProductImageDirect(
+        flyerImageData,
+        item,
+        config
+      )
+      
+      console.log(`🎨 Received clean image:`, {
+        itemId: cleanImage.itemId,
+        productName: cleanImage.productName,
+        hasImageUrl: !!cleanImage.imageUrl,
+        extractionMethod: cleanImage.extractionMethod
+      })
+      
+      cleanImages.push(cleanImage)
+      console.log(`✅ Successfully added clean image for: ${item.productName}. Total so far: ${cleanImages.length}`)
+      
+      // Add rate limiting delay between API calls (except for the last item)
+      if (i < parsedItems.length - 1) {
+        const delay = 3000 // 3 seconds between API calls
+        console.log(`⏳ Rate limiting: waiting ${delay}ms before next API call...`)
+        await new Promise(resolve => setTimeout(resolve, delay))
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to generate image for ${item.productName}:`, error)
+      console.error(`❌ Error details:`, {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : 'No stack trace'
+      })
+      
+      // Check if this is a critical error that should stop the process
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      if (errorMessage.includes('content policy') || errorMessage.includes('58061214')) {
+        console.error(`🚨 Content policy violation detected - this will affect all items`)
+        throw new Error(`Content policy violation: ${errorMessage}`)
+      }
+      
+      // For other errors, add a placeholder to track failed items
+      cleanImages.push({
+        itemId: item.id,
+        productName: item.productName,
+        imageUrl: '', // Empty URL indicates failure
+        confidence: 0,
+        extractionMethod: 'imagen4-direct-creative' as const,
+        metadata: {
+          productDetails: {
+            productName: item.productName,
+            productNameMk: item.productNameMk,
+            discountPrice: item.discountPrice,
+            oldPrice: item.oldPrice
+          },
+          generatedAt: new Date().toISOString(),
+          config: config
+        }
+      })
+      
+      console.log(`⚠️ Added failed item placeholder for: ${item.productName}`)
+    }
+  }
+  
+  console.log(`🎯 FINAL RESULT: Successfully extracted ${cleanImages.length} clean product images`)
+  console.log(`🎯 Final clean images array:`, cleanImages.map(img => ({
+    itemId: img.itemId,
+    productName: img.productName,
+    hasImageUrl: !!img.imageUrl,
+    imageUrlLength: img.imageUrl?.length || 0,
+    confidence: img.confidence
+  })))
+  
+  // Validate final results
+  const successfulImages = cleanImages.filter(img => img.imageUrl && img.imageUrl.length > 0)
+  const failedImages = cleanImages.filter(img => !img.imageUrl || img.imageUrl.length === 0)
+  
+  console.log(`🎯 EXTRACTION SUMMARY:`)
+  console.log(`   ✅ Successful: ${successfulImages.length}`)
+  console.log(`   ❌ Failed: ${failedImages.length}`)
+  console.log(`   📊 Success Rate: ${((successfulImages.length / cleanImages.length) * 100).toFixed(1)}%`)
+  
+  if (failedImages.length > 0) {
+    console.log(`⚠️ Failed items:`, failedImages.map(img => img.productName))
+  }
+  
+  // Return all items (including failed ones) so process-images can handle them appropriately
+  return cleanImages
 }

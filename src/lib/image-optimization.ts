@@ -28,6 +28,11 @@ export class ImageOptimizer {
   ): Promise<ImageOptimizationResult> {
     console.log('🔧 Optimizing image for Flutter app...')
     
+    // Validate input
+    if (!imageData || typeof imageData !== 'string') {
+      throw new Error('Invalid image data: imageData must be a non-empty string')
+    }
+    
     const opts = { ...this.DEFAULT_OPTIONS, ...options }
     
     try {

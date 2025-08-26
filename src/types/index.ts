@@ -119,22 +119,49 @@ export interface ParsedFlyerItem {
   }
   // Enhanced image extraction fields
   extractedImages?: {
-    // Clean, professional product images
-    clean: {
+    // Current structure (with urls object)
+    urls?: {
+      original: string          // High-quality clean image
+      optimized: string         // WebP optimized for Flutter
+      thumbnail: string         // Small thumbnail
+      transparent?: string      // Version with transparent background
+      resolutions?: {
+        '1x': string           // 400x400 baseline
+        '2x': string           // 800x800 high DPI
+        '3x': string           // 1200x1200 extra high DPI
+        'custom': string       // 828x440 custom resolution
+      }
+    }
+    metadata?: {
+      sizes?: {
+        original: number
+        optimized: number
+        thumbnail: number
+        resolutions?: {
+          '1x': number
+          '2x': number
+          '3x': number
+          'custom': number
+        }
+      }
+      uploadedAt?: string
+    }
+    // Legacy structure (with clean object) - for backward compatibility
+    clean?: {
       original: string          // High-quality clean image
       optimized: string         // WebP optimized for Flutter
       thumbnail: string         // Small thumbnail
       transparent?: string      // Version with transparent background
     }
-    // Multi-resolution for Flutter
-    resolutions: {
+    // Multi-resolution for Flutter (legacy)
+    resolutions?: {
       '1x': string             // 400x400 baseline
       '2x': string             // 800x800 high DPI
       '3x': string             // 1200x1200 extra high DPI
       'custom': string         // 828x440 custom resolution
     }
-    // Metadata
-    extractionMetadata: {
+    // Metadata (legacy)
+    extractionMetadata?: {
       confidence: number        // AI confidence in extraction quality
       backgroundRemoved: boolean
       textRemoved: boolean
@@ -315,19 +342,33 @@ export interface ProductExtractionConfig {
 
 export interface CleanProductImage {
   itemId: string
-  originalRegion: {
-    x: number
-    y: number
-    width: number
-    height: number
-  }
-  extractedImageData: string
+  productName: string // Added for simplified approach
+  imageUrl: string // Changed from extractedImageData to imageUrl
   confidence: number
-  qualityScore: number
-  processingMethod: 'imagen4' | 'vision-api' | 'fallback'
-  backgroundRemoved: boolean
-  textRemoved: boolean
-  manualReviewRequired: boolean
+  extractionMethod: 'imagen4-direct-creative' | 'imagen4-creative' | 'vision-api' | 'fallback' // Updated method names
+  metadata?: {
+    productDetails?: {
+      productName: string
+      productNameMk?: string
+      discountPrice?: number
+      oldPrice?: number
+    }
+    originalRegion?: {
+      x: number
+      y: number
+      width: number
+      height: number
+    }
+    generatedAt: string
+    config: any
+  }
+  // Legacy fields for backward compatibility (optional)
+  extractedImageData?: string
+  qualityScore?: number
+  processingMethod?: 'imagen4' | 'vision-api' | 'fallback'
+  backgroundRemoved?: boolean
+  textRemoved?: boolean
+  manualReviewRequired?: boolean
 }
 
 export interface ImageOptimizationResult {

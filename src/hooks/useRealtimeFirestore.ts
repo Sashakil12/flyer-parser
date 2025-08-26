@@ -94,7 +94,7 @@ export const useRealtimeParsedItems = (flyerImageId?: string, autoApprovalStatus
         try {
           const items = snapshot.docs.map(doc => {
             const data = doc.data();
-            return {
+            const item = {
               id: doc.id,
               ...data,
               createdAt: data.createdAt as Timestamp,
@@ -105,8 +105,17 @@ export const useRealtimeParsedItems = (flyerImageId?: string, autoApprovalStatus
               autoApprovalFailureReason: data.autoApprovalFailureReason,
               autoApprovalConfidence: data.autoApprovalConfidence,
               autoApprovedAt: data.autoApprovedAt,
-              autoApprovalFailedAt: data.autoApprovalFailedAt
+              autoApprovalFailedAt: data.autoApprovalFailedAt,
+              // Explicitly map image extraction fields to ensure they're included
+              imageExtractionStatus: data.imageExtractionStatus,
+              imageExtractedAt: data.imageExtractedAt,
+              imageExtractionError: data.imageExtractionError,
+              extractedImages: data.extractedImages
             } as ParsedFlyerItem
+
+
+
+            return item
           })
           
           setParsedItems(items)

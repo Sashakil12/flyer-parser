@@ -1,7 +1,10 @@
 import { inngest } from '../inngest'
-import { parseImageWithGemini } from '../gemini'
+import { updateFlyerImageStatus, updateParsedFlyerItem, addParsedFlyerItem, searchProducts, getActiveAutoApprovalRuleAdmin } from '@/lib/firestore-admin'
+import { parseImageWithGemini } from '@/lib/gemini'
 import { scoreProductMatches } from '@/lib/gemini-product-match'
-import { updateFlyerImageStatus, addParsedFlyerItem, updateParsedFlyerItem, searchProducts, getActiveAutoApprovalRuleAdmin } from '../firestore-admin'
+import { extractCleanProductImages } from '@/lib/imagen4-advanced'
+import { optimizeForFlutter, validateImageQuality } from '@/lib/image-optimization'
+import { uploadOptimizedImages } from '@/lib/storage-images'
 import { getImageDataUrl } from '@/lib/storage-admin'
 import { evaluateAutoApproval } from '@/lib/auto-approval'
 import { applyDiscountPercentage } from '@/lib/utils'
@@ -9,9 +12,30 @@ import { FieldValue, Timestamp } from 'firebase-admin/firestore'
 import { GeminiParseResult, ParsedFlyerItem, MatchedProduct, ProductExtractionConfig, CleanProductImage } from '@/types'
 import { adminDb } from '../firebase/admin'
 import { applyDiscountWithTimeout as helperApplyDiscountWithTimeout, Logger } from './helpers'
-import { extractCleanProductImages } from '@/lib/imagen4-advanced'
-import { optimizeForFlutter, validateImageQuality } from '@/lib/image-optimization'
-import { uploadOptimizedImages, saveImageMetadata } from '@/lib/storage-images'
+
+// Utility function to remove undefined values from objects (Firestore doesn't allow undefined)
+function removeUndefinedValues(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null
+  }
+  
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedValues).filter(item => item !== undefined)
+  }
+  
+  if (typeof obj === 'object') {
+    const cleaned: any = {}
+    Object.keys(obj).forEach(key => {
+      const value = removeUndefinedValues(obj[key])
+      if (value !== undefined) {
+        cleaned[key] = value
+      }
+    })
+    return cleaned
+  }
+  
+  return obj
+}
 
 // Constants for timeouts and circuit breaker settings
 const AI_SCORING_TIMEOUT = 90000; // 90 seconds timeout for AI scoring
@@ -401,7 +425,7 @@ export const statusUpdateFunction = inngest.createFunction(
   { id: 'status-update', name: 'Handle Status Updates' },
   { event: 'flyer/parse-status-update' },
   async ({ event, step }) => {
-    const { flyerImageId, status, error } = event.data
+    const { flyerImageId, status, error, storageUrl } = event.data
 
     try {
       await step.run('update-flyer-status', async () => {
@@ -1212,7 +1236,28 @@ export const extractImagesFunction = inngest.createFunction(
     
     // Step 3: Extract images with AI
     const extractedImages = await step.run('extract-with-ai', async () => {
-      return await extractCleanProductImages(flyerImageData, parsedItems, {
+      // Transform parsedItems to match ParsedItemWithRegion interface
+      const transformedItems = parsedItems.map((item: any) => ({
+        id: item.id,
+        productName: item.productName,
+        productNameMk: item.productNameMk,
+        discountPrice: item.discountPrice,
+        oldPrice: item.originalPrice || item.oldPrice || 0, // Handle different price field names
+        additionalInfo: item.additionalInfo || []
+        // suggestedRegion is optional and will be undefined
+      }))
+      
+      console.log('🔄 Transformed items for extraction:', {
+        originalCount: parsedItems.length,
+        transformedCount: transformedItems.length,
+        firstTransformed: transformedItems[0] ? {
+          id: transformedItems[0].id,
+          productName: transformedItems[0].productName,
+          oldPrice: transformedItems[0].oldPrice
+        } : 'none'
+      })
+      
+      return await extractCleanProductImages(flyerImageData, transformedItems, {
         removeText: true,
         removePromotionalElements: true,
         backgroundStyle: 'white',
@@ -1228,8 +1273,85 @@ export const extractImagesFunction = inngest.createFunction(
       
       for (const cleanImage of extractedImages) {
         try {
-          // Optimize image
-          const optimized = await optimizeForFlutter(cleanImage.extractedImageData, {
+          // Comprehensive validation of cleanImage object
+          if (!cleanImage || typeof cleanImage !== 'object') {
+            console.warn(`⚠️ Invalid cleanImage object:`, cleanImage)
+            results.push({ 
+              itemId: 'unknown', 
+              success: false, 
+              error: 'Invalid clean image object' 
+            })
+            continue
+          }
+
+          const itemId = cleanImage.itemId || 'unknown'
+          console.log(`🔄 Processing image for item: ${itemId}`)
+          
+          // Check if we have valid image data with multiple fallbacks
+          let imageData = null
+          
+          // Try different possible image data fields (prioritize imageUrl for new flow)
+          if (cleanImage.imageUrl && typeof cleanImage.imageUrl === 'string' && cleanImage.imageUrl.trim() !== '') {
+            imageData = cleanImage.imageUrl
+            console.log(`📊 Using imageUrl for ${itemId}`)
+          } else if (cleanImage.extractedImageData && typeof cleanImage.extractedImageData === 'string') {
+            imageData = cleanImage.extractedImageData
+            console.log(`📊 Using extractedImageData for ${itemId}`)
+          }
+          
+          if (!imageData || typeof imageData !== 'string' || imageData.trim() === '') {
+            console.warn(`⚠️ No valid image data found for item ${itemId}. Available fields:`, Object.keys(cleanImage))
+            console.warn(`⚠️ ImageUrl value:`, cleanImage.imageUrl)
+            console.warn(`⚠️ ExtractedImageData value:`, cleanImage.extractedImageData ? 'present' : 'missing')
+            results.push({ 
+              itemId, 
+              success: false, 
+              error: 'No valid image data available' 
+            })
+            continue
+          }
+          
+          // For URLs, we need to fetch the image data first
+          let imageDataToOptimize = imageData.trim()
+          
+          if (imageDataToOptimize.startsWith('http')) {
+            console.log(`📥 Fetching image from URL: ${imageDataToOptimize}`)
+            try {
+              const response = await fetch(imageDataToOptimize)
+              if (!response.ok) {
+                throw new Error(`Failed to fetch image: ${response.status} ${response.statusText}`)
+              }
+              const buffer = await response.arrayBuffer()
+              const base64 = Buffer.from(buffer).toString('base64')
+              const mimeType = response.headers.get('content-type') || 'image/jpeg'
+              imageDataToOptimize = `data:${mimeType};base64,${base64}`
+              console.log(`✅ Successfully fetched and converted image for ${itemId}`)
+            } catch (fetchError: any) {
+              console.error(`❌ Failed to fetch image for ${itemId}:`, fetchError)
+              results.push({ 
+                itemId, 
+                success: false, 
+                error: `Failed to fetch image: ${fetchError.message}` 
+              })
+              continue
+            }
+          }
+          
+          // Final validation before optimization
+          if (!imageDataToOptimize || typeof imageDataToOptimize !== 'string' || imageDataToOptimize.trim() === '') {
+            console.error(`❌ Image data is invalid after processing for ${itemId}:`, typeof imageDataToOptimize, imageDataToOptimize?.substring(0, 50))
+            results.push({ 
+              itemId, 
+              success: false, 
+              error: 'Image data became invalid during processing' 
+            })
+            continue
+          }
+          
+          console.log(`🔧 Starting image optimization for ${itemId}...`)
+          
+          // Optimize image with additional error handling
+          const optimized = await optimizeForFlutter(imageDataToOptimize, {
             maxWidth: 1200,
             maxHeight: 1200,
             quality: 85,
@@ -1238,12 +1360,38 @@ export const extractImagesFunction = inngest.createFunction(
             generateMultipleResolutions: true
           })
           
-          // Upload to storage
-          const urls = await uploadOptimizedImages(flyerImageId, cleanImage.itemId, optimized)
+          console.log(`✅ Image optimization completed for ${itemId}`)
           
-          results.push({ itemId: cleanImage.itemId, success: true, urls })
+          // Upload to storage
+          console.log(`📤 [ImageProcessing] Uploading optimized images for ${itemId}`)
+          console.log(`📤 [ImageProcessing] Optimized image keys:`, Object.keys(optimized))
+          console.log(`📤 [ImageProcessing] Optimized resolutions:`, Object.keys(optimized.resolutions || {}))
+          
+          const urls = await uploadOptimizedImages(flyerImageId, itemId, optimized)
+          
+          console.log(`📤 [ImageProcessing] Upload result for ${itemId}:`, urls)
+          console.log(`📤 [ImageProcessing] URLs structure:`, {
+            hasUrls: !!urls.urls,
+            urlKeys: urls.urls ? Object.keys(urls.urls) : 'none',
+            hasResolutions: !!urls.urls?.resolutions,
+            resolutionKeys: urls.urls?.resolutions ? Object.keys(urls.urls.resolutions) : 'none'
+          })
+          
+          results.push({ itemId, success: true, urls })
+          console.log(`✅ Successfully processed image for ${itemId}`)
+          
         } catch (error: any) {
-          results.push({ itemId: cleanImage.itemId, success: false, error: error.message })
+          const itemId = cleanImage?.itemId || 'unknown'
+          console.error(`❌ Error processing image for item ${itemId}:`, {
+            error: error.message,
+            stack: error.stack?.substring(0, 500),
+            cleanImageKeys: cleanImage ? Object.keys(cleanImage) : 'null'
+          })
+          results.push({ 
+            itemId, 
+            success: false, 
+            error: `Processing failed: ${error.message}` 
+          })
         }
       }
       
@@ -1258,21 +1406,52 @@ export const extractImagesFunction = inngest.createFunction(
           // Cast to any to handle JsonifyObject serialization issues
           const urlData = result.urls as any
           
+          console.log(`💾 [DatabaseUpdate] Processing URLs for ${result.itemId}:`, urlData)
+          console.log(`💾 [DatabaseUpdate] URL data type:`, typeof urlData)
+          console.log(`💾 [DatabaseUpdate] URL data keys:`, urlData ? Object.keys(urlData) : 'null')
+          
           // Build clean URLs object, excluding undefined values
-          const cleanUrls: any = {
-            original: urlData.urls.original,
-            optimized: urlData.urls.optimized,
-            thumbnail: urlData.urls.thumbnail
+          const cleanUrls: any = {}
+          
+          // Only add properties that are not undefined
+          if (urlData.original !== undefined) {
+            cleanUrls.original = urlData.original
+            console.log(`💾 [DatabaseUpdate] Added original URL:`, urlData.original)
+          }
+          if (urlData.optimized !== undefined) {
+            cleanUrls.optimized = urlData.optimized
+            console.log(`💾 [DatabaseUpdate] Added optimized URL:`, urlData.optimized)
+          }
+          if (urlData.thumbnail !== undefined) {
+            cleanUrls.thumbnail = urlData.thumbnail
+            console.log(`💾 [DatabaseUpdate] Added thumbnail URL:`, urlData.thumbnail)
+          }
+          if (urlData.transparent !== undefined) {
+            cleanUrls.transparent = urlData.transparent
+            console.log(`💾 [DatabaseUpdate] Added transparent URL:`, urlData.transparent)
           }
           
-          // Only add transparent if it exists
-          if (urlData.urls.transparent) {
-            cleanUrls.transparent = urlData.urls.transparent
+          console.log(`💾 [DatabaseUpdate] Final cleanUrls:`, cleanUrls)
+          
+          // Clean resolutions object to remove undefined values
+          const cleanResolutions: any = {}
+          if (urlData.resolutions && typeof urlData.resolutions === 'object') {
+            console.log(`💾 [DatabaseUpdate] Processing resolutions:`, urlData.resolutions)
+            Object.keys(urlData.resolutions).forEach(key => {
+              if (urlData.resolutions[key] !== undefined) {
+                cleanResolutions[key] = urlData.resolutions[key]
+                console.log(`💾 [DatabaseUpdate] Added resolution ${key}:`, urlData.resolutions[key])
+              }
+            })
+          } else {
+            console.log(`💾 [DatabaseUpdate] No resolutions found or invalid type:`, urlData.resolutions)
           }
           
+          console.log(`💾 [DatabaseUpdate] Final cleanResolutions:`, cleanResolutions)
+
           const extractedImages = {
             clean: cleanUrls,
-            resolutions: urlData.urls.resolutions,
+            resolutions: cleanResolutions,
             extractionMetadata: {
               confidence: 0.85, // Default confidence - could be enhanced with actual AI confidence
               backgroundRemoved: true,
@@ -1283,11 +1462,14 @@ export const extractImagesFunction = inngest.createFunction(
             }
           }
           
-          await updateParsedFlyerItem(result.itemId, {
+          // Clean the data to remove undefined values before saving to Firestore
+          const cleanData = removeUndefinedValues({
             extractedImages,
             imageExtractionStatus: 'completed',
             imageExtractedAt: Timestamp.now() as any
           })
+          
+          await updateParsedFlyerItem(result.itemId, cleanData)
         } else {
           await updateParsedFlyerItem(result.itemId, {
             imageExtractionStatus: 'failed',

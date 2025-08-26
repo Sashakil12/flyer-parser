@@ -14,6 +14,7 @@ import {
   SparklesIcon
 } from '@heroicons/react/24/outline'
 import Image from 'next/image'
+import { appConfig } from '@/lib/config'
 
 interface ParsedItemCardProps {
   item: ParsedFlyerItem
@@ -33,19 +34,178 @@ export default function ParsedItemCard({ item, onAddProduct, onViewDetails }: Pa
 
   const hasMatches = item.matchedProducts && item.matchedProducts.length > 0
   const isAutoApproved = item.autoApproved
-  const hasExtractedImages = item.extractedImages && item.extractedImages.clean
+  
+  // More robust check for extracted images - handle both old and new data structures
+  const hasExtractedImages = item.extractedImages && (
+    item.extractedImages.clean || // New structure
+    (item.extractedImages as any).original || // Old structure fallback
+    (item.extractedImages as any).optimized || // Another fallback
+    (item.extractedImages as any).metadata?.uploadedAt // Handle corrupted metadata-only structure
+  )
+
+
+
+
+
+  // Helper function to construct Firebase Storage URLs
+  const constructFirebaseStorageUrl = (flyerImageId: string, itemId: string, imageType: string, resolution?: string): string => {
+    // Remove gs:// prefix if present
+    const rawBucketName = appConfig.firebase.storageBucket || ''
+    const bucketName = rawBucketName.replace(/^gs:\/\//, '')
+    
+    let filePath: string
+    
+    if (resolution) {
+      filePath = `flyer-images/${flyerImageId}/extracted/${itemId}/resolutions/${resolution}.webp`
+    } else {
+      filePath = `flyer-images/${flyerImageId}/extracted/${itemId}/clean/${imageType}.webp`
+    }
+    
+    // Use Firebase Storage REST API format with URL encoding
+    const encodedPath = encodeURIComponent(filePath)
+    return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`
+  }
 
   const getImageUrl = () => {
-    if (!hasExtractedImages) return null
+    console.log('🖼️ [ParsedItemCard] getImageUrl called for item:', item.id || item.productName)
+    console.log('🖼️ [ParsedItemCard] hasExtractedImages:', hasExtractedImages)
+    console.log('🖼️ [ParsedItemCard] selectedImageType:', selectedImageType)
+    console.log('🖼️ [ParsedItemCard] item.extractedImages:', item.extractedImages)
     
+    if (!hasExtractedImages) {
+      console.log('🖼️ [ParsedItemCard] No extracted images found, returning null')
+      return null
+    }
+    
+    const extractedImages = item.extractedImages!
+    console.log('🖼️ [ParsedItemCard] extractedImages structure:', extractedImages)
+    console.log('🖼️ [ParsedItemCard] extractedImages keys:', Object.keys(extractedImages))
+    
+    // Deep inspection of all properties
+    if (extractedImages.resolutions) {
+      console.log('🖼️ [ParsedItemCard] resolutions content:', extractedImages.resolutions)
+      console.log('🖼️ [ParsedItemCard] resolutions keys:', Object.keys(extractedImages.resolutions))
+    }
+    if (extractedImages.clean) {
+      console.log('🖼️ [ParsedItemCard] clean content:', extractedImages.clean)
+      console.log('🖼️ [ParsedItemCard] clean keys:', Object.keys(extractedImages.clean))
+    }
+    if (extractedImages.extractionMetadata) {
+      console.log('🖼️ [ParsedItemCard] extractionMetadata:', extractedImages.extractionMetadata)
+    }
+    
+    // Handle new structure (with urls object) - this is the current structure
+    if (extractedImages.urls) {
+      console.log('🖼️ [ParsedItemCard] Using new structure with urls object:', extractedImages.urls)
+      let imageUrl: string | undefined
+      
+      switch (selectedImageType) {
+        case 'thumbnail':
+          imageUrl = extractedImages.urls.thumbnail
+          console.log('🖼️ [ParsedItemCard] Thumbnail URL:', imageUrl)
+          break
+        case 'custom':
+          imageUrl = extractedImages.urls.resolutions?.custom || extractedImages.urls.optimized
+          console.log('🖼️ [ParsedItemCard] Custom URL (fallback to optimized):', imageUrl)
+          break
+        default:
+          imageUrl = extractedImages.urls.optimized
+          console.log('🖼️ [ParsedItemCard] Optimized URL:', imageUrl)
+          break
+      }
+      
+      console.log('🖼️ [ParsedItemCard] Final URL from new structure:', imageUrl)
+      return imageUrl
+    }
+    
+    // Handle legacy structure (with clean object) - check if URLs exist
+    if (extractedImages.clean && Object.keys(extractedImages.clean).length > 0) {
+      console.log('🖼️ [ParsedItemCard] Using legacy structure with clean object:', extractedImages.clean)
+      let imageUrl: string | undefined
+      
+      switch (selectedImageType) {
+        case 'thumbnail':
+          imageUrl = extractedImages.clean.thumbnail
+          console.log('🖼️ [ParsedItemCard] Legacy thumbnail URL:', imageUrl)
+          break
+        case 'custom':
+          imageUrl = extractedImages.resolutions?.custom || extractedImages.clean.optimized
+          console.log('🖼️ [ParsedItemCard] Legacy custom URL (fallback to optimized):', imageUrl)
+          break
+        default:
+          imageUrl = extractedImages.clean.optimized
+          console.log('🖼️ [ParsedItemCard] Legacy optimized URL:', imageUrl)
+          break
+      }
+      
+      console.log('🖼️ [ParsedItemCard] Final URL from legacy structure:', imageUrl)
+      return imageUrl
+    }
+    
+    // If clean/resolutions objects are empty but extractionMetadata exists, construct URLs directly
+    if (extractedImages.extractionMetadata && item.flyerImageId && item.id) {
+      console.log('🖼️ [ParsedItemCard] Clean/resolutions empty, constructing URLs directly from storage paths')
+      console.log('🖼️ [ParsedItemCard] flyerImageId:', item.flyerImageId, 'itemId:', item.id)
+      
+      let imageUrl: string
+      
+      switch (selectedImageType) {
+        case 'thumbnail':
+          imageUrl = constructFirebaseStorageUrl(item.flyerImageId, item.id, 'thumbnail')
+          console.log('🖼️ [ParsedItemCard] Constructed thumbnail URL:', imageUrl)
+          break
+        case 'custom':
+          imageUrl = constructFirebaseStorageUrl(item.flyerImageId, item.id, 'optimized', 'custom') || 
+                    constructFirebaseStorageUrl(item.flyerImageId, item.id, 'optimized')
+          console.log('🖼️ [ParsedItemCard] Constructed custom URL (fallback to optimized):', imageUrl)
+          break
+        default:
+          imageUrl = constructFirebaseStorageUrl(item.flyerImageId, item.id, 'optimized')
+          console.log('🖼️ [ParsedItemCard] Constructed optimized URL:', imageUrl)
+          break
+      }
+      
+      console.log('🖼️ [ParsedItemCard] Final constructed URL:', imageUrl)
+      return imageUrl
+    }
+    
+    // Handle old structure (direct URLs)
+    const oldStructure = extractedImages as any
+    console.log('🖼️ [ParsedItemCard] Using old structure (direct URLs):', oldStructure)
+    
+    // Handle corrupted metadata-only structure
+    if (oldStructure.metadata?.uploadedAt && !oldStructure.original && !oldStructure.optimized) {
+      console.log('🖼️ [ParsedItemCard] Detected corrupted metadata-only structure')
+      // Extract URL from metadata if it contains a valid URL
+      const metadataUrl = oldStructure.metadata.uploadedAt
+      console.log('🖼️ [ParsedItemCard] Metadata URL:', metadataUrl)
+      
+      if (typeof metadataUrl === 'string' && metadataUrl.includes('http')) {
+        console.log('🖼️ [ParsedItemCard] Valid URL found in metadata:', metadataUrl)
+        return metadataUrl
+      }
+      console.log('🖼️ [ParsedItemCard] No valid URL in metadata, returning null')
+      return null
+    }
+    
+    let imageUrl: string | undefined
     switch (selectedImageType) {
       case 'thumbnail':
-        return item.extractedImages!.clean.thumbnail
+        imageUrl = oldStructure.thumbnail || oldStructure.optimized || oldStructure.original
+        console.log('🖼️ [ParsedItemCard] Old structure thumbnail URL (with fallbacks):', imageUrl)
+        break
       case 'custom':
-        return item.extractedImages!.resolutions.custom
+        imageUrl = oldStructure.custom || oldStructure.optimized || oldStructure.original
+        console.log('🖼️ [ParsedItemCard] Old structure custom URL (with fallbacks):', imageUrl)
+        break
       default:
-        return item.extractedImages!.clean.optimized
+        imageUrl = oldStructure.optimized || oldStructure.original
+        console.log('🖼️ [ParsedItemCard] Old structure optimized URL (with fallback):', imageUrl)
+        break
     }
+    
+    console.log('🖼️ [ParsedItemCard] Final URL from old structure:', imageUrl)
+    return imageUrl
   }
 
   const getStatusBadge = () => {
@@ -180,36 +340,64 @@ export default function ParsedItemCard({ item, onAddProduct, onViewDetails }: Pa
             </div>
             
             <div className="aspect-square bg-gray-50 rounded-lg overflow-hidden border">
-              {hasExtractedImages && !imageError ? (
-                <div className="relative w-full h-full">
-                  <Image
-                    src={getImageUrl()!}
-                    alt={item.productName}
-                    fill
-                    className="object-contain"
-                    onError={() => setImageError(true)}
-                  />
-                  {item.extractedImages!.extractionMetadata && (
-                    <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
-                      {Math.round(item.extractedImages!.extractionMetadata.confidence * 100)}% confidence
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center justify-center h-full text-gray-400">
-                  <div className="text-center">
-                    <PhotoIcon className="h-12 w-12 mx-auto mb-2" />
-                    <p className="text-sm">
-                      {item.imageExtractionStatus === 'processing' 
-                        ? 'Processing...' 
-                        : item.imageExtractionStatus === 'failed'
-                        ? 'Extraction failed'
-                        : 'No image available'
-                      }
-                    </p>
+              {(() => {
+                const imageUrl = getImageUrl()
+                const shouldShowImage = hasExtractedImages && !imageError
+                
+                console.log('🖼️ [ParsedItemCard] Image rendering decision:')
+                console.log('🖼️ [ParsedItemCard] - hasExtractedImages:', hasExtractedImages)
+                console.log('🖼️ [ParsedItemCard] - imageError:', imageError)
+                console.log('🖼️ [ParsedItemCard] - imageUrl:', imageUrl)
+                console.log('🖼️ [ParsedItemCard] - shouldShowImage:', shouldShowImage)
+                console.log('🖼️ [ParsedItemCard] - imageExtractionStatus:', item.imageExtractionStatus)
+                
+                return shouldShowImage ? (
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={imageUrl!}
+                      alt={item.productName}
+                      fill
+                      className="object-contain"
+                      onError={(e) => {
+                        console.error('🖼️ [ParsedItemCard] Image load error for URL:', imageUrl, e)
+                        setImageError(true)
+                      }}
+                      onLoad={() => {
+                        console.log('🖼️ [ParsedItemCard] Image loaded successfully:', imageUrl)
+                      }}
+                    />
+                    {item.extractedImages!.extractionMetadata && (
+                      <div className="absolute bottom-2 right-2 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded">
+                        {Math.round(item.extractedImages!.extractionMetadata.confidence * 100)}% confidence
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <div className="text-center">
+                      <PhotoIcon className="h-12 w-12 mx-auto mb-2" />
+                      <p className="text-sm">
+                        {item.imageExtractionStatus === 'processing' 
+                          ? 'Processing...' 
+                          : item.imageExtractionStatus === 'failed'
+                          ? 'Extraction failed'
+                          : 'No image available'
+                        }
+                      </p>
+                      {!hasExtractedImages && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Debug: No extracted images found
+                        </p>
+                      )}
+                      {hasExtractedImages && imageError && (
+                        <p className="text-xs text-gray-400 mt-1">
+                          Debug: Image load error for URL: {imageUrl}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
             
             {hasExtractedImages && item.extractedImages!.extractionMetadata && (
