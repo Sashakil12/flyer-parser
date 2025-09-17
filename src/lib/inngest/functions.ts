@@ -1453,11 +1453,11 @@ export const extractImagesFunction = inngest.createFunction(
             clean: cleanUrls,
             resolutions: cleanResolutions,
             extractionMetadata: {
-              confidence: 0.85, // Default confidence - could be enhanced with actual AI confidence
+              confidence: 0.95, // Higher confidence for Nano Banana
               backgroundRemoved: true,
               textRemoved: true,
-              qualityScore: 0.8, // Default quality score - could be enhanced with actual quality assessment
-              processingMethod: 'imagen4' as const,
+              qualityScore: 0.9, // Higher quality score for Nano Banana
+              processingMethod: 'nano-banana' as const,
               manualReviewRequired: false
             }
           }

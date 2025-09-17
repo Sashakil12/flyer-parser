@@ -20,7 +20,8 @@ import Image from 'next/image'
 import { toast } from 'react-hot-toast'
 import { storage, db } from '@/lib/firebase/config'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { doc, onSnapshot } from 'firebase/firestore'
+import { doc, onSnapshot, collection, getDocs, orderBy, query } from 'firebase/firestore'
+import { appConfig } from '@/lib/config'
 
 interface AddProductModalProps {
   isOpen: boolean
@@ -50,7 +51,43 @@ interface UploadedImage {
   type: 'icon' | 'main'
 }
 
+interface Category {
+  id: string
+  name: string
+  icon?: string
+  description?: string
+}
+
+interface Supermarket {
+  id: string
+  title: string
+  imageUrl?: string
+  imagePath?: string
+  websiteUrl?: string
+  isDeleted?: boolean
+  created_at?: number
+  productId?: string
+}
+
 export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess }: AddProductModalProps) {
+  // Helper function to construct Firebase Storage URLs
+  const constructFirebaseStorageUrl = (flyerImageId: string, itemId: string, imageType: string, resolution?: string): string => {
+    // Remove gs:// prefix if present
+    const rawBucketName = appConfig.firebase.storageBucket || ''
+    const bucketName = rawBucketName.replace(/^gs:\/\//, '')
+    
+    let filePath: string
+    
+    if (resolution) {
+      filePath = `flyer-images/${flyerImageId}/extracted/${itemId}/resolutions/${resolution}.webp`
+    } else {
+      filePath = `flyer-images/${flyerImageId}/extracted/${itemId}/clean/${imageType}.webp`
+    }
+    
+    // Use Firebase Storage REST API format with URL encoding
+    const encodedPath = encodeURIComponent(filePath)
+    return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodedPath}?alt=media`
+  }
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     macedonianname: '',
@@ -77,19 +114,178 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
     imageExtractedAt?: any
     imageQualityScore?: number
   } | null>(null)
+  const [categories, setCategories] = useState<Category[]>([])
+  const [supermarkets, setSupermarkets] = useState<Supermarket[]>([])
+  const [isLoadingCategories, setIsLoadingCategories] = useState(true)
+  const [isLoadingSupermarkets, setIsLoadingSupermarkets] = useState(true)
+
+  // Fetch categories from Firestore
+  const fetchCategories = async () => {
+    try {
+      setIsLoadingCategories(true)
+      const categoriesRef = collection(db, 'categories')
+      const q = query(categoriesRef, orderBy('name', 'asc'))
+      const querySnapshot = await getDocs(q)
+      
+      const categoriesData: Category[] = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Category))
+      
+      setCategories(categoriesData)
+      console.log('✅ Fetched categories:', categoriesData)
+    } catch (error) {
+      console.error('❌ Error fetching categories:', error)
+      toast.error('Failed to load categories')
+    } finally {
+      setIsLoadingCategories(false)
+    }
+  }
+
+  // Fetch supermarkets from Firestore
+  const fetchSupermarkets = async () => {
+    try {
+      setIsLoadingSupermarkets(true)
+      const supermarketsRef = collection(db, 'supermarkets')
+      const querySnapshot = await getDocs(supermarketsRef)
+      
+      const supermarketsData: Supermarket[] = querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Supermarket))
+        .filter(supermarket => !supermarket.isDeleted && supermarket.title) // Filter out deleted items and items without title
+        .sort((a, b) => a.title.localeCompare(b.title)) // Sort by title
+      
+      setSupermarkets(supermarketsData)
+      console.log('✅ Fetched supermarkets:', supermarketsData)
+      console.log('📊 Supermarkets count:', supermarketsData.length)
+      console.log('📊 First supermarket:', supermarketsData[0])
+    } catch (error) {
+      console.error('❌ Error fetching supermarkets:', error)
+      toast.error('Failed to load supermarkets')
+    } finally {
+      setIsLoadingSupermarkets(false)
+    }
+  }
+
+  // Fetch data when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategories()
+      fetchSupermarkets()
+    }
+  }, [isOpen])
 
   const getSelectedImageUrl = useCallback(() => {
     const currentImages = realTimeStatus?.extractedImages || parsedItem.extractedImages
-    if (!currentImages?.clean) return ''
+    if (!currentImages) return ''
     
+    console.log('🍌 [AddProductModal] getSelectedImageUrl called')
+    console.log('🍌 [AddProductModal] currentImages:', currentImages)
+    console.log('🍌 [AddProductModal] selectedImageType:', selectedImageType)
+    
+    // Handle new structure (with urls object) - this is the current structure
+    if (currentImages.urls) {
+      console.log('🍌 [AddProductModal] Using new structure with urls object:', currentImages.urls)
+      let imageUrl: string | undefined
+      
+      switch (selectedImageType) {
+        case 'thumbnail':
+          imageUrl = currentImages.urls.thumbnail
+          break
+        case 'custom':
+          imageUrl = currentImages.urls.resolutions?.custom || currentImages.urls.optimized
+          break
+        default:
+          imageUrl = currentImages.urls.optimized
+          break
+      }
+      
+      console.log('🍌 [AddProductModal] Final URL from new structure:', imageUrl)
+      return imageUrl || ''
+    }
+    
+    // Handle legacy structure (with clean object) - check if URLs exist
+    if (currentImages.clean && Object.keys(currentImages.clean).length > 0) {
+      console.log('🍌 [AddProductModal] Using legacy structure with clean object:', currentImages.clean)
+      console.log('🍌 [AddProductModal] Clean object keys:', Object.keys(currentImages.clean))
+      console.log('🍌 [AddProductModal] Clean object values:', Object.values(currentImages.clean))
+      
+      let imageUrl: string | undefined
+      
+      switch (selectedImageType) {
+        case 'thumbnail':
+          imageUrl = currentImages.clean.thumbnail
+          console.log('🍌 [AddProductModal] Thumbnail URL from clean:', imageUrl)
+          break
+        case 'custom':
+          imageUrl = currentImages.resolutions?.custom || currentImages.clean.optimized
+          console.log('🍌 [AddProductModal] Custom URL from clean (with fallback):', imageUrl)
+          break
+        default:
+          imageUrl = currentImages.clean.optimized
+          console.log('🍌 [AddProductModal] Optimized URL from clean:', imageUrl)
+          break
+      }
+      
+      // If the preferred type doesn't exist, try fallbacks
+      if (!imageUrl) {
+        console.log('🍌 [AddProductModal] Preferred type not available, trying fallbacks...')
+        imageUrl = currentImages.clean.optimized || currentImages.clean.original || currentImages.clean.thumbnail
+        console.log('🍌 [AddProductModal] Fallback URL:', imageUrl)
+      }
+      
+      console.log('🍌 [AddProductModal] Final URL from legacy structure:', imageUrl)
+      return imageUrl || ''
+    }
+    
+    // If clean/resolutions objects are empty but extractionMetadata exists, construct URLs directly
+    if (currentImages.extractionMetadata && parsedItem.flyerImageId && parsedItem.id) {
+      console.log('🍌 [AddProductModal] Clean/resolutions empty, constructing URLs directly from storage paths')
+      console.log('🍌 [AddProductModal] flyerImageId:', parsedItem.flyerImageId, 'itemId:', parsedItem.id)
+      
+      let imageUrl: string
+      
+      switch (selectedImageType) {
+        case 'thumbnail':
+          imageUrl = constructFirebaseStorageUrl(parsedItem.flyerImageId, parsedItem.id, 'thumbnail')
+          console.log('🍌 [AddProductModal] Constructed thumbnail URL:', imageUrl)
+          break
+        case 'custom':
+          imageUrl = constructFirebaseStorageUrl(parsedItem.flyerImageId, parsedItem.id, 'optimized', 'custom') || 
+                    constructFirebaseStorageUrl(parsedItem.flyerImageId, parsedItem.id, 'optimized')
+          console.log('🍌 [AddProductModal] Constructed custom URL (fallback to optimized):', imageUrl)
+          break
+        default:
+          imageUrl = constructFirebaseStorageUrl(parsedItem.flyerImageId, parsedItem.id, 'optimized')
+          console.log('🍌 [AddProductModal] Constructed optimized URL:', imageUrl)
+          break
+      }
+      
+      console.log('🍌 [AddProductModal] Final constructed URL:', imageUrl)
+      return imageUrl
+    }
+    
+    // Handle old structure (direct URLs) - fallback for very old data
+    const oldStructure = currentImages as any
+    console.log('🍌 [AddProductModal] Using old structure (direct URLs):', oldStructure)
+    
+    let imageUrl: string | undefined
     switch (selectedImageType) {
       case 'thumbnail':
-        return currentImages.clean.thumbnail || ''
+        imageUrl = oldStructure.thumbnail || oldStructure.optimized || oldStructure.original
+        break
       case 'custom':
-        return currentImages.resolutions?.custom || currentImages.clean.optimized || ''
+        imageUrl = oldStructure.custom || oldStructure.optimized || oldStructure.original
+        break
       default:
-        return currentImages.clean.optimized || ''
+        imageUrl = oldStructure.optimized || oldStructure.original
+        break
     }
+    
+    console.log('🍌 [AddProductModal] Final URL from old structure:', imageUrl)
+    return imageUrl || ''
   }, [realTimeStatus?.extractedImages, parsedItem.extractedImages, selectedImageType])
 
   // Real-time status listener for Inngest function updates
@@ -128,41 +324,88 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
   // Pre-populate form with parsed item data
   useEffect(() => {
     if (parsedItem && isOpen) {
-      const hasExtractedImages = parsedItem.extractedImages && parsedItem.extractedImages.clean
-      const imageUrl = hasExtractedImages ? getSelectedImageUrl() : ''
+      // Reset selectedImageType to optimized when modal opens
+      setSelectedImageType('optimized')
       
-      setFormData({
-        name: parsedItem.productName || '',
-        macedonianname: parsedItem.productNameMk || '',
-        albenianname: '', // Not available in parsed item
-        description: parsedItem.additionalInfo?.join(', ') || '',
-        categoryId: '', // Needs to be selected
-        superMarketId: '', // Needs to be selected
-        superMarketName: '', // Needs to be selected
-        oldPrice: parsedItem.oldPrice || 0,
-        newPrice: parsedItem.discountPrice || parsedItem.oldPrice || 0,
-        validFrom: new Date().toISOString().split('T')[0], // Today
-        validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-        iconUrl: imageUrl
-      })
+      // More robust check for extracted images - handle both old and new data structures
+      const hasExtractedImages = parsedItem.extractedImages && (
+        parsedItem.extractedImages.clean || // Legacy structure
+        parsedItem.extractedImages.urls || // New structure
+        (parsedItem.extractedImages as any).original || // Old structure fallback
+        (parsedItem.extractedImages as any).optimized // Another fallback
+      )
+      
+      // Use setTimeout to ensure selectedImageType state update has completed
+      setTimeout(() => {
+        const imageUrl = hasExtractedImages ? getSelectedImageUrl() : ''
+        
+        console.log('🍌 [AddProductModal] Pre-populating form data')
+        console.log('🍌 [AddProductModal] hasExtractedImages:', hasExtractedImages)
+        console.log('🍌 [AddProductModal] imageUrl:', imageUrl)
+        
+        setFormData({
+          name: parsedItem.productName || '',
+          macedonianname: parsedItem.productNameMk || '',
+          albenianname: '', // Not available in parsed item
+          description: parsedItem.additionalInfo?.join(', ') || '',
+          categoryId: '', // Needs to be selected
+          superMarketId: '', // Needs to be selected
+          superMarketName: '', // Needs to be selected
+          oldPrice: parsedItem.oldPrice || 0,
+          newPrice: parsedItem.discountPrice || parsedItem.oldPrice || 0,
+          validFrom: new Date().toISOString().split('T')[0], // Today
+          validTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+          iconUrl: imageUrl
+        })
+      }, 100) // Small delay to ensure state updates
     }
-  }, [parsedItem, isOpen, getSelectedImageUrl])
+  }, [parsedItem, isOpen])
 
   const handleImageTypeChange = (type: 'optimized' | 'thumbnail' | 'custom') => {
+    console.log('🍌 [AddProductModal] handleImageTypeChange called with type:', type)
     setSelectedImageType(type)
-    const newImageUrl = getSelectedImageUrl()
-    setFormData(prev => ({
-      ...prev,
-      iconUrl: newImageUrl
-    }))
+    
+    // Use setTimeout to ensure state update has completed
+    setTimeout(() => {
+      const newImageUrl = getSelectedImageUrl()
+      console.log('🍌 [AddProductModal] Setting new image URL in form data:', newImageUrl)
+      setFormData(prev => ({
+        ...prev,
+        iconUrl: newImageUrl
+      }))
+    }, 0)
   }
+
+  // Additional useEffect to update form data when selectedImageUrl changes
+  useEffect(() => {
+    const currentImageUrl = getSelectedImageUrl()
+    if (currentImageUrl && formData.iconUrl !== currentImageUrl) {
+      console.log('🍌 [AddProductModal] Updating form iconUrl due to selectedImageUrl change:', currentImageUrl)
+      setFormData(prev => ({
+        ...prev,
+        iconUrl: currentImageUrl
+      }))
+    }
+  }, [selectedImageType, realTimeStatus?.extractedImages, parsedItem.extractedImages, getSelectedImageUrl, formData.iconUrl])
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'oldPrice' || name === 'newPrice' ? parseFloat(value) || 0 : value
-    }))
+    
+    // Handle special cases
+    if (name === 'superMarketName') {
+      // Find the selected supermarket to get its ID
+      const selectedSupermarket = supermarkets.find(sm => sm.title === value)
+      setFormData(prev => ({
+        ...prev,
+        superMarketName: value,
+        superMarketId: selectedSupermarket?.id || ''
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: name === 'oldPrice' || name === 'newPrice' ? parseFloat(value) || 0 : value
+      }))
+    }
   }
 
   // File upload handlers
@@ -404,8 +647,19 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
   // Simplified image availability check
   const currentImages = realTimeStatus?.extractedImages || parsedItem.extractedImages
   const selectedImageUrl = getSelectedImageUrl()
-  const hasExtractedImages = !!(currentImages && currentImages.clean && selectedImageUrl)
+  // More robust check for extracted images - handle both old and new data structures
+  const hasExtractedImages = !!(currentImages && (
+    currentImages.clean || // Legacy structure
+    currentImages.urls || // New structure
+    (currentImages as any).original || // Old structure fallback
+    (currentImages as any).optimized // Another fallback
+  ))
   const imageStatus = getImageExtractionStatus()
+  
+  console.log('🍌 [AddProductModal] Image availability check:')
+  console.log('🍌 [AddProductModal] currentImages:', currentImages)
+  console.log('🍌 [AddProductModal] selectedImageUrl:', selectedImageUrl)
+  console.log('🍌 [AddProductModal] hasExtractedImages:', hasExtractedImages)
 
 
 
@@ -460,6 +714,25 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
                       <h4 className="text-lg font-semibold text-gray-900">Product Image</h4>
                     </div>
                     
+                    {/* Debug Info - Remove this after fixing */}
+                    <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <h5 className="text-xs font-bold text-yellow-800 mb-2">🍌 DEBUG INFO (Remove after fixing)</h5>
+                      <div className="text-xs text-yellow-700 space-y-1">
+                        <div>hasExtractedImages: {String(hasExtractedImages)}</div>
+                        <div>selectedImageUrl: {selectedImageUrl || 'null'}</div>
+                        <div>selectedImageType: {selectedImageType}</div>
+                        <div>currentImages exists: {String(!!currentImages)}</div>
+                        {currentImages && (
+                          <>
+                            <div>currentImages.clean exists: {String(!!currentImages.clean)}</div>
+                            <div>currentImages.urls exists: {String(!!currentImages.urls)}</div>
+                            <div>currentImages keys: {Object.keys(currentImages).join(', ')}</div>
+                          </>
+                        )}
+                        <div>formData.iconUrl: {formData.iconUrl || 'null'}</div>
+                      </div>
+                    </div>
+
                     {/* Image Status Info - Real-time from Inngest */}
                     {(hasExtractedImages || realTimeStatus?.imageExtractionStatus || parsedItem.imageExtractionStatus) && (
                       <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
@@ -767,14 +1040,16 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
                           value={formData.categoryId}
                           onChange={handleInputChange}
                           className="peer block w-full px-4 py-3 text-gray-900 bg-white border-2 border-gray-200 rounded-xl shadow-sm focus:border-purple-500 focus:ring-0 focus:outline-none transition-all duration-200 hover:border-gray-300 appearance-none cursor-pointer"
+                          disabled={isLoadingCategories}
                         >
-                          <option value="">Select category</option>
-                          <option value="food-beverages">🍎 Food & Beverages</option>
-                          <option value="cleaning-products">🧽 Cleaning Products</option>
-                          <option value="personal-care">🧴 Personal Care</option>
-                          <option value="household">🏠 Household</option>
-                          <option value="electronics">📱 Electronics</option>
-                          <option value="other">📦 Other</option>
+                          <option value="">
+                            {isLoadingCategories ? 'Loading categories...' : 'Select category'}
+                          </option>
+                          {categories.map((category) => (
+                            <option key={category.id} value={category.id}>
+                              {category.icon ? `${category.icon} ` : '📦 '}{category.name}
+                            </option>
+                          ))}
                         </select>
                         <label 
                           htmlFor="categoryId" 
@@ -797,13 +1072,16 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
                           value={formData.superMarketName}
                           onChange={handleInputChange}
                           className="peer block w-full px-4 py-3 text-gray-900 bg-white border-2 border-gray-200 rounded-xl shadow-sm focus:border-purple-500 focus:ring-0 focus:outline-none transition-all duration-200 hover:border-gray-300 appearance-none cursor-pointer"
+                          disabled={isLoadingSupermarkets}
                         >
-                          <option value="">Select supermarket</option>
-                          <option value="RAMSTORE">🏪 RAMSTORE</option>
-                          <option value="TINEX">🏪 TINEX</option>
-                          <option value="VERO">🏪 VERO</option>
-                          <option value="KAM">🏪 KAM</option>
-                          <option value="OTHER">🏪 Other</option>
+                          <option value="">
+                            {isLoadingSupermarkets ? 'Loading supermarkets...' : 'Select supermarket'}
+                          </option>
+                          {supermarkets.map((supermarket) => (
+                            <option key={supermarket.id} value={supermarket.title}>
+                              🏪 {supermarket.title}
+                            </option>
+                          ))}
                         </select>
                         <label 
                           htmlFor="superMarketName" 
