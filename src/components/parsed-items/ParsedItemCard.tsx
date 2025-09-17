@@ -506,7 +506,7 @@ export default function ParsedItemCard({ item, onAddProduct, onViewDetails }: Pa
       </div>
 
       {/* Footer Actions */}
-      <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+      {/* <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
         <div className="flex items-center justify-between">
           <div className="flex space-x-2">
             {onViewDetails && (
@@ -526,7 +526,7 @@ export default function ParsedItemCard({ item, onAddProduct, onViewDetails }: Pa
             {!hasMatches && 'Ready for manual addition'}
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

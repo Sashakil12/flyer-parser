@@ -149,18 +149,31 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
       const supermarketsRef = collection(db, 'supermarkets')
       const querySnapshot = await getDocs(supermarketsRef)
       
-      const supermarketsData: Supermarket[] = querySnapshot.docs
-        .map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Supermarket))
-        .filter(supermarket => !supermarket.isDeleted && supermarket.title) // Filter out deleted items and items without title
+      // Log raw data first
+      console.log('📥 Raw supermarket docs count:', querySnapshot.docs.length)
+      console.log('📥 Raw supermarket docs:', querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})))
+      
+      const allSupermarkets = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Supermarket))
+      
+      console.log('📋 All supermarkets before filtering:', allSupermarkets)
+      
+      const supermarketsData: Supermarket[] = allSupermarkets
+        .filter(supermarket => {
+          const hasTitle = !!supermarket.title
+          const isNotDeleted = !supermarket.isDeleted
+          const isValid = isNotDeleted && hasTitle
+          console.log(`🔍 Supermarket ${supermarket.title || 'NO_TITLE'}: isDeleted=${supermarket.isDeleted}, hasTitle=${hasTitle}, isNotDeleted=${isNotDeleted}, isValid=${isValid}`)
+          return isValid
+        })
         .sort((a, b) => a.title.localeCompare(b.title)) // Sort by title
       
       setSupermarkets(supermarketsData)
-      console.log('✅ Fetched supermarkets:', supermarketsData)
-      console.log('📊 Supermarkets count:', supermarketsData.length)
-      console.log('📊 First supermarket:', supermarketsData[0])
+      console.log('✅ Final filtered supermarkets:', supermarketsData)
+      console.log('📊 Final supermarkets count:', supermarketsData.length)
+      console.log('📊 Supermarket titles:', supermarketsData.map(sm => sm.title))
     } catch (error) {
       console.error('❌ Error fetching supermarkets:', error)
       toast.error('Failed to load supermarkets')
@@ -714,7 +727,7 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
                       <h4 className="text-lg font-semibold text-gray-900">Product Image</h4>
                     </div>
                     
-                    {/* Debug Info - Remove this after fixing */}
+                    {/* Debug Info - Remove this after fixing
                     <div className="mb-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
                       <h5 className="text-xs font-bold text-yellow-800 mb-2">🍌 DEBUG INFO (Remove after fixing)</h5>
                       <div className="text-xs text-yellow-700 space-y-1">
@@ -731,7 +744,7 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
                         )}
                         <div>formData.iconUrl: {formData.iconUrl || 'null'}</div>
                       </div>
-                    </div>
+                    </div> */}
 
                     {/* Image Status Info - Real-time from Inngest */}
                     {(hasExtractedImages || realTimeStatus?.imageExtractionStatus || parsedItem.imageExtractionStatus) && (
