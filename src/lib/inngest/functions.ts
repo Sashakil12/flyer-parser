@@ -2,7 +2,7 @@ import { inngest } from '../inngest'
 import { updateFlyerImageStatus, updateParsedFlyerItem, addParsedFlyerItem, searchProducts, getActiveAutoApprovalRuleAdmin } from '@/lib/firestore-admin'
 import { parseImageWithGemini } from '@/lib/gemini'
 import { scoreProductMatches } from '@/lib/gemini-product-match'
-import { extractCleanProductImages } from '@/lib/imagen4-advanced'
+import { extractCleanProductImages } from '@/lib/nano-banana-advanced'
 import { optimizeForFlutter, validateImageQuality } from '@/lib/image-optimization'
 import { uploadOptimizedImages } from '@/lib/storage-images'
 import { getImageDataUrl } from '@/lib/storage-admin'
@@ -1206,7 +1206,7 @@ export const extractImagesFunction = inngest.createFunction(
   async ({ event, step }) => {
     const { flyerImageId, storageUrl, parsedItems } = event.data
     
-    console.log('🎨 Starting image extraction', { 
+    console.log('🍌 Starting image extraction with Nano Banana', { 
       flyerImageId,
       itemCount: parsedItems.length 
     })
@@ -1234,7 +1234,7 @@ export const extractImagesFunction = inngest.createFunction(
       return `data:${contentType};base64,${base64}`
     })
     
-    // Step 3: Extract images with AI
+    // Step 3: Extract images with Nano Banana AI
     const extractedImages = await step.run('extract-with-ai', async () => {
       // Transform parsedItems to match ParsedItemWithRegion interface
       const transformedItems = parsedItems.map((item: any) => ({

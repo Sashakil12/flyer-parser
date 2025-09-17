@@ -345,7 +345,7 @@ export interface CleanProductImage {
   productName: string // Added for simplified approach
   imageUrl: string // Changed from extractedImageData to imageUrl
   confidence: number
-  extractionMethod: 'imagen4-direct-creative' | 'imagen4-creative' | 'vision-api' | 'fallback' // Updated method names
+  extractionMethod: 'nano-banana-direct' | 'imagen4-direct-creative' | 'imagen4-creative' | 'vision-api' | 'fallback' // Updated method names
   metadata?: {
     productDetails?: {
       productName: string

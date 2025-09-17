@@ -219,6 +219,7 @@ class Imagen4Service {
         
         console.log(`🔄 Base64 data length: ${cleanBase64.length}`)
         
+        // Use image-to-image with flyer input but force photorealistic output
         const requestBody = {
           instances: [{
             prompt: prompt,
@@ -237,12 +238,14 @@ class Imagen4Service {
         console.log(`🔄 Request body structure:`, {
           instancesCount: requestBody.instances.length,
           promptLength: requestBody.instances[0].prompt.length,
+          mode: 'image-to-image',
           hasImageData: !!requestBody.instances[0].image.bytesBase64Encoded,
-          imageDataLength: requestBody.instances[0].image.bytesBase64Encoded.length
+          imageDataLength: requestBody.instances[0].image.bytesBase64Encoded.length,
+          aspectRatio: requestBody.parameters.aspectRatio
         })
 
         const response = await fetch(
-          `${IMAGEN_ENDPOINT}/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-generate-002:predict`,
+          `${IMAGEN_ENDPOINT}/v1/projects/${PROJECT_ID}/locations/us-central1/publishers/google/models/imagen-3.0-generate-001:predict`,
           {
             method: 'POST',
             headers: {
@@ -722,16 +725,27 @@ The final image should show ONLY the clean product on a white background with no
 
   // Policy-compliant creative prompt for direct generation
 private buildDirectCreativePrompt(item: ParsedItemWithRegion, config: ProductExtractionConfig): string {
-  // Use Google's proven approach: simple, specific photography terms
-  // Build the final prompt using proven Google techniques
-  let finalPrompt = `A studio photo of ${item.productName}, 100mm macro lens, natural lighting, 4K, HDR, high-quality, professional product photography, white background, centered composition, soft shadows, commercial photography`
+  // Visual extraction prompt - focus on what's actually in the image
+  let finalPrompt = `Look at this grocery flyer image and find the product that matches "${item.productName}". Extract ONLY that specific product and clean it up.
+
+VISUAL EXTRACTION TASK:
+1. SCAN the flyer image to locate the product labeled or matching "${item.productName}"
+2. EXTRACT only that specific product from the image
+3. REMOVE all text, price tags, promotional stickers, discount badges
+4. REMOVE the flyer background completely  
+5. PLACE the extracted product on a clean white background
+6. KEEP the exact same product appearance - same colors, same packaging, same shape, same size
+7. DO NOT change the product itself - only remove text and background
+8. DO NOT generate a different product - use exactly what's shown in the flyer
+
+The result should be the SAME EXACT PRODUCT from the flyer but cleaned up for e-commerce use. Professional studio lighting, white background, no text visible.`
   
   // Add alternative product name if available for better recognition
   if (item.productNameMk && item.productNameMk !== item.productName) {
-    finalPrompt += `, also known as ${item.productNameMk}`
+    finalPrompt += `\n- Alternative product name: ${item.productNameMk}`
   }
   
-  console.log(`🎨 Built prompt for ${item.productName}:`, finalPrompt)
+  console.log(`🎨 Built enhanced prompt for ${item.productName}:`, finalPrompt)
   return finalPrompt
 }
 

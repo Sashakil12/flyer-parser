@@ -5,6 +5,7 @@ An AI-powered application that automatically parses and extracts product informa
 ## 🚀 Features
 
 - **AI-Powered Parsing**: Uses Google Gemini Pro for accurate text and price extraction.
+- **AI-Powered Image Extraction**: Uses Google Nano Banana (Gemini 2.5 Flash Image Preview) for clean product image extraction from flyers.
 - **AI-Powered Discount Calculation**: Intelligently calculates discounts from unstructured text (e.g., "30% OFF", "Save $5").
 - **Configurable Auto-Approval**: Define custom, AI-driven rules to automatically approve product matches.
 - **Asynchronous Processing**: Inngest workflows for scalable background processing.
@@ -19,7 +20,7 @@ An AI-powered application that automatically parses and extracts product informa
 
 - **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
 - **Backend**: Firebase (Auth, Firestore, Storage), Inngest
-- **AI**: Google Gemini Pro
+- **AI**: Google Gemini Pro, Google Nano Banana (Gemini 2.5 Flash Image Preview)
 - **Caching**: Redis
 - **UI Components**: Heroicons, React Hot Toast, React Dropzone
 
