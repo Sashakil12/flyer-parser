@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'react-hot-toast'
 import { TagIcon, CheckIcon, PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { 
+  getAutoApprovalRules,
   saveAutoApprovalRule, 
   deleteAutoApprovalRule 
 } from '@/lib/firestore'

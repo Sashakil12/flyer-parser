@@ -299,7 +299,13 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
     
     console.log('🍌 [AddProductModal] Final URL from old structure:', imageUrl)
     return imageUrl || ''
-  }, [realTimeStatus?.extractedImages, parsedItem.extractedImages, selectedImageType])
+  }, [
+    realTimeStatus?.extractedImages, 
+    parsedItem.extractedImages, 
+    selectedImageType, 
+    parsedItem.id, 
+    parsedItem.flyerImageId
+  ])
 
   // Real-time status listener for Inngest function updates
   useEffect(() => {
@@ -372,7 +378,7 @@ export default function AddProductModal({ isOpen, onClose, parsedItem, onSuccess
         })
       }, 100) // Small delay to ensure state updates
     }
-  }, [parsedItem, isOpen])
+  }, [parsedItem, isOpen, getSelectedImageUrl])
 
   const handleImageTypeChange = (type: 'optimized' | 'thumbnail' | 'custom') => {
     console.log('🍌 [AddProductModal] handleImageTypeChange called with type:', type)

@@ -25,9 +25,9 @@ const ITEMS_PER_PAGE_OPTIONS = [
 export default function FlyersPageContent() {
   const [isClient, setIsClient] = useState(false)
   
-  // Only call Firebase hooks after client-side hydration
-  const [user, loading] = isClient ? useAuthState(auth) : [null, true]
-  const { flyerImages: allFlyers, isLoading, error } = isClient ? useRealtimeFlyerImages() : { flyerImages: [], isLoading: true, error: null }
+  // Call hooks unconditionally at the top level
+  const [user, loading] = useAuthState(auth);
+  const { flyerImages: allFlyers, isLoading, error } = useRealtimeFlyerImages();
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(12)
 
