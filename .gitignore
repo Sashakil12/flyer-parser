@@ -41,7 +41,7 @@ next-env.d.ts
 !tsconfig.json
 !next-env.d.ts
 !.eslintrc.json
-
+firebase-service-account.json
 # Logs
 logs
 *.log
