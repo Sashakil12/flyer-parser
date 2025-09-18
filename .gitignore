@@ -34,7 +34,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Firebase
-firebase-service-account.json
+
 *.json
 !package.json
 !package-lock.json
