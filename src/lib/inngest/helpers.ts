@@ -73,8 +73,25 @@ export async function applyDiscount({
           ? Math.round(((originalPrice - newPrice) / originalPrice) * 100)
           : 0;
 
-        // 3. Queue up writes for a product WITH a discount
-        transaction.update(productRef, {
+        // Check for existing discounts
+        if (product.hasActiveDiscount && product.discountPercentage >= discountPercentage) {
+          logger.info('Existing discount is better or the same. No action taken.', {
+            productId,
+            existingDiscount: product.discountPercentage,
+            newDiscount: discountPercentage,
+          });
+          return {
+            success: true,
+            productId,
+            originalPrice,
+            newPrice: product.newPrice,
+            discountPercentage: product.discountPercentage,
+            message: 'Existing discount is better or the same.'
+          };
+        }
+
+        // Prepare the product update object
+        const productUpdateData: any = {
           newPrice: newPrice,
           discountPercentage: discountPercentage,
           hasActiveDiscount: true,
@@ -87,7 +104,18 @@ export async function applyDiscount({
             confidence: matchConfidence,
             calculationDetails: calculationDetails
           }
-        });
+        };
+
+        // Add discount validity dates if they exist on the parsed item
+        if (parsedItem.discountStartDate) {
+          productUpdateData.validFrom = Timestamp.fromDate(new Date(parsedItem.discountStartDate));
+        }
+        if (parsedItem.discountEndDate) {
+          productUpdateData.validTo = Timestamp.fromDate(new Date(parsedItem.discountEndDate));
+        }
+
+        // 3. Queue up writes for a product WITH a discount
+        transaction.update(productRef, productUpdateData);
 
         transaction.update(parsedItemRef, {
           selectedProductId: productId,

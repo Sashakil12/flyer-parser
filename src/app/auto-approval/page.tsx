@@ -293,7 +293,7 @@ export default function AutoApprovalPage() {
                   Auto-Approval Prompt
                 </label>
                 <p className="text-xs text-gray-500 mb-3">
-                  Write your auto-approval logic using field tags. Example: "Auto merge when &#123;name&#125; is 100% match and &#123;albenianname&#125; is 90% match"
+                  Write your auto-approval logic using field tags. Example: "Auto merge when the value in the &#123;name&#125; field is an exact match."
                 </p>
                 <textarea
                   id="promptText"
@@ -303,7 +303,7 @@ export default function AutoApprovalPage() {
                   onClick={handleTextareaClick}
                   onKeyUp={handleTextareaKeyUp}
                   className="input-field font-mono"
-                  placeholder="Auto update products when the &#123;name&#125; field is 100% match, &#123;albenianname&#125; and &#123;description&#125; field is 90% match. Ignore all other fields."
+                  placeholder="Auto approve when the product &#123;name&#125; is an exact match, ignoring case."
                 />
               </div>
 
@@ -312,13 +312,13 @@ export default function AutoApprovalPage() {
                 <h4 className="text-sm font-medium text-blue-900 mb-2">Example Prompts:</h4>
                 <div className="space-y-2 text-xs text-blue-800">
                   <div className="font-mono bg-white p-2 rounded border">
-                    Auto merge when &#123;name&#125; is 100% match and &#123;description&#125; is 90% match
+                    Auto merge when the product &#123;name&#125; is an exact match, ignoring case.
                   </div>
                   <div className="font-mono bg-white p-2 rounded border">
-                    Approve if &#123;name&#125; and &#123;macedonianname&#125; are exact matches, ignore &#123;keywords&#125;
+                    Approve if &#123;name&#125; and &#123;macedonianname&#125; are both exact matches.
                   </div>
                   <div className="font-mono bg-white p-2 rounded border">
-                    Auto approve when &#123;name&#125; is perfect match OR (&#123;albenianname&#125; + &#123;category&#125;) are 95% match
+                    Auto approve if the &#123;category&#125; is 'beverages' and the &#123;superMarketName&#125; is 'RAMSTORE'.
                   </div>
                 </div>
               </div>

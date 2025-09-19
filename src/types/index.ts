@@ -1,5 +1,10 @@
 import { Timestamp } from 'firebase/firestore'
 
+// Type guard to check if an object is a Product
+export function isProduct(obj: any): obj is Product {
+  return obj && typeof obj.productId === 'string' && typeof obj.name === 'string';
+}
+
 // Database Types
 
 // Interface for product matches with relevance scores
@@ -8,31 +13,7 @@ export interface MatchedProduct {
   relevanceScore: number
   matchReason?: string
   matchedAt: Timestamp
-  productData?: {
-    albenianname?: string;
-    albeniannameKeywords?: string[];
-    categoryId?: string;
-    created_at?: number | Timestamp;
-    discountPercentage?: number;
-    englishNameKeywords?: string[];
-    iconPath?: string;
-    iconUrl?: string;
-    imagePath?: string;
-    imageUrl?: string;
-    isDeleted?: boolean;
-    macedonianname?: string;
-    macedoniannameKeywords?: string[];
-    name?: string;
-    newPrice?: string | number;
-    oldPrice?: string | number;
-    productId?: string;
-    productType?: string;
-    superMarketId?: string;
-    superMarketImage?: string;
-    superMarketName?: string;
-    validFrom?: string;
-    validTo?: string;
-  }
+  productData?: Product | { [key: string]: any }
 }
 
 export interface AutoApprovalRule {
@@ -174,6 +155,25 @@ export interface ParsedFlyerItem {
   imageExtractionError?: string
   imageExtractedAt?: Timestamp
   imageQualityScore?: number
+}
+
+export interface Product {
+  id?: string;
+  productId: string;
+  name: string;
+  macedonianname?: string;
+  albenianname?: string;
+  superMarketName?: string;
+  imageUrl?: string;
+  iconUrl?: string;
+  price?: number;
+  oldPrice?: string;
+  newPrice?: string;
+  discountPercentage?: number;
+  hasActiveDiscount?: boolean;
+  discountSource?: any;
+  category?: string;
+  [key: string]: any;
 }
 
 // API Response Types

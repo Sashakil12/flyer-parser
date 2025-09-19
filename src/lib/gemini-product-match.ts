@@ -1,8 +1,90 @@
-import { GoogleGenerativeAI } from '@google/generative-ai'
-import { getActiveAutoApprovalRuleAdmin } from './firestore-admin'
-import { appConfigServer } from './config.server'
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getActiveAutoApprovalRulesAdmin } from './firestore-admin';
+import { appConfigServer } from './config.server';
+import { ParsedFlyerItem, Product, AutoApprovalRule } from '@/types';
 
-const genAI = new GoogleGenerativeAI(appConfigServer.google.apiKey)
+const genAI = new GoogleGenerativeAI(appConfigServer.google.apiKey);
+
+const MULTI_RULE_EVALUATION_PROMPT = `
+You are an AI Retail Promotions Expert. Your task is to decide if a product matched from a flyer should be automatically approved for a discount based on a set of active business rules.
+
+**Flyer Item:**
+- Name: {{flyerProductName}}
+- Name (Macedonian): {{flyerProductNameMk}}
+- Discount Price: {{discountPrice}}
+- Old Price: {{oldPrice}}
+- Additional Info: {{flyerAdditionalInfo}}
+
+**Matched Database Product:**
+- ID: {{productId}}
+- Name: {{productName}}
+- Category: {{productCategory}}
+- Current Price: {{productPrice}}
+
+**Active Auto-Approval Rules:**
+{{activeRules}}
+
+**Your Task:**
+1.  **Analyze:** Carefully evaluate the "Matched Database Product" against each of the "Active Auto-Approval Rules".
+2.  **Interpret "100% Match":** When a rule specifies a "100% match", you must perform a case-insensitive, character-by-character comparison of the product names. If they are not identical, the condition is not met. Variants like 'Color' vs 'Fresh' do not constitute a 100% match.
+3.  **Identify Conflicts:** Determine if there are conflicting outcomes. For example, Rule A might suggest approval, while Rule B suggests rejection.
+4.  **Resolve Conflicts:** If a conflict exists, use your expertise to make a final decision. Prioritize more specific rules over general ones. For instance, a rule for a specific "category" is more important than a general rule about "confidence score".
+5.  **Make a Final Decision:** Provide a single, final decision.
+
+**Output Format (JSON only):**
+Return a single JSON object with your final decision. Do not include any other text or markdown.
+{
+  "shouldAutoApprove": boolean,
+  "reasoning": "Provide a detailed explanation for your decision, especially explaining how you resolved any rule conflicts.",
+  "appliedRuleId": "The ID of the rule that was most influential in your final decision. If no rule was a clear winner, this can be null."
+}
+`;
+
+export async function evaluateBestRuleMatch(
+  parsedItem: ParsedFlyerItem,
+  productMatch: Product,
+  rules: AutoApprovalRule[]
+): Promise<{ shouldAutoApprove: boolean; reasoning: string; appliedRuleId: string | null }> {
+  if (rules.length === 0) {
+    return {
+      shouldAutoApprove: false,
+      reasoning: 'No active auto-approval rules were found.',
+      appliedRuleId: null,
+    };
+  }
+
+  const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
+
+  const prompt = MULTI_RULE_EVALUATION_PROMPT
+    .replace('{{flyerProductName}}', parsedItem.productName || '')
+    .replace('{{flyerProductNameMk}}', parsedItem.productNameMk || '')
+    .replace('{{discountPrice}}', String(parsedItem.discountPrice) || 'N/A')
+    .replace('{{oldPrice}}', String(parsedItem.oldPrice) || 'N/A')
+    .replace('{{flyerAdditionalInfo}}', parsedItem.additionalInfo?.join(', ') || 'N/A')
+    .replace('{{productId}}', productMatch.id)
+    .replace('{{productName}}', productMatch.name)
+    .replace('{{productCategory}}', productMatch.category || 'N/A')
+    .replace('{{productPrice}}', String(productMatch.oldPrice) || 'N/A')
+    .replace('{{activeRules}}', JSON.stringify(rules, null, 2));
+
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    let cleanedText = text
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+    const decision = JSON.parse(cleanedText);
+    return decision;
+  } catch (error) {
+    console.error('Error evaluating best rule match with AI:', error);
+    return {
+      shouldAutoApprove: false,
+      reasoning: 'An error occurred during AI-powered rule evaluation.',
+      appliedRuleId: null,
+    };
+  }
+}
 
 // Prompt template for scoring product relevance
 const PRODUCT_MATCH_PROMPT = `
@@ -24,7 +106,7 @@ SCORING GUIDELINES:
 - 0.3-0.5: Partial match (same category but different products)
 - 0.6-0.7: Good match (likely the same product with some differences)
 - 0.8-0.9: Strong match (almost certainly the same product)
-- 1.0: Perfect match (identical products)
+- 1.0: Perfect match (The product names are identical, case-sensitive, character-for-character)
 
 MATCHING FACTORS (in order of importance):
 1. Product name similarity (accounting for brand, type, variant)
@@ -63,6 +145,7 @@ AUTO-APPROVAL CRITERIA:
 IMPORTANT RULES:
 - Score EACH database product individually based on its match to the flyer product
 - Be conservative - only give high scores (0.8+) for very confident matches
+- CRITICAL: Differences in product variants (e.g., 'Color' vs 'Fresh', 'Universal' vs 'Care') are significant. Do not score them as a perfect match.
 - Consider partial word matches (e.g., "Apple Juice" should match "Organic Apple Juice")
 - Account for common retail variations (sizes, packaging, etc.)
 - CRITICAL: For auto-approval evaluation, be more lenient and set can_auto_merge to true if:
@@ -103,16 +186,11 @@ export async function scoreProductMatches(
 ): Promise<Array<{ productId: string; relevanceScore: number; matchReason: string; can_auto_merge: boolean; autoApprovalReason: string }>> {
   try {
     // Get active auto-approval rule using admin SDK to avoid permission issues
-    const autoApprovalRule = await getActiveAutoApprovalRuleAdmin()
+    const autoApprovalRules = await getActiveAutoApprovalRulesAdmin()
     let autoApprovalCriteria = ''
     
-    if (autoApprovalRule) {
-      autoApprovalCriteria = `Auto-approval rule: "${autoApprovalRule.name}"
-Custom instructions: ${autoApprovalRule.prompt}
-
-Apply these instructions to determine if each product match should have can_auto_merge set to true.
-
-IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably matches the criteria above, set can_auto_merge to true. Be generous with auto-approval for high-confidence matches.`
+    if (autoApprovalRules.length > 0) {
+      autoApprovalCriteria = `There are ${autoApprovalRules.length} active auto-approval rules. The system will use an AI-powered evaluation to determine the best course of action based on these rules.`
     } else {
       autoApprovalCriteria = 'No auto-approval rule is active. Do not suggest auto-approval for any match. Set "can_auto_merge" to false for all products.'
     }
@@ -223,7 +301,7 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
         const score = Math.max(0, Math.min(1, match.relevanceScore))
         
         // Add valid match to our array with auto-approval logic
-        const canAutoMerge = autoApprovalRule ? (match.can_auto_merge === true) : false;
+        const canAutoMerge = autoApprovalRules.length > 0 ? (match.can_auto_merge === true) : false;
         
         validMatches.push({
           productId: match.productId,
@@ -240,7 +318,7 @@ IMPORTANT: If a product has a relevanceScore of 0.7 or higher AND reasonably mat
       const sortedMatches = validMatches.sort((a, b) => b.relevanceScore - a.relevanceScore)
       
       // If no auto-approval rule is active, ensure no matches are marked for auto-approval.
-      if (!autoApprovalRule) {
+      if (autoApprovalRules.length === 0) {
         sortedMatches.forEach(match => {
           match.can_auto_merge = false;
           match.autoApprovalReason = "No active auto-approval rule.";

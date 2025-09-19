@@ -2,6 +2,27 @@ import { adminDb } from './firebase/admin'
 import { FlyerImage, ParsedFlyerItem, AutoApprovalRule } from '@/types'
 import { Timestamp } from 'firebase-admin/firestore'
 
+// Utility function to remove undefined values from objects recursively
+function removeUndefinedValues(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(removeUndefinedValues).filter(item => item !== undefined);
+  }
+  if (typeof obj === 'object' && !(obj instanceof Timestamp)) {
+    const cleaned: any = {};
+    Object.keys(obj).forEach(key => {
+      const value = removeUndefinedValues(obj[key]);
+      if (value !== undefined) {
+        cleaned[key] = value;
+      }
+    });
+    return cleaned;
+  }
+  return obj;
+}
+
 const FLYER_IMAGES_COLLECTION = 'flyer-images'
 const PARSED_FLYER_ITEMS_COLLECTION = 'parsed-flyer-items'
 const AUTO_APPROVAL_RULES_COLLECTION = 'auto-approval-rules'
@@ -178,14 +199,8 @@ export const updateParsedFlyerItem = async (
       throw new Error(`Parsed flyer item ${id} not found`)
     }
     
-    // Clean the data to remove any undefined values
-    const cleanData = Object.entries(data).reduce((acc, [key, value]) => {
-      // Skip undefined values
-      if (value !== undefined) {
-        acc[key] = value;
-      }
-      return acc;
-    }, {} as Record<string, any>);
+    // Deep clean the data to remove any undefined values before sending to Firestore
+    const cleanData = removeUndefinedValues(data);
     
     const updateData = {
       ...cleanData,
@@ -194,16 +209,6 @@ export const updateParsedFlyerItem = async (
     
     // Log the update data structure for debugging
     console.log(`🔍 Update data structure check: ${JSON.stringify(updateData).substring(0, 200)}...`)
-    
-    // Log auto-approval specific updates
-    // if (updateData.autoApproved) {
-    //   console.log(`✨ Auto-approval applied: productId=${updateData.selectedProductId}, reason=${updateData.autoApprovalReason || 'N/A'}`)
-    // }
-    
-    // // Log matchedProducts count if present
-    // if (updateData.matchedProducts) {
-    //   console.log(`📊 Saving ${updateData.matchedProducts.length} matched products to Firestore`)
-    // }
     
     await docRef.update(updateData)
     
@@ -217,33 +222,33 @@ export const updateParsedFlyerItem = async (
 import { productSearchCache } from './cache'
 
 // Auto-Approval Rules Admin Operations
-export const getActiveAutoApprovalRuleAdmin = async (): Promise<AutoApprovalRule | null> => {
+export const getActiveAutoApprovalRulesAdmin = async (): Promise<AutoApprovalRule[]> => {
   try {
-    console.log('🔍 Fetching active auto-approval rule using admin SDK')
-    
-    const querySnapshot = await adminDb.collection(AUTO_APPROVAL_RULES_COLLECTION)
+    console.log('🔍 Fetching all active auto-approval rules using admin SDK');
+
+    const querySnapshot = await adminDb
+      .collection(AUTO_APPROVAL_RULES_COLLECTION)
       .where('isActive', '==', true)
       .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get()
-    
+      .get();
+
     if (querySnapshot.empty) {
-      console.log('⚠️ No active auto-approval rule found')
-      return null
+      console.log('⚠️ No active auto-approval rules found');
+      return [];
     }
-    
-    const doc = querySnapshot.docs[0]
-    console.log(`✅ Found active auto-approval rule: ${doc.id}`)
-    
-    return {
+
+    const rules = querySnapshot.docs.map(doc => ({
       id: doc.id,
-      ...doc.data()
-    } as AutoApprovalRule
+      ...doc.data(),
+    })) as AutoApprovalRule[];
+
+    console.log(`✅ Found ${rules.length} active auto-approval rule(s).`);
+    return rules;
   } catch (error: any) {
-    console.error('❌ Error fetching active auto-approval rule with admin SDK:', error)
-    throw new Error('Failed to fetch active auto-approval rule')
+    console.error('❌ Error fetching active auto-approval rules with admin SDK:', error);
+    throw new Error('Failed to fetch active auto-approval rules');
   }
-}
+};
 
 // Enhanced search for relevant products using all available searchable fields
 export const searchProducts = async (
@@ -255,6 +260,20 @@ export const searchProducts = async (
 ): Promise<Array<{ id: string; [key: string]: any }>> => {
   try {
     console.log(`🔍 Enhanced search for products matching: ${productName}`)
+    
+    // Stage 0: Attempt an exact, case-insensitive match first
+    const productsRef = adminDb.collection('products');
+    const exactMatchQuery = productsRef.where('name', '==', productName);
+    const exactMatchSnapshot = await exactMatchQuery.get();
+
+    if (!exactMatchSnapshot.empty) {
+      const results = exactMatchSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      console.log(`✅ Found ${results.length} exact match(es). Returning immediately.`);
+      return results;
+    }
+
+    console.log(`⚠️ No exact match found. Proceeding to keyword-based search.`);
+    
     console.log(`📊 SEARCH_START - Product matching search initiated with parameters:`, {
       productName,
       productNameMk,
@@ -333,7 +352,6 @@ export const searchProducts = async (
     })
     
     // Search in products collection using multiple searchable fields
-    const productsRef = adminDb.collection('products')
     const results: Array<{ id: string; [key: string]: any }> = []
     const existingIds = new Set<string>()
     
@@ -376,16 +394,17 @@ export const searchProducts = async (
       console.log(`📊 SEARCH_STAGE_RESULTS - ${stageName}: Found ${stageResults} results`)
       
       snapshot.docs.forEach((doc: any) => {
-        // First, ensure we have a valid document ID from Firestore
         const product = doc.data();
-        const productId = (product.productId || doc.id).trim();
+        // CRITICAL FIX: Use product.productId as the ONLY source of truth for the ID.
+        const productId = product.productId ? String(product.productId).trim() : null;
 
-        if (!isValidProductId(productId)) {
-          console.log(`⚠️ ${stageName} - Skipping product with invalid ID: ${productId}`);
+        // If a document from the search doesn't have a productId, it's invalid. Skip it.
+        if (!productId) {
+          console.log(`⚠️ ${stageName} - Skipping product with missing productId field. Document ID: ${doc.id}`);
           return;
         }
 
-        // Standardize the ID field for consistent lookups
+        // Standardize the ID field for consistent lookups. Both id and productId are the same.
         const resultData = { ...product, id: productId, productId: productId };
         
         console.log(`🔍 ${stageName} - Product found: {
@@ -398,7 +417,7 @@ export const searchProducts = async (
         // Check product data consistency but don't skip
         validateProductDataConsistency(product, productName);
         
-        // Add unique results using the standardized, trimmed ID
+        // Add unique results using the canonical productId
         if (!existingIds.has(resultData.id)) {
           existingIds.add(resultData.id);
           results.push({ ...resultData, _matchedVia: stageName });
@@ -536,7 +555,6 @@ export const searchProducts = async (
         
         const supermarketSnapshot = await productsRef
           .where('superMarketName', '>=', keyword)
-          .where('superMarketName', '<=', keyword + '\uf8ff')
           .limit(limit - results.length)
           .get()
         
