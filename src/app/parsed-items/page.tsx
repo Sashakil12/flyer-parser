@@ -21,13 +21,21 @@ export default function ParsedItemsPage() {
   const [filter, setFilter] = useState<FilterStatus>('all')
   const [selectedItemForProduct, setSelectedItemForProduct] = useState<ParsedFlyerItem | null>(null)
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
 
   const autoApprovalStatusFilter = useMemo(() => {
     if (filter === 'success' || filter === 'failed') return filter;
     return undefined;
   }, [filter]);
 
-  const { parsedItems: filteredItems, isLoading } = useRealtimeParsedItems(undefined, autoApprovalStatusFilter)
+  const { parsedItems, isLoading } = useRealtimeParsedItems(undefined, autoApprovalStatusFilter)
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return parsedItems;
+    return parsedItems.filter(item =>
+      item.productName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [parsedItems, searchQuery]);
 
   // Pagination logic
   const totalItems = filteredItems.length
@@ -87,29 +95,42 @@ export default function ParsedItemsPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">All Parsed Products</h1>
+        <h1 className="text-3xl font-bold text-gray-900">Parsed Items</h1>
         <p className="mt-2 text-gray-600">
           Review AI-extracted products and their database matches.
         </p>
       </div>
 
-      {/* Filter Buttons */}
+      {/* Search and Filter Section */}
       <div className="mb-6">
-        <div className="flex items-center space-x-2 border-b border-gray-200 pb-2">
-          <span className="text-sm font-medium text-gray-600">Filter by:</span>
-          {filterButtons.map(({ label, value }) => (
-            <button
-              key={value}
-              onClick={() => handleFilterChange(value)}
-              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                filter === value
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-gray-600 bg-white hover:bg-gray-100'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Search Bar */}
+          <div className="flex-grow">
+            <input
+              type="text"
+              placeholder="Search by product name..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          {/* Filter Buttons */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm font-medium text-gray-600">Filter by:</span>
+            {filterButtons.map(({ label, value }) => (
+              <button
+                key={value}
+                onClick={() => handleFilterChange(value)}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  filter === value
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-gray-600 bg-white hover:bg-gray-100'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -121,10 +142,10 @@ export default function ParsedItemsPage() {
         <div className="text-center py-12">
           <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-semibold text-gray-900">
-            {filter === 'all' ? 'No Parsed Products' : 'No items match this filter'}
+            {searchQuery ? 'No Products Found' : (filter === 'all' ? 'No Parsed Products' : 'No items match this filter')}
           </h3>
           <p className="mt-1 text-sm text-gray-500">
-            {filter === 'all' ? 'Upload a flyer to get started.' : 'Try selecting another filter.'}
+            {searchQuery ? 'Your search did not match any products.' : (filter === 'all' ? 'Upload a flyer to get started.' : 'Try selecting another filter.')}
           </p>
         </div>
       ) : (
