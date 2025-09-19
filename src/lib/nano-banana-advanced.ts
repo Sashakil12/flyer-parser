@@ -49,7 +49,7 @@ CRITICAL REQUIREMENTS:
 7. ADD professional studio lighting with subtle shadows
 8. CENTER the product in the frame
 9. ENSURE the result looks like a professional e-commerce product photo
-
+10. Ensure product labels are preserved.
 WHAT TO REMOVE:
 - Price tags, discount percentages (e.g., "50% OFF", "$19.99", "SALE")
 - Store logos, brand watermarks, promotional badges
@@ -66,7 +66,7 @@ FINAL OUTPUT REQUIREMENTS:
 - High quality and sharp details
 - Suitable for online store catalog
 - Commercial photography quality
-
+- Product appearance in the generated image should be the same as the flyer.
 The result should look like a professional product photo taken in a studio, not a cropped section of a flyer.
 `
 
@@ -417,13 +417,9 @@ class NanoBananaService {
     console.log('🍌 Removing promotional elements and text with Nano Banana...')
     
     try {
-      const enhancedPrompt = `
-${TEXT_REMOVAL_PROMPT}
-
-SPECIFIC ELEMENTS TO REMOVE: ${elementsToRemove.join(', ')}
-
-The final image should show ONLY the clean product on a white background with no textual information visible.
-`
+      const enhancedPrompt = `${TEXT_REMOVAL_PROMPT} SPECIFIC ELEMENTS TO REMOVE: ${elementsToRemove.join(', ')}
+      The final image should show ONLY the clean product on a white background with no textual information visible.
+      `
       
       const result = await this.callNanoBananaAPI(enhancedPrompt, imageData, 'text-removal')
       
@@ -629,7 +625,6 @@ export async function extractCleanProductImages(
   console.log(`   ✅ Successful: ${successfulImages.length}`)
   console.log(`   ❌ Failed: ${failedImages.length}`)
   console.log(`   📊 Success Rate: ${((successfulImages.length / cleanImages.length) * 100).toFixed(1)}%`)
-  
   if (failedImages.length > 0) {
     console.log(`⚠️ Failed items:`, failedImages.map(img => img.productName))
   }
