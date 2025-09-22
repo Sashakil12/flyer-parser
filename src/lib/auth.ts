@@ -35,6 +35,7 @@ export const signIn = async (email: string, password: string): Promise<User> => 
 export const signOut = async (): Promise<void> => {
   try {
     await firebaseSignOut(auth)
+    console.log('User successfully signed out')
   } catch (error: any) {
     console.error('Sign out error:', error)
     throw new Error('Failed to sign out')

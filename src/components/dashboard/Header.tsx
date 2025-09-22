@@ -36,6 +36,8 @@ export default function Header({ user }: HeaderProps) {
       setIsSigningOut(true)
       await signOut()
       toast.success('Successfully signed out')
+      // Redirect to login page after successful logout
+      router.push('/')
     } catch (error: any) {
       toast.error('Failed to sign out')
     } finally {
