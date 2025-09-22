@@ -23,30 +23,35 @@ export default function ProductMatchesPanel({ parsedItem, onProductSelected }: P
   const hasMatches = parsedItem.matchedProducts && parsedItem.matchedProducts.length > 0
   const matchCount = parsedItem.matchedProducts?.length || 0
 
-  const handleSearch = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!searchQuery.trim()) return
+  useEffect(() => {
+    const timerId = setTimeout(async () => {
+      if (searchQuery.trim() === '') {
+        setSearchResults([])
+        return
+      }
 
-    setIsSearching(true)
-    setSearchResults([])
-    setShowNoResults(false)
-    try {
-      const response = await fetch(`/api/products/search?q=${encodeURIComponent(searchQuery)}`)
-      const result = await response.json()
-      if (!response.ok) {
-        throw new Error(result.error || 'Search failed')
+      setIsSearching(true)
+      setShowNoResults(false)
+      try {
+        const response = await fetch(`/api/products/search?q=${encodeURIComponent(searchQuery)}`)
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || 'Search failed')
+        }
+        setSearchResults(result.data)
+        if (result.data.length === 0) {
+          setShowNoResults(true)
+          setTimeout(() => setShowNoResults(false), 10000)
+        }
+      } catch (error: any) {
+        toast.error(`Search failed: ${error.message}`)
+      } finally {
+        setIsSearching(false)
       }
-      setSearchResults(result.data)
-      if (result.data.length === 0) {
-        setShowNoResults(true)
-        setTimeout(() => setShowNoResults(false), 10000)
-      }
-    } catch (error: any) {
-      toast.error(`Search failed: ${error.message}`)
-    } finally {
-      setIsSearching(false)
-    }
-  }
+    }, 300) // 300ms debounce delay
+
+    return () => clearTimeout(timerId)
+  }, [searchQuery])
 
   const handleApplyDiscount = async (productId: string) => {
     if (!parsedItem.discountPrice || !parsedItem.oldPrice) {
@@ -214,7 +219,7 @@ export default function ProductMatchesPanel({ parsedItem, onProductSelected }: P
                 </div>
               )}
               <div className="mb-4">
-                <form onSubmit={handleSearch} className="flex items-center space-x-2">
+                <form onSubmit={(e) => e.preventDefault()} className="flex items-center space-x-2">
                   <input
                     type="text"
                     value={searchQuery}
@@ -223,13 +228,11 @@ export default function ProductMatchesPanel({ parsedItem, onProductSelected }: P
                       setShowNoResults(false)
                     }}
                     placeholder="Search for a product by name..."
-                    className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100"
-                    disabled={isSearching}
+                    className="flex-grow p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   />
                   <button
                     type="submit"
-                    disabled={isSearching}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-gray-400"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
                     {isSearching ? 'Searching...' : <><MagnifyingGlassIcon className="h-5 w-5 mr-2" />Search</>}
                   </button>
@@ -244,7 +247,7 @@ export default function ProductMatchesPanel({ parsedItem, onProductSelected }: P
             {searchResults.length > 0 && (
               <div className="p-4 bg-gray-50 rounded-md">
                 <h4 className="font-semibold mb-2">Search Results</h4>
-                <div className="space-y-4">
+                <div className="space-y-4 h-[400px] overflow-y-auto">
                   {searchResults.map(product => renderProductCard(product))}
                 </div>
               </div>
